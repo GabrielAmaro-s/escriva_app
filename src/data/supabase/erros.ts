@@ -1,5 +1,5 @@
 import { MENSAGEM_CLIENTE_DUPLICADO } from "@/domain/cliente";
-import { ErroDeConflito } from "@/domain/erros";
+import { ErroDeConflito, ErroDeValidacao } from "@/domain/erros";
 import { MENSAGEM_FERIADO_DUPLICADO } from "@/domain/prazos";
 import { MENSAGEM_PROCESSO_DUPLICADO } from "@/domain/processo";
 
@@ -19,6 +19,9 @@ export function traduzirErroDoBanco(erro: ErroDoBanco): Error {
   if (erro.code === "23505") {
     for (const [indice, mensagem] of Object.entries(DUPLICADOS)) if (texto.includes(indice)) return new ErroDeConflito(mensagem);
   }
+  // Checks de tasks da 0005: campos que não combinam com o tipo da tarefa.
+  if (erro.code === "23514" && texto.includes("tasks_prazo_fatal_so_em_prazo")) return new ErroDeValidacao("Só tarefas do tipo prazo têm prazo fatal.");
+  if (erro.code === "23514" && texto.includes("tasks_audiencia_so_em_audiencia")) return new ErroDeValidacao("Local e horário só valem para audiência.");
   // Chave composta (cliente_id, user_id): o cliente não existe ou é de outra conta.
   if (erro.code === "23503" && texto.includes("projects_cliente_fk")) return new Error("Cliente não encontrado.");
   return new Error(erro.message);

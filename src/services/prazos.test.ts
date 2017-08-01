@@ -5,6 +5,7 @@ import { ErroDeConflito, ErroDeValidacao } from "@/domain/erros";
 import { detalhesProcessoVazios } from "@/domain/processo";
 import { dadosProjetoVazios } from "@/domain/projeto";
 import type { AlteracaoTarefa, Tarefa } from "@/domain/tipos";
+import { aplicarDesfazer } from "./desfazer";
 import { lembretesProximos } from "./lembretes";
 import {
   alteracaoDePrazo,
@@ -211,5 +212,27 @@ describe("feriados locais e preferências", () => {
     await expect(salvarPreferencias(repo, { margemPrazoInterno: 31 })).rejects.toBeInstanceOf(ErroDeValidacao);
     await expect(salvarPreferencias(repo, { margemPrazoInterno: 1.5 })).rejects.toBeInstanceOf(ErroDeValidacao);
     expect(await salvarPreferencias(repo, { margemPrazoInterno: 0 })).toEqual({ margemPrazoInterno: 0 });
+  });
+});
+
+describe("desfazer do agente", () => {
+  it("recriar uma tarefa de prazo excluída traz o prazo fatal, a contagem e os lembretes automáticos", async () => {
+    const { repo, tarefa } = await cenario();
+    const t = await virarPrazo(repo, tarefa);
+    await repo.excluirTarefa(t.id);
+    await aplicarDesfazer(repo, { tipo: "recriar_tarefa", tarefa: t }, ctx("2026-11-10T12:00:00Z"));
+    const [recriada] = (await repo.obterEspacoDeTrabalho()).tarefas;
+    expect(recriada).toMatchObject({ tipo: "prazo", prazoFatal: "2026-12-02", dueOn: "2026-11-30", contagem: { vencimento: "2026-12-02" } });
+    expect((await ativos(repo, recriada.id)).map((l) => l.automatico)).toEqual(["d-3", "d-1", "dia"]);
+  });
+
+  it("desfazer uma conclusão do agente recria os lembretes", async () => {
+    const { repo, tarefa } = await cenario();
+    const t = await virarPrazo(repo, tarefa);
+    await repo.atualizarTarefa(t.id, { completed: true, completedAt: "2026-11-11T12:00:00Z" });
+    await lembretesProximos(repo, 24 * 30, new Date("2026-11-11T13:00:00Z")); // cancela os automáticos
+    expect(await ativos(repo, t.id)).toEqual([]);
+    await aplicarDesfazer(repo, { tipo: "restaurar_tarefas", tarefas: [{ id: t.id, alteracao: { completed: false, completedAt: null } }] }, ctx("2026-11-11T13:00:00Z"));
+    expect((await ativos(repo, t.id)).map((l) => l.automatico)).toEqual(["d-3", "d-1", "dia"]);
   });
 });
