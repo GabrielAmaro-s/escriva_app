@@ -19,6 +19,7 @@ import { useMemo, useState } from "react";
 import { useMenuDeContexto, type ItemMenu } from "@/components/ui/menu-contexto";
 import { posicaoEntre, tarefasDaColuna } from "@/domain/quadro";
 import type { Coluna, Tarefa } from "@/domain/tipos";
+import { useLembretes } from "@/hooks/use-lembretes";
 import type { ApiTarefas } from "@/hooks/use-tarefas";
 import { ColunaQuadro } from "./coluna-quadro";
 import { CartaoTarefa } from "./cartao-tarefa";
@@ -40,6 +41,7 @@ export function QuadroKanban({
 }) {
   const { tarefas, etiquetasPorId } = api;
   const abrirMenu = useMenuDeContexto();
+  const { tarefasComLembrete } = useLembretes();
   const [ativoId, setAtivoId] = useState<string | null>(null);
   const [itensArrastando, setItensArrastando] = useState<Itens | null>(null);
 
@@ -148,6 +150,7 @@ export function QuadroKanban({
             coluna={coluna}
             tarefas={(itens[coluna.id] ?? []).map((tid) => tarefaPorId.get(tid)!).filter(Boolean)}
             etiquetasPorId={etiquetasPorId}
+            tarefasComLembrete={tarefasComLembrete}
             arrastando={Boolean(ativoId)}
             adicionando={adicionando === coluna.id}
             aoComecarAAdicionar={() => definirAdicionando(coluna.id)}
@@ -159,7 +162,7 @@ export function QuadroKanban({
         ))}
       </div>
       <DragOverlay dropAnimation={{ duration: 180, easing: "cubic-bezier(0.2, 0.9, 0.3, 1)" }}>
-        {ativa ? <CartaoTarefa tarefa={ativa} etiquetasPorId={etiquetasPorId} sobreposto /> : null}
+        {ativa ? <CartaoTarefa tarefa={ativa} etiquetasPorId={etiquetasPorId} temLembrete={tarefasComLembrete.has(ativa.id)} sobreposto /> : null}
       </DragOverlay>
     </DndContext>
   );

@@ -1,20 +1,28 @@
 import type {
+  AlteracaoLembrete,
   AlteracaoTarefa,
   DadosNovaColuna,
   DadosNovaTarefa,
+  DadosNovoLembrete,
+  DadosNovoRegistro,
+  DadosNovoToken,
   DadosProjeto,
   EspacoDeTrabalho,
   Etiqueta,
+  FiltroLembretes,
+  Lembrete,
   Projeto,
   Quadro,
+  RegistroAgente,
   Tarefa,
+  TokenAgente,
   Tom,
 } from "@/domain/tipos";
 
 /**
- * Contrato único de acesso aos dados.
+ * Contrato único de acesso aos dados de uma pessoa.
  * A interface não sabe se os dados vêm do Supabase, da API ou do navegador,
- * e é por aqui que o agente também opera.
+ * e é por aqui que o agente também opera (com criarRepositorioDoAgente).
  */
 export interface Repositorio {
   readonly modo: "supabase" | "local" | "http";
@@ -34,4 +42,23 @@ export interface Repositorio {
 
   criarEtiqueta(projetoId: string, nome: string, cor: Tom): Promise<Etiqueta>;
   excluirEtiqueta(id: string): Promise<void>;
+
+  // Lembretes
+  listarLembretes(filtro?: FiltroLembretes): Promise<Lembrete[]>;
+  criarLembrete(dados: DadosNovoLembrete): Promise<Lembrete>;
+  atualizarLembrete(id: string, alteracao: AlteracaoLembrete): Promise<Lembrete>;
+  excluirLembrete(id: string): Promise<void>;
+
+  // Tokens do agente (o hash é calculado no servidor, em services/tokens.ts)
+  listarTokensAgente(): Promise<TokenAgente[]>;
+  criarTokenAgente(dados: DadosNovoToken): Promise<TokenAgente>;
+  atualizarTokenAgente(id: string, alteracao: { revogadoEm?: string; ultimoUsoEm?: string }): Promise<void>;
+
+  // Registro do que o agente fez e último sinal de vida
+  listarRegistroAgente(limite: number): Promise<RegistroAgente[]>;
+  obterRegistroAgente(id: string): Promise<RegistroAgente | null>;
+  registrarAtividadeAgente(dados: DadosNovoRegistro): Promise<RegistroAgente>;
+  marcarRegistroDesfeito(id: string, quando: string): Promise<void>;
+  obterHeartbeatAgente(): Promise<string | null>;
+  registrarHeartbeatAgente(quando: string): Promise<void>;
 }

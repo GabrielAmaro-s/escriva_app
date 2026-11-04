@@ -9,6 +9,7 @@ import { obterSupabaseNavegador, supabaseConfigurado } from "@/data/supabase/cli
 import { CORES_DESTAQUE, aplicarCorDestaque, lerCorDestaque } from "@/lib/aparencia";
 import { classes } from "@/lib/classes";
 import { LinhaConfiguracao } from "./linha-configuracao";
+import { SecaoAgente } from "./secao-agente";
 import { SecaoDados } from "./secao-dados";
 
 export function TelaConfiguracoes() {
@@ -25,7 +26,7 @@ export function TelaConfiguracoes() {
 
   return (
     <Pagina largura={680}>
-      <CabecalhoPagina titulo="Configurações" descricao="Ajuste a aparência do myPlan." />
+      <CabecalhoPagina titulo="Configurações" descricao="Ajuste a aparência, seus dados e o agente do myPlan." />
       <div className="mt-6 rounded-[14px] border border-line bg-surface px-[18px]">
         <LinhaConfiguracao titulo="Modo escuro" dica="Reduz o brilho da interface.">
           <button
@@ -81,6 +82,7 @@ export function TelaConfiguracoes() {
         )}
       </div>
       <SecaoDados />
+      <SecaoAgente />
       {!supabaseConfigurado && (
         <p className="mt-4 text-[12.5px] text-ink3">
           Modo local: seus dados ficam salvos só neste navegador. Conecte o Supabase para sincronizar entre dispositivos.

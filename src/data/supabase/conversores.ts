@@ -1,5 +1,5 @@
 import { ehIconeProjeto, ehTom } from "@/domain/projeto";
-import type { AlteracaoTarefa, Coluna, DadosProjeto, DetalhesCampanha, Etiqueta, Projeto, Tarefa } from "@/domain/tipos";
+import type { AlteracaoLembrete, AlteracaoTarefa, Coluna, DadosProjeto, DetalhesCampanha, Etiqueta, Lembrete, Projeto, RegistroAgente, Tarefa, TokenAgente } from "@/domain/tipos";
 
 // Conversão entre linhas do banco (snake_case) e objetos de domínio.
 
@@ -159,3 +159,87 @@ export function deAlteracaoTarefa(alteracao: AlteracaoTarefa) {
   }
   return linha;
 }
+
+// Tabelas novas (lembretes e agente) --------------------------------------------
+
+export type LinhaLembrete = {
+  id: string;
+  tarefa_id: string | null;
+  projeto_id: string | null;
+  texto: string;
+  quando: string;
+  status: Lembrete["status"];
+  origem: Lembrete["origem"];
+  agendado_em: string | null;
+  enviado_em: string | null;
+  criado_em: string;
+};
+
+export const paraLembrete = (l: LinhaLembrete): Lembrete => ({
+  id: l.id,
+  tarefaId: l.tarefa_id,
+  projetoId: l.projeto_id,
+  texto: l.texto,
+  quando: new Date(l.quando).toISOString(),
+  status: l.status,
+  origem: l.origem,
+  agendadoEm: l.agendado_em,
+  enviadoEm: l.enviado_em,
+  criadoEm: l.criado_em,
+});
+
+export function deAlteracaoLembrete(a: AlteracaoLembrete) {
+  const linha: Record<string, unknown> = {};
+  if (a.texto !== undefined) linha.texto = a.texto;
+  if (a.quando !== undefined) linha.quando = a.quando;
+  if (a.status !== undefined) linha.status = a.status;
+  if (a.agendadoEm !== undefined) linha.agendado_em = a.agendadoEm;
+  if (a.enviadoEm !== undefined) linha.enviado_em = a.enviadoEm;
+  return linha;
+}
+
+export type LinhaToken = {
+  id: string;
+  nome: string;
+  escopo: TokenAgente["escopo"];
+  expira_em: string;
+  ultimo_uso_em: string | null;
+  revogado_em: string | null;
+  criado_em: string;
+};
+
+export const COLUNAS_TOKEN = "id, nome, escopo, expira_em, ultimo_uso_em, revogado_em, criado_em";
+
+export const paraToken = (l: LinhaToken): TokenAgente => ({
+  id: l.id,
+  nome: l.nome,
+  escopo: l.escopo,
+  expiraEm: l.expira_em,
+  ultimoUsoEm: l.ultimo_uso_em,
+  revogadoEm: l.revogado_em,
+  criadoEm: l.criado_em,
+});
+
+export type LinhaRegistro = {
+  id: string;
+  token_id: string | null;
+  ferramenta: string;
+  entrada: unknown;
+  resultado: unknown;
+  sucesso: boolean;
+  desfazer: RegistroAgente["desfazer"];
+  desfeito_em: string | null;
+  criado_em: string;
+};
+
+export const paraRegistro = (l: LinhaRegistro): RegistroAgente => ({
+  id: l.id,
+  tokenId: l.token_id,
+  ferramenta: l.ferramenta,
+  entrada: l.entrada,
+  resultado: l.resultado,
+  sucesso: l.sucesso,
+  desfazer: l.desfazer,
+  desfeitoEm: l.desfeito_em,
+  criadoEm: l.criado_em,
+});

@@ -19,11 +19,13 @@ const FUNDO_DA_COLUNA: Record<TipoColuna, string> = {
 function TarefaArrastavel({
   tarefa,
   etiquetasPorId,
+  temLembrete,
   aoAbrir,
   aoAbrirMenu,
 }: {
   tarefa: Tarefa;
   etiquetasPorId: Map<string, Etiqueta>;
+  temLembrete: boolean;
   aoAbrir: () => void;
   aoAbrirMenu: (e: React.MouseEvent) => void;
 }) {
@@ -34,6 +36,7 @@ function TarefaArrastavel({
         ref={setNodeRef}
         tarefa={tarefa}
         etiquetasPorId={etiquetasPorId}
+        temLembrete={temLembrete}
         arrastando={isDragging}
         aoAbrirMenu={aoAbrirMenu}
         style={{ transform: CSS.Translate.toString(transform), transition }}
@@ -56,6 +59,7 @@ export function ColunaQuadro({
   coluna,
   tarefas,
   etiquetasPorId,
+  tarefasComLembrete,
   arrastando,
   adicionando,
   aoComecarAAdicionar,
@@ -67,6 +71,7 @@ export function ColunaQuadro({
   coluna: Coluna;
   tarefas: Tarefa[];
   etiquetasPorId: Map<string, Etiqueta>;
+  tarefasComLembrete: Set<string>;
   arrastando: boolean;
   adicionando: boolean;
   aoComecarAAdicionar: () => void;
@@ -110,6 +115,7 @@ export function ColunaQuadro({
               key={t.id}
               tarefa={t}
               etiquetasPorId={etiquetasPorId}
+              temLembrete={tarefasComLembrete.has(t.id)}
               aoAbrir={() => aoAbrirTarefa(t.id)}
               aoAbrirMenu={(e) => aoAbrirMenuTarefa(t, e)}
             />

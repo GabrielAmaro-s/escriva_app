@@ -129,3 +129,78 @@ export interface EspacoDeTrabalho {
   tarefas: Tarefa[];
   etiquetas: Etiqueta[];
 }
+
+// Lembretes e agente --------------------------------------------------------------
+// Tabelas novas: os campos seguem o português das colunas (em camelCase).
+
+export type StatusLembrete = "pendente" | "agendado" | "enviado" | "cancelado";
+export type OrigemLembrete = "app" | "agente";
+
+export interface Lembrete {
+  id: string;
+  tarefaId: string | null;
+  projetoId: string | null;
+  texto: string;
+  /** Instante em ISO 8601 (UTC). */
+  quando: string;
+  status: StatusLembrete;
+  origem: OrigemLembrete;
+  agendadoEm: string | null;
+  enviadoEm: string | null;
+  criadoEm: string;
+}
+
+export type DadosNovoLembrete = Pick<Lembrete, "texto" | "quando"> & Partial<Pick<Lembrete, "tarefaId" | "projetoId" | "origem">>;
+
+export type AlteracaoLembrete = Partial<Pick<Lembrete, "texto" | "quando" | "status" | "agendadoEm" | "enviadoEm">>;
+
+export interface FiltroLembretes {
+  status?: StatusLembrete[];
+  tarefaId?: string;
+  /** Só lembretes com `quando` até este instante (ISO). */
+  ate?: string;
+}
+
+export type EscopoToken = "leitura" | "escrita";
+
+/** Token do agente como a interface enxerga: sem o hash. */
+export interface TokenAgente {
+  id: string;
+  nome: string;
+  escopo: EscopoToken;
+  expiraEm: string;
+  ultimoUsoEm: string | null;
+  revogadoEm: string | null;
+  criadoEm: string;
+}
+
+export interface DadosNovoToken {
+  nome: string;
+  escopo: EscopoToken;
+  hash: string;
+  expiraEm: string;
+}
+
+/** Instrução para reverter o que uma ferramenta do agente fez. */
+export type Desfazer =
+  | { tipo: "excluir_tarefas"; ids: string[] }
+  | { tipo: "restaurar_tarefas"; tarefas: { id: string; alteracao: AlteracaoTarefa }[] }
+  | { tipo: "recriar_tarefa"; tarefa: Tarefa }
+  | { tipo: "excluir_lembretes"; ids: string[] }
+  | { tipo: "restaurar_lembrete"; id: string; alteracao: AlteracaoLembrete }
+  | { tipo: "recriar_lembrete"; lembrete: Lembrete }
+  | { tipo: "excluir_projeto"; id: string };
+
+export interface RegistroAgente {
+  id: string;
+  tokenId: string | null;
+  ferramenta: string;
+  entrada: unknown;
+  resultado: unknown;
+  sucesso: boolean;
+  desfazer: Desfazer | null;
+  desfeitoEm: string | null;
+  criadoEm: string;
+}
+
+export type DadosNovoRegistro = Pick<RegistroAgente, "tokenId" | "ferramenta" | "entrada" | "resultado" | "sucesso" | "desfazer">;

@@ -9,8 +9,10 @@ import { Selecao, classeControle } from "@/components/ui/campo";
 import { Janela } from "@/components/ui/janela";
 import { COR_MARCADOR_COLUNA, COR_PRIORIDADE, PRIORIDADES, ROTULO_PRIORIDADE, alteracaoAoMudarColuna, novoId, proximaPosicaoNaColuna } from "@/domain/quadro";
 import type { LinkTarefa, PrioridadeTarefa, Projeto } from "@/domain/tipos";
+import { useLembretes } from "@/hooks/use-lembretes";
 import type { ApiTarefas } from "@/hooks/use-tarefas";
 import { useUsuarioAtual } from "@/hooks/use-usuario-atual";
+import { paraCampoDataHora } from "@/domain/datas";
 import { classes } from "@/lib/classes";
 
 const NOVA_ETIQUETA = "__nova__";
@@ -64,6 +66,8 @@ export function JanelaTarefa({
   const tarefa = api.tarefas.find((t) => t.id === tarefaId) ?? null;
   const abrirMenu = useMenuDeContexto();
   const usuario = useUsuarioAtual();
+  const lembretes = useLembretes();
+  const [lembrete, setLembrete] = useState("");
   const [titulo, setTitulo] = useState("");
   const [descricao, setDescricao] = useState("");
   const [novoItem, setNovoItem] = useState("");
@@ -80,6 +84,12 @@ export function JanelaTarefa({
     // só ao trocar de tarefa, para não sobrescrever o que está sendo digitado
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tarefa?.id]);
+
+  // O campo de lembrete acompanha o lembrete salvo (também quando ele carrega depois da janela abrir).
+  const quandoSalvo = tarefa ? lembretes.lembreteDaTarefa(tarefa.id)?.quando : undefined;
+  useEffect(() => {
+    setLembrete(quandoSalvo ? paraCampoDataHora(quandoSalvo) : "");
+  }, [tarefa?.id, quandoSalvo]);
 
   if (!tarefa) return null;
 
@@ -100,9 +110,17 @@ export function JanelaTarefa({
     const limpo = descricao.trim() || null;
     if (limpo !== tarefa.description) api.atualizarTarefa(tarefa.id, { description: limpo });
   };
+  const lembreteAtual = lembretes.lembreteDaTarefa(tarefa.id);
+  const confirmarLembrete = () => {
+    const anterior = lembreteAtual ? paraCampoDataHora(lembreteAtual.quando) : "";
+    if (lembrete === anterior) return;
+    // O campo datetime-local vem no fuso do aparelho; o Date converte para UTC.
+    lembretes.definirLembreteDaTarefa(tarefa, lembrete ? new Date(lembrete).toISOString() : null);
+  };
   const fechar = () => {
     confirmarTitulo();
     confirmarDescricao();
+    confirmarLembrete();
     aoFechar();
   };
 
@@ -342,6 +360,17 @@ export function JanelaTarefa({
               aria-label="Data de entrega"
               value={tarefa.dueOn ?? ""}
               onChange={(e) => api.atualizarTarefa(tarefa.id, { dueOn: e.target.value || null })}
+              className={classes(classeControle, "h-9 rounded-[9px] px-2.5 text-[13px]")}
+            />
+          </Secao>
+
+          <Secao titulo="Lembrete">
+            <input
+              type="datetime-local"
+              aria-label="Lembrete"
+              value={lembrete}
+              onChange={(e) => setLembrete(e.target.value)}
+              onBlur={confirmarLembrete}
               className={classes(classeControle, "h-9 rounded-[9px] px-2.5 text-[13px]")}
             />
           </Secao>

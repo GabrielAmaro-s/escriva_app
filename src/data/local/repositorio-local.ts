@@ -1,7 +1,15 @@
 import { novoId, posicaoEntre } from "@/domain/quadro";
 import type {
+  AlteracaoLembrete,
   AlteracaoTarefa,
   Coluna,
+  DadosNovoLembrete,
+  DadosNovoRegistro,
+  DadosNovoToken,
+  FiltroLembretes,
+  Lembrete,
+  RegistroAgente,
+  TokenAgente,
   DadosNovaColuna,
   DadosNovaTarefa,
   DadosProjeto,
@@ -31,6 +39,11 @@ export interface ArmazenamentoLocal {
   columns: Coluna[];
   labels: Etiqueta[];
   tasks: Tarefa[];
+  // Campos novos (opcionais para continuar lendo o que já estava salvo)
+  lembretes?: Lembrete[];
+  tokens?: (TokenAgente & { hash: string })[];
+  registro?: RegistroAgente[];
+  heartbeat?: string | null;
 }
 
 export function armazenamentoVazio(): ArmazenamentoLocal {
@@ -167,6 +180,7 @@ export function criarRepositorioLocal(opcoes: OpcoesRepositorioLocal = {}): Repo
       s.columns = s.columns.filter((c) => c.projectId !== id);
       s.labels = s.labels.filter((l) => l.projectId !== id);
       s.tasks = s.tasks.filter((t) => t.projectId !== id);
+      s.lembretes = (s.lembretes ?? []).filter((l) => l.projetoId !== id);
       delete s.campaigns[id];
       gravar();
     },
@@ -226,6 +240,7 @@ export function criarRepositorioLocal(opcoes: OpcoesRepositorioLocal = {}): Repo
     async excluirTarefa(id) {
       const s = banco();
       s.tasks = s.tasks.filter((t) => t.id !== id);
+      s.lembretes = (s.lembretes ?? []).filter((l) => l.tarefaId !== id);
       gravar();
     },
 
@@ -241,6 +256,100 @@ export function criarRepositorioLocal(opcoes: OpcoesRepositorioLocal = {}): Repo
       const s = banco();
       s.labels = s.labels.filter((l) => l.id !== id);
       s.tasks.forEach((t) => (t.labelIds = t.labelIds.filter((l) => l !== id)));
+      gravar();
+    },
+
+    async listarLembretes(filtro: FiltroLembretes = {}) {
+      const lista = (banco().lembretes ?? []).filter(
+        (l) =>
+          (!filtro.status || filtro.status.includes(l.status)) &&
+          (!filtro.tarefaId || l.tarefaId === filtro.tarefaId) &&
+          (!filtro.ate || l.quando <= filtro.ate),
+      );
+      return structuredClone([...lista].sort((a, b) => a.quando.localeCompare(b.quando)));
+    },
+
+    async criarLembrete(entrada: DadosNovoLembrete) {
+      const s = banco();
+      const lembrete: Lembrete = {
+        id: novoId(),
+        tarefaId: entrada.tarefaId ?? null,
+        projetoId: entrada.projetoId ?? null,
+        texto: entrada.texto,
+        quando: entrada.quando,
+        status: "pendente",
+        origem: entrada.origem ?? "app",
+        agendadoEm: null,
+        enviadoEm: null,
+        criadoEm: agora(),
+      };
+      (s.lembretes ??= []).push(lembrete);
+      gravar();
+      return structuredClone(lembrete);
+    },
+
+    async atualizarLembrete(id, alteracao: AlteracaoLembrete) {
+      const l = (banco().lembretes ?? []).find((x) => x.id === id);
+      if (!l) throw new Error("Lembrete não encontrado.");
+      Object.assign(l, alteracao);
+      gravar();
+      return structuredClone(l);
+    },
+
+    async excluirLembrete(id) {
+      const s = banco();
+      s.lembretes = (s.lembretes ?? []).filter((l) => l.id !== id);
+      gravar();
+    },
+
+    async listarTokensAgente() {
+      return structuredClone((banco().tokens ?? []).map(({ hash: _h, ...t }) => t)).sort((a, b) => b.criadoEm.localeCompare(a.criadoEm));
+    },
+
+    async criarTokenAgente(entrada: DadosNovoToken) {
+      const s = banco();
+      const token = { id: novoId(), ...entrada, ultimoUsoEm: null, revogadoEm: null, criadoEm: agora() };
+      (s.tokens ??= []).push(token);
+      gravar();
+      const { hash: _h, ...publico } = token;
+      return structuredClone(publico);
+    },
+
+    async atualizarTokenAgente(id, alteracao) {
+      const t = (banco().tokens ?? []).find((x) => x.id === id);
+      if (!t) throw new Error("Token não encontrado.");
+      Object.assign(t, alteracao);
+      gravar();
+    },
+
+    async listarRegistroAgente(limite) {
+      return structuredClone([...(banco().registro ?? [])].sort((a, b) => b.criadoEm.localeCompare(a.criadoEm)).slice(0, limite));
+    },
+
+    async obterRegistroAgente(id) {
+      return structuredClone((banco().registro ?? []).find((r) => r.id === id) ?? null);
+    },
+
+    async registrarAtividadeAgente(entrada: DadosNovoRegistro) {
+      const s = banco();
+      const linha: RegistroAgente = { id: novoId(), ...structuredClone(entrada), desfeitoEm: null, criadoEm: agora() };
+      (s.registro ??= []).push(linha);
+      gravar();
+      return structuredClone(linha);
+    },
+
+    async marcarRegistroDesfeito(id, quando) {
+      const r = (banco().registro ?? []).find((x) => x.id === id);
+      if (r) r.desfeitoEm = quando;
+      gravar();
+    },
+
+    async obterHeartbeatAgente() {
+      return banco().heartbeat ?? null;
+    },
+
+    async registrarHeartbeatAgente(quando) {
+      banco().heartbeat = quando;
       gravar();
     },
   };

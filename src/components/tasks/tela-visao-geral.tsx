@@ -3,9 +3,11 @@
 import { useMemo, useState } from "react";
 import { CabecalhoPagina, Pagina } from "@/components/ui/pecas";
 import { hojeIso } from "@/domain/quadro";
+import { useLembretes } from "@/hooks/use-lembretes";
 import { useProjetos } from "@/hooks/use-projetos";
 import { useTarefas } from "@/hooks/use-tarefas";
 import { classes } from "@/lib/classes";
+import { ListaLembretes } from "./lista-lembretes";
 import { ListaTarefas } from "./lista-tarefas";
 import { JanelaTarefa } from "./janela-tarefa";
 import { tarefasAbertas } from "./tela-tarefas";
@@ -13,6 +15,7 @@ import { tarefasAbertas } from "./tela-tarefas";
 export function TelaVisaoGeral() {
   const estado = useProjetos();
   const api = useTarefas();
+  const lembretes = useLembretes();
   const [tarefaAberta, setTarefaAberta] = useState<string | null>(null);
   const projetosPorId = useMemo(() => new Map(estado.projetos.map((p) => [p.id, p])), [estado.projetos]);
 
@@ -43,6 +46,8 @@ export function TelaVisaoGeral() {
           ))}
         </div>
       )}
+      <p className="mb-2.5 mt-7 text-xs font-semibold text-ink3">Próximos lembretes</p>
+      <ListaLembretes lembretes={lembretes.ativos.slice(0, 5)} projetos={projetosPorId} aoAbrirTarefa={setTarefaAberta} carregando={lembretes.carregando} />
       <p className="mb-2.5 mt-7 text-xs font-semibold text-ink3">Próximas entregas</p>
       <ListaTarefas tarefas={proximas} projetos={projetosPorId} aoAbrir={setTarefaAberta} aoAlternar={api.alternarConclusao} carregando={carregando} />
       <JanelaTarefa api={api} tarefaId={tarefaAberta} projetos={estado.projetos} aoFechar={() => setTarefaAberta(null)} />

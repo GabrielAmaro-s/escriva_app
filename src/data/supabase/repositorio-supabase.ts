@@ -1,6 +1,23 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+
+/**
+ * O repositório só usa `from(tabela)`. Assim ele aceita tanto o cliente do usuário
+ * (com RLS) quanto o cliente filtrado do agente (contexto-agente.ts).
+ */
+export type ClienteDados = Pick<SupabaseClient, "from">;
 import { posicaoEntre } from "@/domain/quadro";
-import type { AlteracaoTarefa, DadosNovaColuna, DadosNovaTarefa, DadosProjeto, Tom } from "@/domain/tipos";
+import type {
+  AlteracaoLembrete,
+  AlteracaoTarefa,
+  DadosNovaColuna,
+  DadosNovaTarefa,
+  DadosNovoLembrete,
+  DadosNovoRegistro,
+  DadosNovoToken,
+  DadosProjeto,
+  FiltroLembretes,
+  Tom,
+} from "@/domain/tipos";
 import type { Repositorio } from "../repositorio";
 import {
   type LinhaColuna,
@@ -8,13 +25,21 @@ import {
   type LinhaEtiqueta,
   type LinhaProjeto,
   type LinhaTarefa,
+  type LinhaLembrete,
+  type LinhaRegistro,
+  type LinhaToken,
+  COLUNAS_TOKEN,
+  deAlteracaoLembrete,
   deAlteracaoTarefa,
   deCampanha,
   deDadosProjeto,
   paraColuna,
   paraEtiqueta,
   paraProjeto,
+  paraLembrete,
+  paraRegistro,
   paraTarefa,
+  paraToken,
 } from "./conversores";
 
 const SELECAO_PROJETO = "*, campaign_details(*)";
@@ -24,7 +49,7 @@ function conferir<T>(resposta: { data: T | null; error: { message: string } | nu
   return resposta.data as T;
 }
 
-export function criarRepositorioSupabase(sb: SupabaseClient): Repositorio {
+export function criarRepositorioSupabase(sb: ClienteDados): Repositorio {
   async function contagensDe(ids?: string[]): Promise<Map<string, LinhaContagem>> {
     let consulta = sb.from("project_task_counts").select("*");
     if (ids) consulta = consulta.in("project_id", ids);
@@ -158,6 +183,104 @@ export function criarRepositorioSupabase(sb: SupabaseClient): Repositorio {
 
     async excluirEtiqueta(id) {
       conferir(await sb.from("labels").delete().eq("id", id));
+    },
+
+    async listarLembretes(filtro: FiltroLembretes = {}) {
+      let consulta = sb.from("lembretes").select("*");
+      if (filtro.status) consulta = consulta.in("status", filtro.status);
+      if (filtro.tarefaId) consulta = consulta.eq("tarefa_id", filtro.tarefaId);
+      if (filtro.ate) consulta = consulta.lte("quando", filtro.ate);
+      return (conferir(await consulta.order("quando")) as LinhaLembrete[]).map(paraLembrete);
+    },
+
+    async criarLembrete(dados: DadosNovoLembrete) {
+      const linha = conferir(
+        await sb
+          .from("lembretes")
+          .insert({
+            texto: dados.texto,
+            quando: dados.quando,
+            tarefa_id: dados.tarefaId ?? null,
+            projeto_id: dados.projetoId ?? null,
+            origem: dados.origem ?? "app",
+          })
+          .select("*")
+          .single(),
+      ) as LinhaLembrete;
+      return paraLembrete(linha);
+    },
+
+    async atualizarLembrete(id, alteracao: AlteracaoLembrete) {
+      const linha = conferir(await sb.from("lembretes").update(deAlteracaoLembrete(alteracao)).eq("id", id).select("*").single()) as LinhaLembrete;
+      return paraLembrete(linha);
+    },
+
+    async excluirLembrete(id) {
+      conferir(await sb.from("lembretes").delete().eq("id", id));
+    },
+
+    async listarTokensAgente() {
+      const linhas = conferir(await sb.from("tokens_agente").select(COLUNAS_TOKEN).order("criado_em", { ascending: false })) as LinhaToken[];
+      return linhas.map(paraToken);
+    },
+
+    async criarTokenAgente(dados: DadosNovoToken) {
+      const linha = conferir(
+        await sb
+          .from("tokens_agente")
+          .insert({ nome: dados.nome, escopo: dados.escopo, hash: dados.hash, expira_em: dados.expiraEm })
+          .select(COLUNAS_TOKEN)
+          .single(),
+      ) as LinhaToken;
+      return paraToken(linha);
+    },
+
+    async atualizarTokenAgente(id, alteracao) {
+      const linha: Record<string, unknown> = {};
+      if (alteracao.revogadoEm !== undefined) linha.revogado_em = alteracao.revogadoEm;
+      if (alteracao.ultimoUsoEm !== undefined) linha.ultimo_uso_em = alteracao.ultimoUsoEm;
+      conferir(await sb.from("tokens_agente").update(linha).eq("id", id));
+    },
+
+    async listarRegistroAgente(limite) {
+      const linhas = conferir(await sb.from("registro_agente").select("*").order("criado_em", { ascending: false }).limit(limite)) as LinhaRegistro[];
+      return linhas.map(paraRegistro);
+    },
+
+    async obterRegistroAgente(id) {
+      const linha = conferir(await sb.from("registro_agente").select("*").eq("id", id).maybeSingle()) as LinhaRegistro | null;
+      return linha ? paraRegistro(linha) : null;
+    },
+
+    async registrarAtividadeAgente(dados: DadosNovoRegistro) {
+      const linha = conferir(
+        await sb
+          .from("registro_agente")
+          .insert({
+            token_id: dados.tokenId,
+            ferramenta: dados.ferramenta,
+            entrada: dados.entrada ?? {},
+            resultado: dados.resultado ?? null,
+            sucesso: dados.sucesso,
+            desfazer: dados.desfazer,
+          })
+          .select("*")
+          .single(),
+      ) as LinhaRegistro;
+      return paraRegistro(linha);
+    },
+
+    async marcarRegistroDesfeito(id, quando) {
+      conferir(await sb.from("registro_agente").update({ desfeito_em: quando }).eq("id", id));
+    },
+
+    async obterHeartbeatAgente() {
+      const linha = conferir(await sb.from("heartbeats_agente").select("ultimo_em").maybeSingle()) as { ultimo_em: string } | null;
+      return linha?.ultimo_em ?? null;
+    },
+
+    async registrarHeartbeatAgente(quando) {
+      conferir(await sb.from("heartbeats_agente").upsert({ ultimo_em: quando }, { onConflict: "user_id" }));
     },
   };
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarBlankIcon, CheckIcon, CheckSquareIcon, DotsThreeIcon, FlagIcon } from "@phosphor-icons/react";
+import { BellIcon, CalendarBlankIcon, CheckIcon, CheckSquareIcon, DotsThreeIcon, FlagIcon } from "@phosphor-icons/react";
 import { forwardRef, type HTMLAttributes } from "react";
 import { Pilula } from "@/components/ui/pecas";
 import { COR_PRIORIDADE, ROTULO_PRIORIDADE, corDoPrazo, formatarData, progressoDoChecklist } from "@/domain/quadro";
@@ -12,18 +12,20 @@ interface PropsCartaoTarefa extends HTMLAttributes<HTMLDivElement> {
   etiquetasPorId: Map<string, Etiqueta>;
   arrastando?: boolean;
   sobreposto?: boolean;
+  /** Mostra o sino quando a tarefa tem um lembrete que ainda vai tocar. */
+  temLembrete?: boolean;
   aoAbrirMenu?: (e: React.MouseEvent) => void;
 }
 
 export const CartaoTarefa = forwardRef<HTMLDivElement, PropsCartaoTarefa>(function CartaoTarefa(
-  { tarefa, etiquetasPorId, arrastando, sobreposto, aoAbrirMenu, className, ...props },
+  { tarefa, etiquetasPorId, arrastando, sobreposto, temLembrete, aoAbrirMenu, className, ...props },
   ref,
 ) {
   const concluida = tarefa.completed;
   const etiquetas = concluida ? [] : tarefa.labelIds.map((id) => etiquetasPorId.get(id)).filter((l): l is Etiqueta => Boolean(l));
   const checklist = progressoDoChecklist(tarefa);
   const sinalizada = tarefa.priority !== "low";
-  const temMetadados = !concluida && (tarefa.dueOn || checklist.total > 0 || sinalizada);
+  const temMetadados = !concluida && (tarefa.dueOn || checklist.total > 0 || sinalizada || temLembrete);
 
   return (
     <div
@@ -83,6 +85,11 @@ export const CartaoTarefa = forwardRef<HTMLDivElement, PropsCartaoTarefa>(functi
             <span className="inline-flex items-center gap-[5px] tabular-nums">
               <CheckSquareIcon size={13} />
               {checklist.feitos}/{checklist.total}
+            </span>
+          )}
+          {temLembrete && (
+            <span className="inline-flex items-center" title="Tem lembrete" aria-label="Tem lembrete">
+              <BellIcon size={13} />
             </span>
           )}
           {sinalizada && (
