@@ -37,6 +37,45 @@ Outros comandos:
 
 Os dados do modo local não vão para o Supabase sozinhos: em Configurações, use **Importar dados deste navegador**.
 
+## Publicar na Vercel
+
+1. **Migre o banco antes do primeiro deploy.** Com o `.env.local` apontando para o projeto de produção: `npm run db:vincular` e depois `npm run db:migrar`.
+2. **Importe o repositório** em vercel.com > Add New > Project. O framework (Next.js) é detectado sozinho.
+3. **Região das funções:** em Settings > Functions > Function Region, escolha **São Paulo (gru1)**, que fica na mesma região AWS do Supabase (`sa-east-1`). Assim as rotas /api e o servidor MCP ficam perto do banco.
+4. **Cadastre as variáveis** em Settings > Environment Variables (ambiente Production). As `NEXT_PUBLIC_*` são embutidas no build: cadastre antes do primeiro deploy e faça um novo deploy sempre que mudar alguma.
+
+   Públicas (vão para o navegador):
+
+   | Variável | Valor |
+   |---|---|
+   | `NEXT_PUBLIC_APP_URL` | o domínio final, ex.: `https://myplan.seudominio.com` (sem barra no fim). É o endereço dos links que o agente manda |
+   | `NEXT_PUBLIC_SUPABASE_URL` | `https://SEU-PROJETO.supabase.co` |
+   | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | chave publicável (`sb_publishable_...`) |
+
+   Só de servidor (nunca com o prefixo `NEXT_PUBLIC_`):
+
+   | Variável | Valor |
+   |---|---|
+   | `SUPABASE_SECRET_KEY` | chave secreta (`sb_secret_...`), usada pelo servidor MCP |
+   | `SUPABASE_PROJECT_REF` | id do projeto no Supabase |
+   | `DATABASE_URL` | conexão do pooler, modo transação (porta 6543) |
+   | `DIRECT_URL` | conexão de sessão (porta 5432) |
+   | `MCP_SEGREDO_TOKENS` | segredo longo (`openssl rand -base64 48`). Se mudar, todos os tokens do agente deixam de valer |
+   | `MYPLAN_FUSO_HORARIO` | `America/Sao_Paulo` |
+   | `MCP_VALIDADE_TOKEN_DIAS` | `90` |
+   | `MCP_LIMITE_ITENS_POR_PEDIDO` | `10` |
+   | `AGENTE_ALERTA_SEM_HEARTBEAT_MIN` | `60` |
+
+   Sem `NEXT_PUBLIC_APP_URL`, `SUPABASE_SECRET_KEY` ou `MCP_SEGREDO_TOKENS`, o servidor para na inicialização com uma mensagem dizendo o que falta.
+5. **No Supabase**, em Authentication > URL Configuration:
+   - **Site URL:** o domínio final (ex.: `https://myplan.seudominio.com`);
+   - **Redirect URLs:** `https://<domínio>/auth/callback` (mantenha também `http://localhost:3000/auth/callback` para desenvolver).
+6. **Faça o deploy** e, se usar domínio próprio, aponte-o em Settings > Domains.
+7. **Confira depois do deploy:**
+   - `https://<domínio>/api/saude` responde `{"ok":true,"modoLocal":false,"banco":"ok"}`. A rota mostra só esses três campos, sem chaves nem erros do banco; o detalhe de uma falha fica no log da função na Vercel;
+   - o login por link mágico funciona: peça o link em `/login`, abra o e-mail no mesmo navegador e confirme que caiu em Meus projetos;
+   - `https://<domínio>/api/mcp` sem token responde 401.
+
 ## Estrutura
 
 ```

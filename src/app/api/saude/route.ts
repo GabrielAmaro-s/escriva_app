@@ -7,17 +7,14 @@ export const dynamic = "force-dynamic";
 // server-only, cliente admin e AsyncLocalStorage precisam do runtime Node.js.
 export const runtime = "nodejs";
 
-type RespostaSaude = { ok: boolean; modoLocal: boolean; banco: "ok" | "erro"; detalhe?: string };
+/** Só estes três campos saem daqui: nada de valores de variáveis, chaves ou erros do banco. */
+type RespostaSaude = { ok: boolean; modoLocal: boolean; banco: "ok" | "erro" };
 
 /** Teste de saúde: o app está de pé e consegue consultar o banco? */
 export async function GET() {
   if (ambientePublico.modoLocal) {
-    return NextResponse.json<RespostaSaude>({
-      ok: true,
-      modoLocal: true,
-      banco: "erro",
-      detalhe: "Modo local: o Supabase não está configurado e os dados ficam no navegador.",
-    });
+    // Sem Supabase não há banco para consultar; o app funciona com os dados no navegador.
+    return NextResponse.json<RespostaSaude>({ ok: true, modoLocal: true, banco: "erro" });
   }
 
   try {
@@ -29,7 +26,8 @@ export async function GET() {
     if (error) throw new Error(error.message);
     return NextResponse.json<RespostaSaude>({ ok: true, modoLocal: false, banco: "ok" });
   } catch (e) {
-    const detalhe = e instanceof Error ? e.message : "Erro desconhecido ao consultar o banco.";
-    return NextResponse.json<RespostaSaude>({ ok: false, modoLocal: false, banco: "erro", detalhe }, { status: 503 });
+    // O detalhe fica só no log do servidor.
+    console.error("Teste de saúde: o banco não respondeu:", e);
+    return NextResponse.json<RespostaSaude>({ ok: false, modoLocal: false, banco: "erro" }, { status: 503 });
   }
 }
