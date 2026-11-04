@@ -1,8 +1,8 @@
 import "@fontsource-variable/inter";
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
-import { accentBootScript } from "@/lib/appearance";
-import { Providers } from "./providers";
+import { scriptInicialCorDestaque } from "@/lib/aparencia";
+import { Provedores } from "./provedores";
 
 export const metadata: Metadata = {
   title: "myPlan",
@@ -18,14 +18,14 @@ export const viewport: Viewport = {
   ],
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function LayoutRaiz({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: accentBootScript }} />
+        <script dangerouslySetInnerHTML={{ __html: scriptInicialCorDestaque }} />
       </head>
       <body>
-        <Providers>{children}</Providers>
+        <Provedores>{children}</Provedores>
       </body>
     </html>
   );

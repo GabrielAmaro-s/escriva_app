@@ -1,7 +1,7 @@
-import { SettingsView } from "@/components/settings/settings-view";
+import { TelaConfiguracoes } from "@/components/settings/tela-configuracoes";
 
 export const metadata = { title: "Configurações | myPlan" };
 
-export default function SettingsPage() {
-  return <SettingsView />;
+export default function PaginaConfiguracoes() {
+  return <TelaConfiguracoes />;
 }

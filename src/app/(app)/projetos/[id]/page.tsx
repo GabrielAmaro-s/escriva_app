@@ -1,11 +1,11 @@
 import { Suspense } from "react";
-import { BoardView } from "@/components/board/board-view";
+import { TelaQuadro } from "@/components/board/tela-quadro";
 
-export default async function ProjectBoardPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function PaginaQuadro({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   return (
     <Suspense>
-      <BoardView projectId={id} />
+      <TelaQuadro projetoId={id} />
     </Suspense>
   );
 }

@@ -1,7 +1,7 @@
-import { TasksView } from "@/components/tasks/tasks-view";
+import { TelaTarefas } from "@/components/tasks/tela-tarefas";
 
 export const metadata = { title: "Tarefas | myPlan" };
 
-export default function TasksPage() {
-  return <TasksView />;
+export default function PaginaTarefas() {
+  return <TelaTarefas />;
 }

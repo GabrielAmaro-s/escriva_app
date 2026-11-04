@@ -9,13 +9,13 @@ Quatro camadas, cada uma só conversa com a de baixo:
 ```
 Interface (app/ + components/)      páginas, componentes visuais, drag and drop
         │
-Estado da tela (hooks/)             useProjects, useBoard: atualização otimista e desfazer
+Estado da tela (hooks/)             useProjetos, useTarefas: atualização otimista e desfazer
         │
 Casos de uso (services/)            criar projeto, adicionar tarefa... validam e aplicam regras
         │
 Regras de domínio (domain/)         tipos, progresso, posições, regra "Concluído = concluída"
         │
-Acesso a dados (data/)              interface Repository
+Acesso a dados (data/)              interface Repositorio
         ├── supabase/               Postgres + RLS + autenticação por link mágico
         └── local/                  localStorage, para testar sem backend
 ```
@@ -23,11 +23,11 @@ Acesso a dados (data/)              interface Repository
 Decisões principais:
 
 - **Next.js App Router, telas como Client Components.** O app é altamente interativo (arrastar, editar no lugar), então os dados são lidos e gravados no navegador com o cliente do Supabase, protegidos por Row Level Security. O servidor só cuida da sessão (`src/proxy.ts`) e do retorno do login (`/auth/callback`).
-- **Repositório como contrato.** `data/repository.ts` define todas as operações. Existem duas implementações: Supabase e local. Sem as variáveis de ambiente o app roda sozinho no navegador, com dados de exemplo.
+- **Repositório como contrato.** `data/repositorio.ts` define todas as operações (`listarProjetos`, `obterQuadro`, `criarTarefa`...). Existem duas implementações: Supabase e local. Sem as variáveis de ambiente o app roda sozinho no navegador, com dados de exemplo.
 - **Atualização otimista.** Toda ação aparece na hora; se a gravação falhar, a tela volta ao estado anterior e um aviso explica o erro. Edições em sequência numa tarefa (digitar no checklist) são agrupadas numa única gravação.
 - **Posições fracionárias.** Mover um cartão grava só aquele cartão, com a posição no meio dos vizinhos.
 - **Drag and drop com dnd-kit.** Funciona com mouse, toque (pressionar e segurar) e teclado (Espaço para pegar, setas para mover).
-- **Preparado para IA.** Um agente futuro (OpenBot ou outro) chama as mesmas funções de `services/` e o mesmo `Repository`. Nada da regra de negócio fica preso aos componentes. Quando chegar a hora, basta expor `services/` por Route Handlers ou Server Actions com a sessão do usuário.
+- **Preparado para IA.** Um agente futuro (OpenBot ou outro) chama as mesmas funções de `services/` e o mesmo `Repositorio`. Nada da regra de negócio fica preso aos componentes. Quando chegar a hora, basta expor `services/` por Route Handlers ou Server Actions com a sessão do usuário.
 
 ## 2. Páginas e componentes
 
@@ -45,19 +45,30 @@ O visual segue o protótipo `myPlan_standalone.html`: fonte Inter, ícones Phosp
 
 ```
 src/components/
-├── layout/      app-shell (menu lateral; vira gaveta abaixo de 820px), sidebar
-├── projects/    projects-view, project-card, project-form-dialog, project-ui
+├── layout/      estrutura-app (menu lateral; vira gaveta abaixo de 820px), menu-lateral
+├── projects/    tela-projetos, cartao-projeto, formulario-projeto, interface-projeto
 │                (formulário e menu de ações disponíveis em qualquer tela)
-├── campaigns/   campaigns-view
-├── board/       board-view (cabeçalho e abas), board (DndContext), board-column,
-│                task-card, details-tab
-├── tasks/       task-modal (janela da tarefa), task-list, overview-view, tasks-view
-├── settings/    settings-view
-└── ui/          bits (selos, barras, chips, busca), button, field, modal,
-                 context-menu (menu "..." e botão direito), toast (com Desfazer)
+├── campaigns/   tela-campanhas
+├── board/       tela-quadro (cabeçalho e abas), quadro-kanban (DndContext), coluna-quadro,
+│                cartao-tarefa, aba-detalhes
+├── tasks/       janela-tarefa (janela da tarefa), lista-tarefas, tela-visao-geral, tela-tarefas
+├── settings/    tela-configuracoes
+└── ui/          pecas (selos, barras, chips, busca), botao, campo, janela,
+                 menu-contexto (menu "..." e botão direito), aviso (com Desfazer)
 ```
 
 A janela da tarefa abre no lugar em qualquer tela (quadro, Visão geral e Tarefas). Excluir projeto ou tarefa mostra um aviso com "Desfazer"; a exclusão só vai para o banco depois de alguns segundos.
+
+### Nomes no código
+
+Funções, hooks, componentes, tipos e variáveis estão em português (`criarTarefa`, `useTarefas`, `CartaoProjeto`, `Tarefa`). Ficam como estão: nomes exigidos pelo framework (`page.tsx`, `route.ts`, `GET`, `proxy`), as tabelas e colunas do banco e os **campos** das entidades (`title`, `dueOn`, `projectId`...), que espelham essas colunas e o formato já salvo no navegador.
+
+| Camada | Arquivos |
+|---|---|
+| `domain/` | `tipos.ts` (Projeto, Tarefa, Coluna, Etiqueta, Quadro, EspacoDeTrabalho...), `quadro.ts` (posições, regra de Concluído, datas), `projeto.ts` (progresso, filtros, validação) |
+| `data/` | `repositorio.ts` (interface `Repositorio`), `index.ts` (`obterRepositorio`), `local/repositorio-local.ts`, `local/exemplo.ts`, `supabase/repositorio-supabase.ts`, `supabase/conversores.ts`, `supabase/cliente.ts`, `supabase/servidor.ts` |
+| `services/` | `projetos.ts`, `tarefas.ts` |
+| `hooks/` | `use-projetos.tsx`, `use-tarefas.ts`, `use-usuario-atual.ts` |
 
 ## 3. Modelo de dados
 

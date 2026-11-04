@@ -1,13 +1,13 @@
-import { AppShell } from "@/components/layout/app-shell";
-import { ProjectUiProvider } from "@/components/projects/project-ui";
-import { ProjectsProvider } from "@/hooks/use-projects";
+import { EstruturaApp } from "@/components/layout/estrutura-app";
+import { ProvedorInterfaceProjeto } from "@/components/projects/interface-projeto";
+import { ProvedorProjetos } from "@/hooks/use-projetos";
 
-export default function AppLayout({ children }: { children: React.ReactNode }) {
+export default function LayoutApp({ children }: { children: React.ReactNode }) {
   return (
-    <ProjectsProvider>
-      <ProjectUiProvider>
-        <AppShell>{children}</AppShell>
-      </ProjectUiProvider>
-    </ProjectsProvider>
+    <ProvedorProjetos>
+      <ProvedorInterfaceProjeto>
+        <EstruturaApp>{children}</EstruturaApp>
+      </ProvedorInterfaceProjeto>
+    </ProvedorProjetos>
   );
 }

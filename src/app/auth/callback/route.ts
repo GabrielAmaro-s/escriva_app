@@ -1,13 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { getServerSupabase } from "@/data/supabase/server";
+import { obterSupabaseServidor } from "@/data/supabase/servidor";
 
 /** Recebe o link mágico do e-mail, troca o código por sessão e volta para o app. */
-export async function GET(request: NextRequest) {
-  const { searchParams, origin } = new URL(request.url);
-  const code = searchParams.get("code");
-  if (code) {
-    const supabase = await getServerSupabase();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+export async function GET(requisicao: NextRequest) {
+  const { searchParams, origin } = new URL(requisicao.url);
+  const codigo = searchParams.get("code");
+  if (codigo) {
+    const supabase = await obterSupabaseServidor();
+    const { error } = await supabase.auth.exchangeCodeForSession(codigo);
     if (!error) return NextResponse.redirect(`${origin}/`);
   }
   return NextResponse.redirect(`${origin}/login`);

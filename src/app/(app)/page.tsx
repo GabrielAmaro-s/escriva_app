@@ -1,10 +1,10 @@
 import { Suspense } from "react";
-import { ProjectsView } from "@/components/projects/projects-view";
+import { TelaProjetos } from "@/components/projects/tela-projetos";
 
-export default function HomePage() {
+export default function PaginaInicial() {
   return (
     <Suspense>
-      <ProjectsView />
+      <TelaProjetos />
     </Suspense>
   );
 }

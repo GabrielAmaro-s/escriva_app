@@ -5,38 +5,38 @@ import { NextResponse, type NextRequest } from "next/server";
  * Renova a sessão do Supabase a cada requisição e exige login nas páginas do app.
  * No modo local (sem variáveis do Supabase) não faz nada.
  */
-export async function proxy(request: NextRequest) {
+export async function proxy(requisicao: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !key) return NextResponse.next();
+  const chave = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !chave) return NextResponse.next();
 
-  let response = NextResponse.next({ request });
-  const supabase = createServerClient(url, key, {
+  let resposta = NextResponse.next({ request: requisicao });
+  const supabase = createServerClient(url, chave, {
     cookies: {
-      getAll: () => request.cookies.getAll(),
-      setAll: (list) => {
-        list.forEach(({ name, value }) => request.cookies.set(name, value));
-        response = NextResponse.next({ request });
-        list.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
+      getAll: () => requisicao.cookies.getAll(),
+      setAll: (lista) => {
+        lista.forEach(({ name, value }) => requisicao.cookies.set(name, value));
+        resposta = NextResponse.next({ request: requisicao });
+        lista.forEach(({ name, value, options }) => resposta.cookies.set(name, value, options));
       },
     },
   });
 
   const {
-    data: { user },
+    data: { user: usuario },
   } = await supabase.auth.getUser();
 
-  const path = request.nextUrl.pathname;
-  const isPublic = path.startsWith("/login") || path.startsWith("/auth");
-  if (!user && !isPublic) {
-    const login = request.nextUrl.clone();
+  const caminho = requisicao.nextUrl.pathname;
+  const publico = caminho.startsWith("/login") || caminho.startsWith("/auth");
+  if (!usuario && !publico) {
+    const login = requisicao.nextUrl.clone();
     login.pathname = "/login";
     login.search = "";
     return NextResponse.redirect(login);
   }
-  return response;
+  return resposta;
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
 };

@@ -1,7 +1,7 @@
-import { CampaignsView } from "@/components/campaigns/campaigns-view";
+import { TelaCampanhas } from "@/components/campaigns/tela-campanhas";
 
 export const metadata = { title: "Campanhas | myPlan" };
 
-export default function CampaignsPage() {
-  return <CampaignsView />;
+export default function PaginaCampanhas() {
+  return <TelaCampanhas />;
 }
