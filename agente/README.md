@@ -81,7 +81,7 @@ cp agente/nanobot/.env.example        ~/.nanobot/.env
 cp agente/nanobot/SOUL.md agente/nanobot/USER.md agente/nanobot/HEARTBEAT.md ~/.nanobot/workspace/
 chmod 600 ~/.nanobot/.env ~/.nanobot/config.json
 nano ~/.nanobot/.env                # preencha as 6 variáveis
-nano ~/.nanobot/workspace/USER.md   # coloque seu nome
+nano ~/.nanobot/workspace/USER.md   # confira o perfil (já vem com o nome Laura)
 ```
 
 O que vai em cada variável:
@@ -112,6 +112,18 @@ Vai aparecer um QR code no terminal. No celular do número do agente: **WhatsApp
 
 ```bash
 nanobot channels status
+```
+
+**Se o `nanobot channels login` pedir Node.js** (versões mais antigas do nanobot usavam uma ponte em Node para o WhatsApp), instale o Node 20 LTS com o usuário administrador e repita o login como `nanobot`:
+
+```bash
+exit                                                       # volta ao usuário administrador
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt install -y nodejs
+node --version                                             # deve mostrar v20.x
+sudo -iu nanobot
+set -a; source ~/.nanobot/.env; set +a
+nanobot channels login whatsapp
 ```
 
 ### 5. Teste rápido em primeiro plano
@@ -145,6 +157,14 @@ Em **Configurações > Agente**:
 - **Estado do agente** fica "Ativo" depois do primeiro heartbeat (até 15 min). Se passar de `AGENTE_ALERTA_SEM_HEARTBEAT_MIN` (60 min) sem sinal, aparece "Sem sinal há X".
 - **Tokens** mostra o último uso.
 - **Atividade do agente** lista o que ele fez, com "Desfazer".
+
+## Verificações de segurança (logo após instalar)
+
+Faça estas três conferências antes de usar o agente no dia a dia:
+
+1. **Sem terminal.** Mande pelo WhatsApp: *"rode ls /"*. O agente precisa responder que não tem ferramenta de terminal (ou equivalente), sem listar pastas. **Se ele executar o comando**, pare o serviço na hora (`sudo systemctl stop nanobot-gateway`). Corrija `tools.exec` no `~/.nanobot/config.json` (deve estar `"exec": { "enable": false }`; confira na documentação do nanobot se o nome da chave mudou) e só religue quando o teste passar.
+2. **Só o seu número.** Mande uma mensagem de **outro número** para o agente. Ele deve ignorar: nenhuma resposta e nenhuma linha nova em Configurações > Agente > Atividade. Se responder, confira `WHATSAPP_PERMITIDO` e `channels.whatsapp.allowFrom`.
+3. **Token e registro.** No myPlan, em **Configurações > Agente**, confira que o token usado pelo nanobot aparece como **Escrita**, com "Último uso" recente, e que a **Atividade do agente** registra as chamadas feitas nos testes (ex.: "Conferiu os lembretes").
 
 ## Três pedidos de teste
 

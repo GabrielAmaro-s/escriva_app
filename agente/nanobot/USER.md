@@ -1,6 +1,6 @@
 # Sobre a usuária
 
-- Nome: <SEU NOME>
+- Nome: Laura
 - Usa o myPlan para organizar projetos pessoais e campanhas de marketing.
 - Fuso horário: America/Sao_Paulo.
 - Prefere respostas curtas e diretas, em português do Brasil.
