@@ -1,0 +1,85 @@
+import { describe, expect, it } from "vitest";
+import { criarDadosDeExemplo } from "@/data/local/exemplo";
+import { armazenamentoVazio, criarRepositorioLocal } from "@/data/local/repositorio-local";
+import type { Repositorio } from "@/data/repositorio";
+import { descreverResumo, exportarDados, importarDados, lerArquivoExportado } from "./importacao";
+
+/** Fotografia de um quadro sem ids, para comparar origem e destino. */
+async function fotografar(repo: Repositorio, nome: string) {
+  const projeto = (await repo.listarProjetos()).find((p) => p.name === nome)!;
+  const quadro = (await repo.obterQuadro(projeto.id))!;
+  const tituloDaColuna = new Map(quadro.colunas.map((c) => [c.id, c.title]));
+  const nomeDaEtiqueta = new Map(quadro.etiquetas.map((e) => [e.id, `${e.name}:${e.color}`]));
+  return {
+    projeto: {
+      name: projeto.name,
+      description: projeto.description,
+      kind: projeto.kind,
+      status: projeto.status,
+      color: projeto.color,
+      icon: projeto.icon,
+      dueOn: projeto.dueOn,
+      campaign: projeto.campaign && { ...projeto.campaign, deliverables: projeto.campaign.deliverables.map(({ title, done }) => ({ title, done })) },
+      taskCount: projeto.taskCount,
+      doneCount: projeto.doneCount,
+    },
+    colunas: [...quadro.colunas].sort((a, b) => a.position - b.position).map(({ title, kind, position }) => ({ title, kind, position })),
+    etiquetas: quadro.etiquetas.map((e) => `${e.name}:${e.color}`).sort(),
+    tarefas: [...quadro.tarefas]
+      .sort((a, b) => (tituloDaColuna.get(a.columnId)! + a.position).localeCompare(tituloDaColuna.get(b.columnId)! + b.position))
+      .map((t) => ({
+        coluna: tituloDaColuna.get(t.columnId),
+        title: t.title,
+        description: t.description,
+        dueOn: t.dueOn,
+        priority: t.priority,
+        position: t.position,
+        etiquetas: t.labelIds.map((id) => nomeDaEtiqueta.get(id)).sort(),
+        checklist: t.checklist.map(({ text, done }) => ({ text, done })),
+        links: t.links.map(({ url, title }) => ({ url, title })),
+        completed: t.completed,
+        completedAt: t.completedAt,
+      })),
+  };
+}
+
+describe("exportar e importar", () => {
+  const exemplo = () => criarRepositorioLocal({ dados: criarDadosDeExemplo(new Date(2026, 10, 4)) });
+
+  it("a importação reproduz o quadro 'Novo site' igual ao exemplo", async () => {
+    const origem = exemplo();
+    const destino = criarRepositorioLocal({ dados: armazenamentoVazio() });
+
+    const arquivo = JSON.parse(JSON.stringify(await exportarDados(origem)));
+    const resumo = await importarDados(destino, arquivo);
+
+    expect(await fotografar(destino, "Novo site")).toEqual(await fotografar(origem, "Novo site"));
+    expect(resumo).toEqual({ projetos: 7, campanhas: 3, colunas: 28, etiquetas: expect.any(Number), tarefas: 47 });
+  });
+
+  it("preserva a ordem dos projetos, campanhas e arquivados", async () => {
+    const origem = exemplo();
+    const [primeiro] = await origem.listarProjetos();
+    await origem.atualizarProjeto(primeiro.id, { archivedAt: "2026-11-01T00:00:00.000Z" });
+
+    const destino = criarRepositorioLocal({ dados: armazenamentoVazio() });
+    await importarDados(destino, await exportarDados(origem));
+
+    const nomes = async (r: Repositorio) => (await r.listarProjetos()).map((p) => `${p.name}|${p.archivedAt ?? ""}`);
+    expect(await nomes(destino)).toEqual(await nomes(origem));
+    expect(await fotografar(destino, "Campanha de Verão")).toEqual(await fotografar(origem, "Campanha de Verão"));
+  });
+
+  it("recusa arquivo inválido sem gravar nada", async () => {
+    const destino = criarRepositorioLocal({ dados: armazenamentoVazio() });
+    await expect(importarDados(destino, { versao: 2 })).rejects.toThrow(/Arquivo inválido/);
+    expect(await destino.listarProjetos()).toEqual([]);
+    expect(() => lerArquivoExportado("texto")).toThrow(/Arquivo inválido/);
+  });
+
+  it("descreve quantos itens foram importados", () => {
+    expect(descreverResumo({ projetos: 2, campanhas: 1, colunas: 8, etiquetas: 1, tarefas: 5 })).toBe(
+      "Importados: 2 projetos, 1 campanha, 5 tarefas, 1 etiqueta, 8 colunas.",
+    );
+  });
+});

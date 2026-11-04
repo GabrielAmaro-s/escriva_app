@@ -70,10 +70,46 @@ function hidratar(dados: ArmazenamentoLocal, p: ProjetoGuardado): Projeto {
 
 const agora = () => new Date().toISOString();
 
-export function criarRepositorioLocal(): Repositorio {
-  let dados: ArmazenamentoLocal | null = null;
+/**
+ * Lê o que estiver salvo neste navegador sem criar os dados de exemplo.
+ * Devolve null se não houver nada (ou se não estiver no navegador).
+ */
+export function lerDadosDoNavegador(): ArmazenamentoLocal | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const bruto = window.localStorage.getItem(CHAVE);
+    return bruto ? (JSON.parse(bruto) as ArmazenamentoLocal) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Depois de importar para a conta, guarda uma cópia com outro nome e esconde o botão de importar. */
+export function arquivarDadosDoNavegador() {
+  try {
+    const bruto = window.localStorage.getItem(CHAVE);
+    if (!bruto) return;
+    window.localStorage.setItem(`${CHAVE}:importado:${new Date().toISOString()}`, bruto);
+    window.localStorage.removeItem(CHAVE);
+  } catch {
+    // sem armazenamento: nada a arquivar
+  }
+}
+
+export interface OpcoesRepositorioLocal {
+  /** Dados iniciais. Sem eles, lê do navegador (ou cria o exemplo). */
+  dados?: ArmazenamentoLocal;
+  /** false mantém tudo só em memória (testes e leitura para importação). */
+  persistir?: boolean;
+}
+
+export function criarRepositorioLocal(opcoes: OpcoesRepositorioLocal = {}): Repositorio {
+  const persistir = opcoes.persistir ?? !opcoes.dados;
+  let dados: ArmazenamentoLocal | null = opcoes.dados ? structuredClone(opcoes.dados) : null;
   const banco = () => (dados ??= carregar());
-  const gravar = () => salvar(banco());
+  const gravar = () => {
+    if (persistir) salvar(banco());
+  };
 
   return {
     modo: "local",

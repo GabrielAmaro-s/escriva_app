@@ -2,24 +2,14 @@
 
 import { SignOutIcon } from "@phosphor-icons/react";
 import { useTheme } from "next-themes";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { CabecalhoPagina, Pagina } from "@/components/ui/pecas";
 import { Botao } from "@/components/ui/botao";
 import { obterSupabaseNavegador, supabaseConfigurado } from "@/data/supabase/cliente";
 import { CORES_DESTAQUE, aplicarCorDestaque, lerCorDestaque } from "@/lib/aparencia";
 import { classes } from "@/lib/classes";
-
-export function LinhaConfiguracao({ titulo, dica, children }: { titulo: string; dica: string; children: ReactNode }) {
-  return (
-    <div className="flex items-center justify-between gap-4 border-b border-line py-4 last:border-b-0">
-      <div>
-        <p className="text-sm font-semibold">{titulo}</p>
-        <p className="mt-0.5 text-[12.5px] text-ink2">{dica}</p>
-      </div>
-      {children}
-    </div>
-  );
-}
+import { LinhaConfiguracao } from "./linha-configuracao";
+import { SecaoDados } from "./secao-dados";
 
 export function TelaConfiguracoes() {
   const { resolvedTheme, setTheme } = useTheme();
@@ -90,6 +80,7 @@ export function TelaConfiguracoes() {
           </LinhaConfiguracao>
         )}
       </div>
+      <SecaoDados />
       {!supabaseConfigurado && (
         <p className="mt-4 text-[12.5px] text-ink3">
           Modo local: seus dados ficam salvos só neste navegador. Conecte o Supabase para sincronizar entre dispositivos.
