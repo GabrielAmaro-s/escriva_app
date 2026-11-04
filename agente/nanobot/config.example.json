@@ -1,0 +1,51 @@
+{
+  "providers": {
+    "custom": {
+      "apiKey": "${LLM_API_KEY}",
+      "apiBase": "${LLM_API_BASE}"
+    }
+  },
+  "modelPresets": {
+    "padrao": {
+      "model": "${LLM_MODELO}",
+      "provider": "custom"
+    }
+  },
+  "agents": {
+    "defaults": {
+      "modelPreset": "padrao",
+      "timezone": "America/Sao_Paulo",
+      "timezoneMode": "manual"
+    }
+  },
+  "channels": {
+    "whatsapp": {
+      "enabled": true,
+      "allowFrom": ["${WHATSAPP_PERMITIDO}"],
+      "groupPolicy": "mention"
+    }
+  },
+  "tools": {
+    "restrictToWorkspace": true,
+    "exec": {
+      "enable": false
+    },
+    "mcpServers": {
+      "myplan": {
+        "type": "streamableHttp",
+        "url": "${MYPLAN_MCP_URL}",
+        "headers": {
+          "Authorization": "Bearer ${MYPLAN_MCP_TOKEN}"
+        },
+        "toolTimeout": 60,
+        "enabledTools": ["*"]
+      }
+    }
+  },
+  "gateway": {
+    "heartbeat": {
+      "enabled": true,
+      "intervalS": 900
+    }
+  }
+}

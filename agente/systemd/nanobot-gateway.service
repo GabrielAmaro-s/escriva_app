@@ -1,0 +1,34 @@
+# Gateway do nanobot: canais (incluindo o WhatsApp), heartbeat e cron num processo só.
+# Instale em /etc/systemd/system/nanobot-gateway.service e rode como o usuário "nanobot" (sem sudo).
+
+[Unit]
+Description=nanobot gateway (agente do myPlan no WhatsApp)
+Wants=network-online.target
+After=network-online.target
+# Se cair muitas vezes seguidas, continua tentando em vez de desistir
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=nanobot
+Group=nanobot
+WorkingDirectory=/home/nanobot
+# Variáveis lidas pelo config.json via ${NOME}
+EnvironmentFile=/home/nanobot/.nanobot/.env
+Environment=PATH=/home/nanobot/.local/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/home/nanobot/.local/bin/nanobot gateway --foreground
+Restart=always
+RestartSec=10
+
+# Endurecimento: sem privilégios novos e só escreve na pasta do nanobot
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/nanobot/.nanobot /home/nanobot/.cache
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+
+[Install]
+WantedBy=multi-user.target
