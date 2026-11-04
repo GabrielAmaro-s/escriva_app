@@ -1,0 +1,17 @@
+# Quebra de linha LF em todos os arquivos de texto, em qualquer sistema.
+# (systemd, .env e scripts .sh quebram com CRLF na VPS)
+* text=auto eol=lf
+
+# Binários: sem conversão
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.webp  binary
+*.ico   binary
+*.avif  binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.otf   binary
+*.eot   binary
