@@ -3,6 +3,8 @@ import { esquemaNovoProjeto } from "../esquemas";
 import { ErroDeEntrada, lerCorpo, rotaDoUsuario } from "../rotas";
 
 export const dynamic = "force-dynamic";
+// server-only, cliente admin e AsyncLocalStorage precisam do runtime Node.js.
+export const runtime = "nodejs";
 
 export const GET = rotaDoUsuario(({ repo }) => repo.listarProjetos());
 

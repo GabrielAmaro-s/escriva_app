@@ -4,6 +4,8 @@ import { esquemaNovoLembrete } from "../esquemas";
 import { lerCorpo, rotaDoUsuario } from "../rotas";
 
 export const dynamic = "force-dynamic";
+// server-only, cliente admin e AsyncLocalStorage precisam do runtime Node.js.
+export const runtime = "nodejs";
 
 /** ?status=pendente,agendado&tarefaId=... */
 export const GET = rotaDoUsuario(({ repo, requisicao }) => {

@@ -18,7 +18,7 @@ let ctx: ContextoAgente;
 async function chamar(nome: string, entrada: Record<string, unknown> = {}) {
   const f = ferramentas.find((x) => x.nome === nome);
   if (!f) throw new Error(`ferramenta ${nome} não existe`);
-  return executarFerramenta(f, ctx, entrada, "token-1");
+  return executarFerramenta(f, ctx, entrada, { tokenId: "token-1", escopo: "escrita" });
 }
 
 async function idDaTarefa(titulo: string) {
@@ -250,6 +250,25 @@ describe("com confirmação", () => {
     const [linha] = await repo.listarRegistroAgente(1);
     await aplicarDesfazer(repo, linha.desfazer!);
     expect((await repo.obterEspacoDeTrabalho()).tarefas.find((t) => t.id === depois.id)!.priority).toBe("medium");
+  });
+});
+
+describe("escopo na execução", () => {
+  it("o executor recusa escrita com token de leitura sem tocar nos dados", async () => {
+    const antes = JSON.stringify(await repo.obterEspacoDeTrabalho());
+    for (const nome of ["criar_tarefas", "mover_tarefa", "criar_lembrete", "excluir_tarefa"]) {
+      const f = ferramentas.find((x) => x.nome === nome)!;
+      const r = await executarFerramenta(f, ctx, { projeto: "Novo site", tarefas: [{ titulo: "x" }], tarefa: "Ajustar sitemap", coluna: "concluido", texto: "x", quando: "2026-12-01T10:00", confirmado: true }, { tokenId: "t-leitura", escopo: "leitura" });
+      expect(r).toEqual({ erro: true, corpo: { erro: "Este token só permite leitura." } });
+      expect((await repo.listarRegistroAgente(1))[0]).toMatchObject({ ferramenta: nome, sucesso: false, tokenId: "t-leitura" });
+    }
+    expect(JSON.stringify(await repo.obterEspacoDeTrabalho())).toBe(antes);
+    expect(await repo.listarLembretes()).toEqual([]);
+  });
+
+  it("leitura continua funcionando com token de leitura", async () => {
+    const f = ferramentas.find((x) => x.nome === "listar_projetos")!;
+    expect((await executarFerramenta(f, ctx, {}, { tokenId: "t-leitura", escopo: "leitura" })).erro).toBe(false);
   });
 });
 

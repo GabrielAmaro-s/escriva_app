@@ -323,7 +323,8 @@ export function criarRepositorioLocal(opcoes: OpcoesRepositorioLocal = {}): Repo
     },
 
     async listarRegistroAgente(limite) {
-      return structuredClone([...(banco().registro ?? [])].sort((a, b) => b.criadoEm.localeCompare(a.criadoEm)).slice(0, limite));
+      // Mais novo primeiro; no empate de horário (mesmo milissegundo), o inserido por último.
+      return structuredClone([...(banco().registro ?? [])].reverse().sort((a, b) => b.criadoEm.localeCompare(a.criadoEm)).slice(0, limite));
     },
 
     async obterRegistroAgente(id) {

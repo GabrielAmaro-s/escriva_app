@@ -98,6 +98,26 @@ describe("servidor MCP", () => {
     expect((await repo.obterEspacoDeTrabalho()).tarefas.some((t) => t.title === "Ajustar sitemap")).toBe(true);
   });
 
+  it("token de leitura chamando escrita direto: erro claro, nada muda e a tentativa fica registrada", async () => {
+    const antes = JSON.stringify(await repo.obterEspacoDeTrabalho()) + JSON.stringify(await repo.listarLembretes());
+    const tentativas: [string, Record<string, unknown>][] = [
+      ["criar_tarefas", { projeto: "Novo site", tarefas: [{ titulo: "Não deveria existir" }] }],
+      ["mover_tarefa", { tarefa: "Ajustar sitemap", coluna: "concluido" }],
+      ["criar_lembrete", { texto: "Não deveria existir", quando: "2026-12-01T10:00" }],
+      ["excluir_tarefa", { tarefa: "Ajustar sitemap", confirmado: true }],
+    ];
+    for (const [nome, argumentos] of tentativas) {
+      const r = await rpc(tokenLeitura, "tools/call", { name: nome, arguments: argumentos });
+      expect(r.status).toBe(200);
+      expect(r.corpo.result).toMatchObject({ isError: true });
+      const texto = (r.corpo.result!.content as { text: string }[])[0].text;
+      expect(JSON.parse(texto)).toEqual({ erro: "Este token só permite leitura." });
+      const [linha] = await repo.listarRegistroAgente(1);
+      expect(linha).toMatchObject({ ferramenta: nome, sucesso: false, desfazer: null });
+    }
+    expect(JSON.stringify(await repo.obterEspacoDeTrabalho()) + JSON.stringify(await repo.listarLembretes())).toBe(antes);
+  });
+
   it("token revogado volta a dar 401", async () => {
     await revogarToken(repo, idEscrita);
     expect((await rpc(tokenEscrita, "tools/list")).status).toBe(401);

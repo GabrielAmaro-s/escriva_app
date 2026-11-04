@@ -2,6 +2,8 @@ import { aplicarDesfazer } from "@/services/desfazer";
 import { ErroDeEntrada, ErroNaoEncontrado, rotaDoUsuario } from "../../../../rotas";
 
 export const dynamic = "force-dynamic";
+// server-only, cliente admin e AsyncLocalStorage precisam do runtime Node.js.
+export const runtime = "nodejs";
 
 export const POST = rotaDoUsuario<{ id: string }>(async ({ repo }, { id }) => {
   const registro = await repo.obterRegistroAgente(id);

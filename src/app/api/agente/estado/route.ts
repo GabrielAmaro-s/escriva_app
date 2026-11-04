@@ -3,6 +3,8 @@ import { calcularSituacaoAgente } from "@/domain/lembrete";
 import { rotaDoUsuario } from "../../rotas";
 
 export const dynamic = "force-dynamic";
+// server-only, cliente admin e AsyncLocalStorage precisam do runtime Node.js.
+export const runtime = "nodejs";
 
 /** "Ativo" ou "sem sinal há X min", a partir do último heartbeat do agente. */
 export const GET = rotaDoUsuario(async ({ repo }) => {

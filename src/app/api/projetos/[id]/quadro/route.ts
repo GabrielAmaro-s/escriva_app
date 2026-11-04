@@ -1,6 +1,8 @@
 import { ErroNaoEncontrado, rotaDoUsuario } from "../../../rotas";
 
 export const dynamic = "force-dynamic";
+// server-only, cliente admin e AsyncLocalStorage precisam do runtime Node.js.
+export const runtime = "nodejs";
 
 export const GET = rotaDoUsuario<{ id: string }>(async ({ repo }, { id }) => {
   const quadro = await repo.obterQuadro(id);

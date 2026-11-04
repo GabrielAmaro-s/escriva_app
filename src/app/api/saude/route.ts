@@ -4,6 +4,8 @@ import { ambientePublico } from "@/config/ambiente";
 import { obterAmbienteServidor } from "@/config/ambiente-servidor";
 
 export const dynamic = "force-dynamic";
+// server-only, cliente admin e AsyncLocalStorage precisam do runtime Node.js.
+export const runtime = "nodejs";
 
 type RespostaSaude = { ok: boolean; modoLocal: boolean; banco: "ok" | "erro"; detalhe?: string };
 
