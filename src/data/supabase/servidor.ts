@@ -1,11 +1,13 @@
+import "server-only";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import { CHAVE_ANON_SUPABASE, URL_SUPABASE } from "./cliente";
+import { ambientePublico } from "@/config/ambiente";
 
-/** Cliente para Server Components e Route Handlers (lê a sessão dos cookies). */
+/** Cliente para Server Components e Route Handlers (lê a sessão dos cookies e respeita o RLS). */
 export async function obterSupabaseServidor() {
+  if (ambientePublico.modoLocal) throw new Error("Supabase não configurado.");
   const biscoitos = await cookies();
-  return createServerClient(URL_SUPABASE!, CHAVE_ANON_SUPABASE!, {
+  return createServerClient(ambientePublico.urlSupabase!, ambientePublico.chavePublicavelSupabase!, {
     cookies: {
       getAll: () => biscoitos.getAll(),
       setAll: (lista) => {
