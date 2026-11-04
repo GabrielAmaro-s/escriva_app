@@ -1,73 +1,87 @@
 "use client";
 
-import { X } from "lucide-react";
 import { useEffect, useRef, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { cn } from "@/lib/cn";
-import { IconButton } from "./button";
 
-interface ModalProps {
+/**
+ * Janela sobre a tela, alinhada ao topo como no design.
+ * Esc ou clique fora fecham; o foco entra na janela e volta ao fechar.
+ */
+export function Modal({
+  open,
+  onClose,
+  label,
+  children,
+  className,
+}: {
   open: boolean;
   onClose: () => void;
-  title: string;
-  /** "center" para formulários, "sheet" para painel lateral (vira folha inferior no celular). */
-  variant?: "center" | "sheet";
+  label: string;
   children: ReactNode;
-  footer?: ReactNode;
-  headerExtra?: ReactNode;
   className?: string;
-}
-
-export function Modal({ open, onClose, title, variant = "center", children, footer, headerExtra, className }: ModalProps) {
-  const ref = useRef<HTMLDialogElement>(null);
+}) {
+  const panel = useRef<HTMLDivElement>(null);
+  const close = useRef(onClose);
+  close.current = onClose;
 
   useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    if (open && !el.open) el.showModal();
-    if (!open && el.open) el.close();
+    if (!open) return;
+    const previous = document.activeElement as HTMLElement | null;
+    const el = panel.current;
+    if (el && !el.contains(document.activeElement)) {
+      (el.querySelector<HTMLElement>("[autofocus], [data-autofocus]") ?? el).focus({ preventScroll: true });
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        close.current();
+      }
+      if (e.key === "Tab" && el) {
+        const items = [...el.querySelectorAll<HTMLElement>("a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex='-1'])")];
+        if (!items.length) return;
+        const first = items[0];
+        const last = items[items.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = overflow;
+      previous?.focus?.();
+    };
   }, [open]);
 
-  return (
-    <dialog
-      ref={ref}
-      onClose={onClose}
-      onCancel={(e) => {
-        e.preventDefault();
-        onClose();
-      }}
+  if (!open || typeof document === "undefined") return null;
+
+  // Vai direto para o <body>: assim cobre o menu lateral e não herda animações da página.
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[60] flex animate-fade items-start justify-center overflow-y-auto bg-scrim px-3 py-4 nav:px-5 nav:py-[6vh]"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
-      aria-label={title}
-      className={cn(
-        "m-0 max-h-none max-w-none border-0 bg-transparent p-0 backdrop:bg-transparent",
-        variant === "center" ? "pop" : "slide",
-        variant === "center"
-          ? "inset-0 m-auto h-fit w-[min(34rem,calc(100vw-2rem))]"
-          : "fixed inset-x-0 bottom-0 top-auto h-[92dvh] w-full sm:inset-y-0 sm:left-auto sm:right-0 sm:h-dvh sm:w-[min(32rem,100vw)]",
-      )}
     >
-      {open && (
-        <div
-          className={cn(
-            "flex flex-col bg-surface text-ink shadow-lift",
-            variant === "center"
-              ? "max-h-[calc(100dvh-2rem)] rounded-2xl border border-line"
-              : "h-full rounded-t-2xl border-line sm:rounded-none sm:border-l",
-            className,
-          )}
-        >
-          <header className="flex items-center gap-2 px-5 pb-2 pt-4">
-            <h2 className="min-w-0 flex-1 truncate text-base font-semibold tracking-tight">{title}</h2>
-            {headerExtra}
-            <IconButton label="Fechar" onClick={onClose}>
-              <X />
-            </IconButton>
-          </header>
-          <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-5 pt-1">{children}</div>
-          {footer && <footer className="flex items-center gap-2 border-t border-line px-5 py-3">{footer}</footer>}
-        </div>
-      )}
-    </dialog>
+      <div
+        ref={panel}
+        role="dialog"
+        aria-modal="true"
+        aria-label={label}
+        tabIndex={-1}
+        className={cn("w-full animate-pop rounded-[18px] border border-line bg-surface shadow-modal outline-none", className)}
+      >
+        {children}
+      </div>
+    </div>,
+    document.body,
   );
 }

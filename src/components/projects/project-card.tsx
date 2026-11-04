@@ -1,113 +1,66 @@
 "use client";
 
-import { Archive, ArchiveRestore, CircleCheck, CirclePause, CirclePlay, Megaphone, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
-import Link from "next/link";
-import { IconButton } from "@/components/ui/button";
-import { Menu, type MenuItem } from "@/components/ui/menu";
+import { CalendarBlankIcon, DotsThreeIcon } from "@phosphor-icons/react";
+import { useRouter } from "next/navigation";
+import { ProgressBar, StatusBadge, ToneTile } from "@/components/ui/bits";
+import { useContextMenu } from "@/components/ui/context-menu";
 import { formatDate } from "@/domain/board";
-import { STATUS_LABEL, progressOf } from "@/domain/project";
-import type { Project, ProjectStatus } from "@/domain/types";
-import { cn } from "@/lib/cn";
+import { deadlineOf, progressOf } from "@/domain/project";
+import type { Project } from "@/domain/types";
+import { useProjectUi } from "./project-ui";
 
-export interface ProjectActions {
-  onEdit: (p: Project) => void;
-  onStatus: (p: Project, s: ProjectStatus) => void;
-  onArchive: (p: Project) => void;
-  onRestore: (p: Project) => void;
-  onDelete: (p: Project) => void;
-}
-
-const STATUS_DOT: Record<ProjectStatus, string> = {
-  active: "bg-tone",
-  paused: "bg-transparent ring-1 ring-inset ring-ink-3",
-  done: "bg-ink-3",
-};
-
-export function ProjectCard({ project, actions }: { project: Project; actions: ProjectActions }) {
-  const progress = progressOf(project);
-  const c = project.campaign;
-  const period =
-    c?.startsOn || c?.endsOn
-      ? [c.startsOn && formatDate(c.startsOn), c.endsOn && formatDate(c.endsOn)].filter(Boolean).join(" a ")
-      : null;
-
-  const statusItems: MenuItem[] = (
-    [
-      { s: "active", label: "Marcar como ativo", icon: <CirclePlay /> },
-      { s: "paused", label: "Pausar", icon: <CirclePause /> },
-      { s: "done", label: "Marcar como concluído", icon: <CircleCheck /> },
-    ] as const
-  )
-    .filter((x) => x.s !== project.status)
-    .map((x) => ({ label: x.label, icon: x.icon, onSelect: () => actions.onStatus(project, x.s) }));
-
-  const items: (MenuItem | "separator")[] = [
-    { label: "Editar", icon: <Pencil />, onSelect: () => actions.onEdit(project) },
-    ...(project.archivedAt ? [] : statusItems),
-    "separator",
-    project.archivedAt
-      ? { label: "Restaurar", icon: <ArchiveRestore />, onSelect: () => actions.onRestore(project) }
-      : { label: "Arquivar", icon: <Archive />, onSelect: () => actions.onArchive(project) },
-    { label: "Excluir", icon: <Trash2 />, tone: "danger", onSelect: () => actions.onDelete(project) },
-  ];
+export function ProjectCard({ project }: { project: Project }) {
+  const router = useRouter();
+  const openMenu = useContextMenu();
+  const { actionsFor } = useProjectUi();
+  const pct = progressOf(project);
+  const deadline = deadlineOf(project);
+  const showDue = deadline && project.status !== "done";
+  const open = () => router.push(`/projetos/${project.id}`);
+  const menu = (e: React.MouseEvent | React.KeyboardEvent) => openMenu(e, actionsFor(project));
 
   return (
     <article
-      data-color={project.color}
-      className={cn(
-        "group relative flex flex-col rounded-xl border border-line bg-surface transition-[border-color,box-shadow] duration-150 hover:border-line-strong hover:shadow-lift",
-        project.status === "done" && "opacity-80",
-      )}
+      tabIndex={0}
+      aria-label={project.name}
+      onClick={open}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" && e.target === e.currentTarget) open();
+      }}
+      onContextMenu={menu}
+      className="flex cursor-pointer flex-col rounded-[14px] border border-line bg-surface p-4 transition-[border-color,box-shadow] duration-150 hover:border-line2 hover:shadow-card"
     >
-      {/* Aba colorida: a cor do projeto como a etiqueta de uma pasta */}
-      <span aria-hidden className="absolute -top-px left-4 h-1.5 w-10 rounded-b-md bg-tone" />
-
-      <Link href={`/projetos/${project.id}`} className="flex flex-1 flex-col gap-1.5 rounded-xl px-4 pb-4 pt-5 focus-visible:outline-offset-0">
-        <h3 className="pr-7 text-[1.0625rem] font-semibold leading-snug tracking-tight text-ink">{project.name}</h3>
-        {project.kind === "campaign" && (
-          <p className="flex items-center gap-1.5 text-xs font-medium text-tone">
-            <Megaphone className="size-3.5" />
-            Campanha
-            {period && <span className="font-normal text-ink-3">{period}</span>}
-          </p>
-        )}
-        {project.description && <p className="line-clamp-2 text-sm text-ink-2">{project.description}</p>}
-
-        <div className="mt-auto flex items-center gap-3 pt-4">
-          <span className="flex items-center gap-1.5 text-xs text-ink-2">
-            <span className={cn("size-2 rounded-full", STATUS_DOT[project.status])} aria-hidden />
-            {project.archivedAt ? "Arquivado" : STATUS_LABEL[project.status]}
-          </span>
-          <div
-            className="h-1 flex-1 overflow-hidden rounded-full bg-surface-2"
-            role="progressbar"
-            aria-valuenow={progress}
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-label="Progresso"
+      <div className="flex items-start justify-between">
+        <ToneTile tone={project.color} icon={project.icon} />
+        <div className="flex items-center gap-1">
+          <StatusBadge status={project.status} archived={Boolean(project.archivedAt)} />
+          <button
+            type="button"
+            aria-label="Mais opções"
+            onClick={menu}
+            className="grid size-[26px] place-items-center rounded-[7px] border-0 bg-transparent text-ink3 hover:bg-hover hover:text-ink"
           >
-            <div className="h-full rounded-full bg-tone transition-[width] duration-300" style={{ width: `${progress}%` }} />
-          </div>
-          <span className="text-xs tabular-nums text-ink-3">
-            {project.taskCount ? `${project.doneCount}/${project.taskCount}` : "Sem tarefas"}
-          </span>
+            <DotsThreeIcon size={16} weight="bold" />
+          </button>
         </div>
-      </Link>
-
-      <div className="absolute right-2 top-3">
-        <Menu
-          items={items}
-          trigger={(props) => (
-            <IconButton
-              label="Ações do projeto"
-              {...props}
-              className="opacity-0 transition-opacity focus-visible:opacity-100 group-hover:opacity-100 aria-expanded:opacity-100 max-md:opacity-100"
-            >
-              <MoreHorizontal />
-            </IconButton>
-          )}
-        />
       </div>
+      <h3 className="mt-3.5 text-[15px] font-semibold tracking-[-0.01em]">{project.name}</h3>
+      <p className="mt-1 line-clamp-2 min-h-[38px] text-[12.5px] leading-normal text-ink2">{project.description}</p>
+      <div className="mt-auto flex justify-between pt-3.5 text-xs text-ink2">
+        <span>
+          {project.doneCount} de {project.taskCount} tarefas
+        </span>
+        <span className="font-semibold text-ink">{pct}%</span>
+      </div>
+      <div className="mt-[7px]">
+        <ProgressBar value={pct} tone={project.color} done={project.status === "done"} />
+      </div>
+      {showDue && (
+        <p className="mt-3.5 flex items-center gap-[7px] text-xs text-ink2">
+          <CalendarBlankIcon size={14} />
+          Até {formatDate(deadline)}
+        </p>
+      )}
     </article>
   );
 }

@@ -3,7 +3,6 @@ import type {
   Board,
   BoardColumn,
   CampaignDetails,
-  ColorKey,
   ColumnKind,
   Label,
   Project,
@@ -11,6 +10,7 @@ import type {
   Task,
   TaskInput,
   TaskPatch,
+  Tone,
 } from "@/domain/types";
 import type { Repository } from "../repository";
 import { seedStore } from "./seed";
@@ -20,7 +20,7 @@ import { seedStore } from "./seed";
  * configurado, para experimentar o app sem backend.
  */
 
-const KEY = "myplan:v1";
+const KEY = "myplan:v2";
 
 type StoredProject = Omit<Project, "campaign" | "taskCount" | "doneCount">;
 
@@ -75,7 +75,7 @@ export function createLocalRepository(): Repository {
 
     async listProjects() {
       const s = db();
-      return s.projects.map((p) => hydrate(s, p));
+      return structuredClone([...s.projects].sort((a, b) => a.position - b.position).map((p) => hydrate(s, p)));
     },
 
     async createProject(input: ProjectInput, columns: { title: string; kind: ColumnKind }[]) {
@@ -89,18 +89,20 @@ export function createLocalRepository(): Repository {
         kind: input.kind,
         status: input.status,
         color: input.color,
+        icon: input.icon,
+        dueOn: input.dueOn,
         position: positionBetween(null, s.projects.length ? first : null),
         archivedAt: null,
         createdAt: now(),
         updatedAt: now(),
       };
       s.projects.push(project);
-      if (input.kind === "campaign" && input.campaign) s.campaigns[id] = input.campaign;
+      if (input.kind === "campaign" && input.campaign) s.campaigns[id] = structuredClone(input.campaign);
       columns.forEach((c, i) =>
         s.columns.push({ id: newId(), projectId: id, title: c.title, kind: c.kind, position: (i + 1) * 1024 }),
       );
       commit();
-      return hydrate(s, project);
+      return structuredClone(hydrate(s, project));
     },
 
     async updateProject(id, input) {
@@ -110,12 +112,12 @@ export function createLocalRepository(): Repository {
       const { campaign, ...rest } = input;
       Object.assign(p, rest, { updatedAt: now() });
       if (campaign !== undefined) {
-        if (campaign && p.kind === "campaign") s.campaigns[id] = campaign;
+        if (campaign && p.kind === "campaign") s.campaigns[id] = structuredClone(campaign);
         else delete s.campaigns[id];
       }
       if (p.kind !== "campaign") delete s.campaigns[id];
       commit();
-      return hydrate(s, p);
+      return structuredClone(hydrate(s, p));
     },
 
     async deleteProject(id) {
@@ -132,12 +134,17 @@ export function createLocalRepository(): Repository {
       const s = db();
       const p = s.projects.find((x) => x.id === projectId);
       if (!p) return null;
-      return {
+      return structuredClone({
         project: hydrate(s, p),
         columns: s.columns.filter((c) => c.projectId === projectId),
         tasks: s.tasks.filter((t) => t.projectId === projectId),
         labels: s.labels.filter((l) => l.projectId === projectId),
-      };
+      });
+    },
+
+    async getWorkspace() {
+      const s = db();
+      return structuredClone({ columns: s.columns, tasks: s.tasks, labels: s.labels });
     },
 
     async createTask(input: TaskInput) {
@@ -163,16 +170,16 @@ export function createLocalRepository(): Repository {
       };
       s.tasks.push(task);
       commit();
-      return task;
+      return structuredClone(task);
     },
 
     async updateTask(id, patch: TaskPatch) {
       const s = db();
       const t = s.tasks.find((x) => x.id === id);
       if (!t) throw new Error("Tarefa não encontrada.");
-      Object.assign(t, patch, { updatedAt: now() });
+      Object.assign(t, structuredClone(patch), { updatedAt: now() });
       commit();
-      return t;
+      return structuredClone(t);
     },
 
     async deleteTask(id) {
@@ -181,7 +188,7 @@ export function createLocalRepository(): Repository {
       commit();
     },
 
-    async createLabel(projectId, name, color: ColorKey) {
+    async createLabel(projectId, name, color: Tone) {
       const s = db();
       const label: Label = { id: newId(), projectId, name, color };
       s.labels.push(label);

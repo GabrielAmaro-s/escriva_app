@@ -1,155 +1,103 @@
 "use client";
 
-import { Plus } from "lucide-react";
+import { MagnifyingGlassIcon, PlusIcon, WarningCircleIcon } from "@phosphor-icons/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
+import { EmptyState, FilterChips, Page, PageHeader, SearchInput } from "@/components/ui/bits";
 import { Button } from "@/components/ui/button";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { Segmented } from "@/components/ui/segmented";
-import { type ProjectFilter, filterProjects, toProjectInput } from "@/domain/project";
-import type { Project } from "@/domain/types";
+import { type ProjectFilter, filterProjects } from "@/domain/project";
 import { useProjects } from "@/hooks/use-projects";
-import { ProjectCard, type ProjectActions } from "./project-card";
-import { ProjectFormDialog } from "./project-form-dialog";
-
-type StatusFilter = Exclude<ProjectFilter, "archived">;
+import { ProjectCard } from "./project-card";
+import { useProjectUi } from "./project-ui";
 
 export function ProjectsView() {
   const params = useSearchParams();
   const router = useRouter();
-  const archivedView = params.get("filtro") === "arquivados";
   const store = useProjects();
-  const [filter, setFilter] = useState<StatusFilter>("active");
-  const [form, setForm] = useState<{ open: boolean; project?: Project }>({ open: false });
-  const [toDelete, setToDelete] = useState<Project | null>(null);
+  const { openNew } = useProjectUi();
+  const [query, setQuery] = useState("");
+  const filter = (params.get("filtro") as ProjectFilter | null) ?? "all";
+  const setFilter = (f: ProjectFilter) => router.replace(f === "all" ? "/" : `/?filtro=${f}`, { scroll: false });
 
   const counts = useMemo(() => {
-    const open = store.projects.filter((p) => !p.archivedAt);
+    const visible = store.projects.filter((p) => !p.archivedAt);
     return {
-      all: open.length,
-      active: open.filter((p) => p.status === "active").length,
-      paused: open.filter((p) => p.status === "paused").length,
-      done: open.filter((p) => p.status === "done").length,
+      all: visible.length,
+      active: visible.filter((p) => p.status === "active").length,
+      paused: visible.filter((p) => p.status === "paused").length,
+      done: visible.filter((p) => p.status === "done").length,
+      archived: store.projects.length - visible.length,
     };
   }, [store.projects]);
 
-  const list = filterProjects(store.projects, archivedView ? "archived" : filter);
+  const list = filterProjects(store.projects, filter, query);
+  const options: { value: ProjectFilter; label: string }[] = [
+    { value: "all", label: `Todos (${counts.all})` },
+    { value: "active", label: `Ativos (${counts.active})` },
+    { value: "paused", label: `Pausados (${counts.paused})` },
+    { value: "done", label: `Concluídos (${counts.done})` },
+  ];
+  // "Arquivados" só aparece quando há algo arquivado.
+  if (counts.archived > 0 || filter === "archived") options.push({ value: "archived", label: `Arquivados (${counts.archived})` });
 
-  const actions: ProjectActions = {
-    onEdit: (project) => setForm({ open: true, project }),
-    onStatus: (p, s) => store.setStatus(p.id, s),
-    onArchive: (p) => store.archive(p.id),
-    onRestore: (p) => store.restore(p.id),
-    onDelete: (p) => setToDelete(p),
-  };
+  const newButton = (
+    <Button variant="primary" onClick={() => openNew("project")}>
+      <PlusIcon size={15} weight="bold" />
+      Novo projeto
+    </Button>
+  );
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 sm:px-8 sm:py-10">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight sm:text-[1.75rem]">
-            {archivedView ? "Arquivados" : "Meus projetos"}
-          </h1>
-          <p className="mt-1 text-sm text-ink-3">
-            {archivedView
-              ? "Projetos guardados. Restaure quando quiser retomar."
-              : counts.all === 0
-                ? "Nada por aqui ainda."
-                : `${counts.active} ${counts.active === 1 ? "ativo" : "ativos"}, ${counts.paused} ${counts.paused === 1 ? "pausado" : "pausados"}`}
-          </p>
-        </div>
-        {!archivedView && (
-          <Button variant="primary" onClick={() => setForm({ open: true })}>
-            <Plus />
-            Novo projeto
-          </Button>
-        )}
-      </header>
+    <Page width={1240}>
+      <PageHeader title="Meus projetos" description="Acompanhe e gerencie todos os seus projetos e campanhas." action={newButton} />
 
-      {!archivedView && counts.all > 0 && (
-        <Segmented<StatusFilter>
-          label="Filtrar por status"
-          value={filter}
-          onChange={setFilter}
-          className="self-start max-sm:w-full max-sm:overflow-x-auto"
-          options={[
-            { value: "active", label: "Ativos", count: counts.active },
-            { value: "paused", label: "Pausados", count: counts.paused },
-            { value: "done", label: "Concluídos", count: counts.done },
-            { value: "all", label: "Todos", count: counts.all },
-          ]}
-        />
-      )}
+      <div className="mb-5 mt-6 flex flex-wrap items-center gap-x-5 gap-y-3">
+        <SearchInput value={query} onChange={setQuery} placeholder="Buscar projetos…" />
+        <FilterChips label="Filtrar por status" value={filter} onChange={setFilter} options={options} />
+      </div>
 
       {store.loading ? (
-        <Grid>
-          {Array.from({ length: 3 }, (_, i) => (
-            <div key={i} className="h-36 animate-pulse rounded-xl border border-line bg-surface" />
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(270px,1fr))] gap-4">
+          {Array.from({ length: 6 }, (_, i) => (
+            <div key={i} className="h-[214px] animate-pulse rounded-[14px] border border-line bg-surface" />
           ))}
-        </Grid>
+        </div>
       ) : store.error ? (
-        <Empty title="Não foi possível carregar seus projetos." body={store.error}>
-          <Button onClick={store.reload}>Tentar de novo</Button>
-        </Empty>
+        <EmptyState icon={WarningCircleIcon} title="Não foi possível carregar seus projetos" body={store.error}>
+          <Button size="sm" onClick={store.reload}>
+            Tentar de novo
+          </Button>
+        </EmptyState>
       ) : list.length === 0 ? (
-        archivedView ? (
-          <Empty title="Nenhum projeto arquivado." body="Projetos arquivados saem da lista principal e ficam guardados aqui.">
-            <Button onClick={() => router.push("/")}>Ver meus projetos</Button>
-          </Empty>
-        ) : counts.all === 0 ? (
-          <Empty title="Crie seu primeiro projeto." body="Cada projeto ganha um quadro com colunas para você mover as tarefas conforme avançam.">
-            <Button variant="primary" onClick={() => setForm({ open: true })}>
-              <Plus />
-              Novo projeto
+        counts.all === 0 && counts.archived === 0 ? (
+          <EmptyState icon={PlusIcon} title="Comece seu primeiro projeto" body="Cada projeto ganha um quadro para você mover as tarefas conforme avançam.">
+            <Button variant="primary" size="sm" onClick={() => openNew("project")}>
+              + Novo projeto
             </Button>
-          </Empty>
+          </EmptyState>
         ) : (
-          <Empty title="Nenhum projeto com esse status." body="Escolha outro filtro para ver os demais.">
-            <Button onClick={() => setFilter("all")}>Ver todos</Button>
-          </Empty>
+          <EmptyState icon={MagnifyingGlassIcon} title="Nenhum projeto encontrado" body="Ajuste a busca ou o filtro, ou comece algo novo.">
+            <Button
+              size="sm"
+              onClick={() => {
+                setQuery("");
+                setFilter("all");
+              }}
+            >
+              Limpar filtros
+            </Button>
+            <Button variant="primary" size="sm" onClick={() => openNew("project")}>
+              + Novo projeto
+            </Button>
+          </EmptyState>
         )
       ) : (
-        <Grid>
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(270px,1fr))] gap-4">
           {list.map((p) => (
-            <ProjectCard key={p.id} project={p} actions={actions} />
+            <ProjectCard key={p.id} project={p} />
           ))}
-        </Grid>
+        </div>
       )}
-
-      <ProjectFormDialog
-        open={form.open}
-        initial={form.project ? toProjectInput(form.project) : undefined}
-        onClose={() => setForm({ open: false })}
-        onSubmit={async (input) => {
-          if (form.project) return Boolean(await store.update(form.project.id, input));
-          const created = await store.create(input);
-          if (created) router.push(`/projetos/${created.id}`);
-          return Boolean(created);
-        }}
-      />
-
-      <ConfirmDialog
-        open={Boolean(toDelete)}
-        title="Excluir projeto?"
-        body={`"${toDelete?.name}" e todas as suas tarefas serão apagados de vez. Se quiser só tirar da lista, arquive.`}
-        confirmLabel="Excluir projeto"
-        onConfirm={() => toDelete && store.remove(toDelete.id)}
-        onClose={() => setToDelete(null)}
-      />
-    </div>
-  );
-}
-
-function Grid({ children }: { children: React.ReactNode }) {
-  return <div className="grid grid-cols-[repeat(auto-fill,minmax(17rem,1fr))] gap-3 sm:gap-4">{children}</div>;
-}
-
-function Empty({ title, body, children }: { title: string; body: string; children?: React.ReactNode }) {
-  return (
-    <div className="flex flex-col items-start gap-3 rounded-xl border border-dashed border-line-strong px-6 py-10 sm:items-center sm:text-center">
-      <p className="text-base font-medium">{title}</p>
-      <p className="max-w-sm text-sm text-ink-2">{body}</p>
-      {children && <div className="mt-1">{children}</div>}
-    </div>
+    </Page>
   );
 }

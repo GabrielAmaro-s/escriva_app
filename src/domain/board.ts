@@ -16,6 +16,22 @@ export const PRIORITY_LABEL: Record<TaskPriority, string> = {
 
 export const PRIORITIES: TaskPriority[] = ["low", "medium", "high", "urgent"];
 
+/** Cor da bandeira de prioridade (variável CSS). */
+export const PRIORITY_COLOR: Record<TaskPriority, string> = {
+  low: "var(--ink3)",
+  medium: "var(--s-blue)",
+  high: "var(--s-amber)",
+  urgent: "var(--s-red)",
+};
+
+/** Cor do marcador de cada coluna. */
+export const COLUMN_DOT: Record<ColumnKind, string> = {
+  todo: "var(--s-gray)",
+  doing: "var(--s-violet)",
+  waiting: "var(--s-amber)",
+  done: "var(--s-green)",
+};
+
 const GAP = 1024;
 
 /** Posição para inserir entre dois vizinhos (posições fracionárias: um único update por movimento). */
@@ -72,24 +88,47 @@ export function checklistProgress(task: Pick<Task, "checklist">): { done: number
   return { done: task.checklist.filter((i) => i.done).length, total: task.checklist.length };
 }
 
-export type DueState = "overdue" | "today" | "soon" | "later";
-
-export function dueState(dueOn: string, today = new Date()): DueState {
-  const t = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
-  const [y, m, d] = dueOn.split("-").map(Number);
-  const due = new Date(y, m - 1, d).getTime();
-  const days = Math.round((due - t) / 86_400_000);
-  if (days < 0) return "overdue";
-  if (days === 0) return "today";
-  if (days <= 3) return "soon";
-  return "later";
+/** Cor da data de entrega: vermelho se atrasada, âmbar se é hoje. */
+export function dueColor(dueOn: string, completed: boolean, today = todayIso()): string {
+  if (completed) return "var(--ink3)";
+  if (dueOn < today) return "var(--s-red)";
+  if (dueOn === today) return "var(--s-amber)";
+  return "var(--ink3)";
 }
 
-const shortDate = new Intl.DateTimeFormat("pt-BR", { day: "numeric", month: "short" });
+export function positionAtTop(tasks: Task[], columnId: string): number {
+  const first = tasksInColumn(tasks, columnId)[0];
+  return positionBetween(null, first?.position ?? null);
+}
 
-export function formatDate(iso: string): string {
-  const [y, m, d] = iso.split("-").map(Number);
-  return shortDate.format(new Date(y, m - 1, d)).replace(".", "");
+const MONTHS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+
+export function todayIso(now = new Date()): string {
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return `${now.getFullYear()}-${m}-${d}`;
+}
+
+/** "28 de nov", ou "Hoje". */
+export function formatDate(iso: string, today = todayIso()): string {
+  if (iso === today) return "Hoje";
+  const [, m, d] = iso.split("-").map(Number);
+  return `${d} de ${MONTHS[m - 1]}`;
+}
+
+function short(iso: string): string {
+  const [, m, d] = iso.split("-").map(Number);
+  return `${d} ${MONTHS[m - 1]}`;
+}
+
+/** Período de campanha: "1 dez – 15 fev 2027". O ano aparece quando não é o atual. */
+export function formatRange(start: string | null, end: string | null, today = todayIso()): string {
+  const year = today.slice(0, 4);
+  const withYear = (iso: string) => short(iso) + (iso.slice(0, 4) !== year ? ` ${iso.slice(0, 4)}` : "");
+  if (!start && !end) return "Sem período";
+  if (!start) return `Até ${withYear(end!)}`;
+  if (!end) return `Desde ${withYear(start)}`;
+  return `${short(start)} – ${withYear(end)}`;
 }
 
 export function newId(): string {

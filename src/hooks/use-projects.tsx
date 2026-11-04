@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { getRepository } from "@/data";
 import type { Project, ProjectInput, ProjectStatus } from "@/domain/types";
 import * as service from "@/services/projects";
@@ -11,13 +11,14 @@ interface ProjectsState {
   loading: boolean;
   error: string | null;
   create(input: ProjectInput): Promise<Project | null>;
-  update(id: string, input: ProjectInput): Promise<Project | null>;
+  update(id: string, input: ProjectInput, options?: { quiet?: boolean }): Promise<Project | null>;
   setStatus(id: string, status: ProjectStatus): void;
   archive(id: string): void;
   restore(id: string): void;
-  remove(id: string): Promise<void>;
-  /** Mantém o progresso dos cartões em dia quando o quadro muda. */
-  syncCounts(id: string, taskCount: number, doneCount: number): void;
+  /** Remove da tela na hora e só apaga de vez se o aviso não for desfeito. */
+  remove(id: string): void;
+  /** Mantém o progresso dos cartões em dia quando as tarefas mudam. */
+  syncCounts(counts: Map<string, { taskCount: number; doneCount: number }>): void;
   reload(): void;
 }
 
@@ -30,6 +31,13 @@ export function useProjects(): ProjectsState {
 }
 
 const message = (e: unknown) => (e instanceof Error ? e.message : "Algo deu errado. Tente de novo.");
+const UNDO_MS = 5000;
+
+const STATUS_TOAST: Record<ProjectStatus, string> = {
+  active: "Projeto reativado",
+  paused: "Projeto pausado",
+  done: "Projeto concluído",
+};
 
 export function ProjectsProvider({ children }: { children: ReactNode }) {
   const repo = getRepository();
@@ -37,13 +45,21 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const pendingDeletes = useRef(new Map<string, { timer: ReturnType<typeof setTimeout>; run: () => void }>());
+
+  // Ao fechar a página, conclui as exclusões que ainda esperavam o "Desfazer".
+  useEffect(() => {
+    const flush = () => pendingDeletes.current.forEach(({ timer, run }) => (clearTimeout(timer), run()));
+    window.addEventListener("pagehide", flush);
+    return () => window.removeEventListener("pagehide", flush);
+  }, []);
 
   const reload = useCallback(() => {
     setLoading(true);
     repo
       .listProjects()
       .then((list) => {
-        setProjects(list);
+        setProjects(list.filter((p) => !pendingDeletes.current.has(p.id)));
         setError(null);
       })
       .catch((e) => setError(message(e)))
@@ -52,7 +68,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
 
   useEffect(reload, [reload]);
 
-  const replace = (p: Project) => setProjects((list) => list.map((x) => (x.id === p.id ? p : x)));
+  const replace = (p: Project) => setProjects((list) => list.map((x) => (x.id === p.id ? { ...p, taskCount: x.taskCount, doneCount: x.doneCount } : x)));
 
   /** Atualização otimista: aplica na tela, grava e desfaz se falhar. */
   const optimistic = useCallback(
@@ -65,11 +81,9 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
           return { ...p, ...change };
         }),
       );
+      if (success) toast({ text: success, tone: "info", action: undo ? { label: "Desfazer", run: undo } : undefined });
       run()
-        .then((p) => {
-          replace(p);
-          if (success) toast({ text: success, tone: "info", action: undo ? { label: "Desfazer", run: undo } : undefined });
-        })
+        .then(replace)
         .catch((e) => {
           if (previous) replace(previous);
           toast({ text: message(e), tone: "error" });
@@ -88,16 +102,18 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
         try {
           const p = await service.createProject(repo, input);
           setProjects((list) => [p, ...list]);
+          toast({ text: input.kind === "campaign" ? "Campanha criada" : "Projeto criado", tone: "info" });
           return p;
         } catch (e) {
           toast({ text: message(e), tone: "error" });
           return null;
         }
       },
-      async update(id, input) {
+      async update(id, input, options) {
         try {
           const p = await service.updateProject(repo, id, input);
           replace(p);
+          if (!options?.quiet) toast({ text: "Alterações salvas", tone: "info" });
           return p;
         } catch (e) {
           toast({ text: message(e), tone: "error" });
@@ -105,29 +121,54 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
         }
       },
       setStatus(id, status) {
-        optimistic(id, { status }, () => service.setProjectStatus(repo, id, status));
+        optimistic(id, { status }, () => service.setProjectStatus(repo, id, status), STATUS_TOAST[status]);
       },
       archive(id) {
-        optimistic(id, { archivedAt: new Date().toISOString() }, () => service.archiveProject(repo, id), "Projeto arquivado.", () =>
+        optimistic(id, { archivedAt: new Date().toISOString() }, () => service.archiveProject(repo, id), "Projeto arquivado", () =>
           optimistic(id, { archivedAt: null }, () => service.restoreProject(repo, id)),
         );
       },
       restore(id) {
-        optimistic(id, { archivedAt: null }, () => service.restoreProject(repo, id), "Projeto restaurado.");
+        optimistic(id, { archivedAt: null }, () => service.restoreProject(repo, id), "Projeto restaurado");
       },
-      async remove(id) {
-        const previous = projects;
+      remove(id) {
+        const index = projects.findIndex((p) => p.id === id);
+        const removed = projects[index];
+        if (!removed) return;
         setProjects((list) => list.filter((p) => p.id !== id));
-        try {
-          await service.deleteProject(repo, id);
-          toast({ text: "Projeto excluído.", tone: "info" });
-        } catch (e) {
-          setProjects(previous);
-          toast({ text: message(e), tone: "error" });
-        }
+        const run = () => {
+          pendingDeletes.current.delete(id);
+          service.deleteProject(repo, id).catch((e) => {
+            setProjects((list) => [...list.slice(0, index), removed, ...list.slice(index)]);
+            toast({ text: message(e), tone: "error" });
+          });
+        };
+        const timer = setTimeout(run, UNDO_MS);
+        pendingDeletes.current.set(id, { timer, run });
+        toast({
+          text: removed.kind === "campaign" ? "Campanha excluída" : "Projeto excluído",
+          tone: "info",
+          action: {
+            label: "Desfazer",
+            run: () => {
+              clearTimeout(timer);
+              pendingDeletes.current.delete(id);
+              setProjects((list) => [...list.slice(0, index), removed, ...list.slice(index)]);
+            },
+          },
+        });
       },
-      syncCounts(id, taskCount, doneCount) {
-        setProjects((list) => list.map((p) => (p.id === id ? { ...p, taskCount, doneCount } : p)));
+      syncCounts(counts) {
+        setProjects((list) => {
+          let changed = false;
+          const next = list.map((p) => {
+            const c = counts.get(p.id);
+            if (!c || (c.taskCount === p.taskCount && c.doneCount === p.doneCount)) return p;
+            changed = true;
+            return { ...p, ...c };
+          });
+          return changed ? next : list;
+        });
       },
     }),
     [projects, loading, error, reload, repo, toast, optimistic],

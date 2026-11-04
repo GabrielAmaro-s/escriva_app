@@ -6,15 +6,10 @@ export type ProjectStatus = "active" | "paused" | "done";
 export type ColumnKind = "todo" | "doing" | "waiting" | "done";
 export type TaskPriority = "low" | "medium" | "high" | "urgent";
 
-export type ColorKey =
-  | "petroleo"
-  | "salvia"
-  | "lavanda"
-  | "rosa"
-  | "areia"
-  | "ceu"
-  | "grafite"
-  | "ameixa";
+/** Tons do design. Projetos usam os seis primeiros; etiquetas podem usar "gray". */
+export type Tone = "violet" | "blue" | "green" | "amber" | "red" | "pink" | "gray";
+
+export type ProjectIcon = "folder" | "monitor" | "box" | "calendar" | "chart" | "check" | "gift" | "megaphone" | "star" | "target";
 
 export interface Deliverable {
   id: string;
@@ -36,7 +31,10 @@ export interface Project {
   description: string | null;
   kind: ProjectKind;
   status: ProjectStatus;
-  color: ColorKey;
+  color: Tone;
+  icon: ProjectIcon;
+  /** Prazo do projeto. Em campanhas o período fica em `campaign`. */
+  dueOn: string | null;
   position: number;
   archivedAt: string | null;
   createdAt: string;
@@ -51,7 +49,9 @@ export interface ProjectInput {
   description: string | null;
   kind: ProjectKind;
   status: ProjectStatus;
-  color: ColorKey;
+  color: Tone;
+  icon: ProjectIcon;
+  dueOn: string | null;
   campaign: CampaignDetails | null;
 }
 
@@ -67,7 +67,7 @@ export interface Label {
   id: string;
   projectId: string;
   name: string;
-  color: ColorKey;
+  color: Tone;
 }
 
 export interface ChecklistItem {
@@ -78,6 +78,7 @@ export interface ChecklistItem {
 
 export interface TaskLink {
   id: string;
+  /** Pode ficar vazio quando a referência é só um título (ex.: "Briefing do projeto"). */
   url: string;
   title: string | null;
 }
@@ -109,6 +110,13 @@ export type TaskPatch = Partial<
 
 export interface Board {
   project: Project;
+  columns: BoardColumn[];
+  tasks: Task[];
+  labels: Label[];
+}
+
+/** Tarefas, colunas e etiquetas de um conjunto de projetos (um quadro ou todos). */
+export interface Workspace {
   columns: BoardColumn[];
   tasks: Task[];
   labels: Label[];

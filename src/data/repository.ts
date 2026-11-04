@@ -1,7 +1,6 @@
 import type {
   Board,
   BoardColumn,
-  ColorKey,
   ColumnKind,
   Label,
   Project,
@@ -9,6 +8,8 @@ import type {
   Task,
   TaskInput,
   TaskPatch,
+  Tone,
+  Workspace,
 } from "@/domain/types";
 
 /**
@@ -25,12 +26,14 @@ export interface Repository {
   deleteProject(id: string): Promise<void>;
 
   getBoard(projectId: string): Promise<Board | null>;
+  /** Colunas, tarefas e etiquetas de todos os projetos (Visão geral e Tarefas). */
+  getWorkspace(): Promise<Workspace>;
 
   createTask(input: TaskInput): Promise<Task>;
   updateTask(id: string, patch: TaskPatch): Promise<Task>;
   deleteTask(id: string): Promise<void>;
 
-  createLabel(projectId: string, name: string, color: ColorKey): Promise<Label>;
+  createLabel(projectId: string, name: string, color: Tone): Promise<Label>;
   deleteLabel(id: string): Promise<void>;
 }
 

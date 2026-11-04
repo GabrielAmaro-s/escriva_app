@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { positionBetween } from "@/domain/board";
-import type { ColorKey, ColumnKind, ProjectInput, TaskInput, TaskPatch } from "@/domain/types";
+import type { ColumnKind, Tone, ProjectInput, TaskInput, TaskPatch } from "@/domain/types";
 import type { Repository } from "../repository";
 import {
   type ColumnRow,
@@ -114,6 +114,19 @@ export function createSupabaseRepository(sb: SupabaseClient): Repository {
       };
     },
 
+    async getWorkspace() {
+      const [columns, tasks, labels] = await Promise.all([
+        sb.from("board_columns").select("*").order("position"),
+        sb.from("tasks").select("*").order("position"),
+        sb.from("labels").select("*").order("name"),
+      ]);
+      return {
+        columns: (check(columns) as ColumnRow[]).map(toColumn),
+        tasks: (check(tasks) as TaskRow[]).map(toTask),
+        labels: (check(labels) as LabelRow[]).map(toLabel),
+      };
+    },
+
     async createTask(input: TaskInput) {
       const row = check(
         await sb
@@ -143,7 +156,7 @@ export function createSupabaseRepository(sb: SupabaseClient): Repository {
       check(await sb.from("tasks").delete().eq("id", id));
     },
 
-    async createLabel(projectId, name, color: ColorKey) {
+    async createLabel(projectId, name, color: Tone) {
       const row = check(
         await sb.from("labels").insert({ project_id: projectId, name, color }).select("*").single(),
       ) as LabelRow;

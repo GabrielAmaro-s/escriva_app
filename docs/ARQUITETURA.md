@@ -31,32 +31,42 @@ Decisões principais:
 
 ## 2. Páginas e componentes
 
+O visual segue o protótipo `myPlan_standalone.html`: fonte Inter, ícones Phosphor, cor de destaque configurável (violeta por padrão) e modo escuro.
+
 | Rota | Tela |
 |---|---|
-| `/` | Meus projetos (filtros Ativos, Pausados, Concluídos, Todos) |
-| `/?filtro=arquivados` | Projetos arquivados |
-| `/projetos/[id]` | Quadro Kanban do projeto |
+| `/visao-geral` | Visão geral: números do momento e próximas entregas |
+| `/` | Meus projetos: busca, filtros por status e cartões |
+| `/campanhas` | Campanhas em lista, com objetivo, período, canais e entregas |
+| `/tarefas` | Todas as tarefas abertas ou concluídas, ordenadas por prazo |
+| `/configuracoes` | Modo escuro e cor de destaque |
+| `/projetos/[id]` | Quadro Kanban, com a aba Detalhes (`?aba=detalhes`) |
 | `/login` | Entrada por link mágico (só com Supabase) |
 
 ```
 src/components/
-├── layout/      app-shell (menu lateral + gaveta no celular), sidebar, theme-toggle
-├── projects/    projects-view, project-card, project-form-dialog (projeto ou campanha)
-├── board/       board-view, board (DndContext), board-column, task-card,
-│                task-sheet (painel da tarefa), label-picker, links-editor, campaign-strip
-└── ui/          button, field, modal (dialog nativo), menu, segmented, color-picker,
-                 chip-input, check-list, confirm-dialog, toast
+├── layout/      app-shell (menu lateral; vira gaveta abaixo de 820px), sidebar
+├── projects/    projects-view, project-card, project-form-dialog, project-ui
+│                (formulário e menu de ações disponíveis em qualquer tela)
+├── campaigns/   campaigns-view
+├── board/       board-view (cabeçalho e abas), board (DndContext), board-column,
+│                task-card, details-tab
+├── tasks/       task-modal (janela da tarefa), task-list, overview-view, tasks-view
+├── settings/    settings-view
+└── ui/          bits (selos, barras, chips, busca), button, field, modal,
+                 context-menu (menu "..." e botão direito), toast (com Desfazer)
 ```
 
-A tarefa abre num painel lateral (folha inferior no celular), sem trocar de página. Tudo é salvo ao sair do campo ou ao clicar, sem botão "Salvar".
+A janela da tarefa abre no lugar em qualquer tela (quadro, Visão geral e Tarefas). Excluir projeto ou tarefa mostra um aviso com "Desfazer"; a exclusão só vai para o banco depois de alguns segundos.
 
 ## 3. Modelo de dados
 
-Arquivo completo: `supabase/migrations/0001_init.sql`.
+Arquivos: `supabase/migrations/0001_init.sql` e `0002_design_myplan.sql` (ícone, prazo do projeto e nova paleta).
 
 ```
 projects            id, user_id, name, description, kind (project|campaign),
-                    status (active|paused|done), color, position, archived_at
+                    status (active|paused|done), color (violet|blue|green|amber|red|pink),
+                    icon, due_on, position, archived_at
 campaign_details    project_id (1:1), objective, starts_on, ends_on,
                     channels text[], deliverables jsonb [{id,title,done}]
 board_columns       id, project_id, title, kind (todo|doing|waiting|done), position
@@ -81,6 +91,7 @@ Escolhas:
 1. **Base (feito).** Next.js, Tailwind 4, tema claro/escuro, menu lateral, camada de dados com Supabase e modo local, schema SQL.
 2. **Meus projetos (feito).** Cartões com cor, tipo, status e progresso; criar, editar, arquivar, restaurar, excluir; filtros; campos de campanha.
 3. **Quadro Kanban (feito).** Quatro colunas, arrastar entre e dentro das colunas, criação rápida, painel da tarefa com data, prioridade, etiquetas, checklist, links e conclusão.
-4. **Polimento.** Reordenar projetos na página inicial, busca rápida (Ctrl+K), atalhos de teclado no quadro, estados vazios por coluna.
-5. **Dados confiáveis.** Testes das regras de `domain/`, migração do modo local para a conta Supabase, exportar em JSON.
-6. **Integração com IA (futuro).** Expor `services/` como ferramentas para um agente: criar tarefas por linguagem natural, sugerir prioridades, gerar resumo do projeto.
+4. **Novo design (feito).** Visão geral, Campanhas, Tarefas e Configurações; janela da tarefa; menu de ações; desfazer exclusões; cor de destaque.
+5. **Polimento.** Reordenar projetos na página inicial, busca rápida (Ctrl+K), atalhos de teclado no quadro.
+6. **Dados confiáveis.** Testes das regras de `domain/`, migração do modo local para a conta Supabase, exportar em JSON.
+7. **Integração com IA (futuro).** Expor `services/` como ferramentas para um agente: criar tarefas por linguagem natural, sugerir prioridades, gerar resumo do projeto.

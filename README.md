@@ -14,7 +14,7 @@ Abra http://localhost:3000. Sem configuração nenhuma o app roda em **modo loca
 ## Conectar ao Supabase
 
 1. Crie um projeto em supabase.com.
-2. No SQL Editor, rode `supabase/migrations/0001_init.sql`.
+2. No SQL Editor, rode `supabase/migrations/0001_init.sql` e depois `0002_design_myplan.sql`.
 3. Em Authentication > URL Configuration, adicione `http://localhost:3000/auth/callback` (e a URL de produção) em Redirect URLs.
 4. Copie `.env.example` para `.env.local` e preencha a URL e a chave anon (Project Settings > API).
 5. Reinicie o `npm run dev`. O app passa a pedir login por link mágico no e-mail.

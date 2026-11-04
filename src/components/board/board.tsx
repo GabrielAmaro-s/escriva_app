@@ -14,16 +14,32 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
+import { ArrowRightIcon, KanbanIcon, TrashIcon } from "@phosphor-icons/react";
 import { useMemo, useState } from "react";
+import { useContextMenu, type MenuItem } from "@/components/ui/context-menu";
 import { positionBetween, tasksInColumn } from "@/domain/board";
-import type { BoardApi } from "@/hooks/use-board";
+import type { BoardColumn, Task } from "@/domain/types";
+import type { TasksApi } from "@/hooks/use-tasks";
 import { BoardColumnView } from "./board-column";
 import { TaskCard } from "./task-card";
 
 type Items = Record<string, string[]>;
 
-export function Board({ api, onOpenTask }: { api: BoardApi; onOpenTask: (id: string) => void }) {
-  const { columns, tasks, labelsById } = api;
+export function Board({
+  api,
+  columns,
+  adding,
+  setAdding,
+  onOpenTask,
+}: {
+  api: TasksApi;
+  columns: BoardColumn[];
+  adding: string | null;
+  setAdding: (columnId: string | null) => void;
+  onOpenTask: (id: string) => void;
+}) {
+  const { tasks, labelsById } = api;
+  const openMenu = useContextMenu();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [dragItems, setDragItems] = useState<Items | null>(null);
 
@@ -40,15 +56,23 @@ export function Board({ api, onOpenTask }: { api: BoardApi; onOpenTask: (id: str
   const items = dragItems ?? baseItems;
   const taskById = useMemo(() => new Map(tasks.map((t) => [t.id, t])), [tasks]);
 
-  const containerOf = (id: string, source: Items) =>
-    id in source ? id : Object.keys(source).find((k) => source[k].includes(id));
+  const containerOf = (id: string, source: Items) => (id in source ? id : Object.keys(source).find((k) => source[k].includes(id)));
+
+  const taskMenu = (task: Task, e: React.MouseEvent) => {
+    const menu: MenuItem[] = [{ label: "Abrir", icon: ArrowRightIcon, onSelect: () => onOpenTask(task.id) }];
+    columns
+      .filter((c) => c.id !== task.columnId)
+      .forEach((c) => menu.push({ label: `Mover: ${c.title}`, icon: KanbanIcon, onSelect: () => api.moveTask(task.id, c) }));
+    menu.push({ label: "Excluir", icon: TrashIcon, danger: true, onSelect: () => api.deleteTask(task.id) });
+    openMenu(e, menu);
+  };
 
   function onDragStart({ active }: DragStartEvent) {
     setActiveId(String(active.id));
     setDragItems(baseItems);
   }
 
-  // Durante o arraste, o cartão muda de coluna só na tela; a gravação acontece ao soltar.
+  // Durante o arraste o cartão muda de coluna só na tela; a gravação acontece ao soltar.
   function onDragOver({ active, over }: DragOverEvent) {
     if (!over) return;
     setDragItems((prev) => {
@@ -58,14 +82,12 @@ export function Board({ api, onOpenTask }: { api: BoardApi; onOpenTask: (id: str
       const from = containerOf(id, source);
       const to = containerOf(overId, source);
       if (!from || !to || from === to) return prev;
-
       const target = [...source[to]];
       let index = target.length;
       if (overId !== to) {
         const overIndex = target.indexOf(overId);
         const activeTop = active.rect.current.translated?.top ?? 0;
-        const below = activeTop > over.rect.top + over.rect.height / 2;
-        index = overIndex + (below ? 1 : 0);
+        index = overIndex + (activeTop > over.rect.top + over.rect.height / 2 ? 1 : 0);
       }
       target.splice(index, 0, id);
       return { ...source, [from]: source[from].filter((x) => x !== id), [to]: target };
@@ -83,25 +105,21 @@ export function Board({ api, onOpenTask }: { api: BoardApi; onOpenTask: (id: str
     if (!columnId) return;
     let list = current[columnId];
     const overId = String(over.id);
-    if (overId !== columnId && list.includes(overId)) {
-      list = arrayMove(list, list.indexOf(id), list.indexOf(overId));
-    }
+    if (overId !== columnId && list.includes(overId)) list = arrayMove(list, list.indexOf(id), list.indexOf(overId));
 
     const index = list.indexOf(id);
     const task = taskById.get(id);
     const column = columns.find((c) => c.id === columnId);
     if (!task || !column) return;
+    if (task.columnId === columnId && baseItems[columnId].indexOf(id) === index) return;
 
-    const beforeId = list[index - 1];
-    const afterId = list[index + 1];
-    const position = positionBetween(
-      beforeId ? taskById.get(beforeId)?.position ?? null : null,
-      afterId ? taskById.get(afterId)?.position ?? null : null,
+    const before = list[index - 1];
+    const after = list[index + 1];
+    api.moveTask(
+      id,
+      column,
+      positionBetween(before ? taskById.get(before)?.position ?? null : null, after ? taskById.get(after)?.position ?? null : null),
     );
-
-    const sameSpot =
-      task.columnId === columnId && baseItems[columnId].indexOf(id) === index;
-    if (!sameSpot) api.moveTask(id, column, position);
   }
 
   const active = activeId ? taskById.get(activeId) : null;
@@ -123,15 +141,19 @@ export function Board({ api, onOpenTask }: { api: BoardApi; onOpenTask: (id: str
         },
       }}
     >
-      <div className="board-scroll flex min-h-0 flex-1 snap-x snap-mandatory items-start gap-3 overflow-x-auto px-4 pb-6 sm:snap-none sm:px-6 lg:px-8">
+      <div className="flex min-h-[420px] flex-1 snap-x snap-proximity items-stretch gap-3.5 overflow-x-auto pb-3">
         {columns.map((column) => (
           <BoardColumnView
             key={column.id}
             column={column}
             tasks={(items[column.id] ?? []).map((tid) => taskById.get(tid)!).filter(Boolean)}
             labelsById={labelsById}
+            dragging={Boolean(activeId)}
+            adding={adding === column.id}
+            onStartAdding={() => setAdding(column.id)}
+            onStopAdding={() => setAdding(null)}
             onOpenTask={onOpenTask}
-            onToggleComplete={api.toggleComplete}
+            onTaskMenu={taskMenu}
             onAddTask={(title) => api.addTask(column, title)}
           />
         ))}

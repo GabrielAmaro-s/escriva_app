@@ -1,21 +1,20 @@
 import { forwardRef, type ButtonHTMLAttributes } from "react";
 import { cn } from "@/lib/cn";
 
-type Variant = "primary" | "secondary" | "ghost" | "danger" | "danger-ghost";
-type Size = "sm" | "md" | "icon";
+type Variant = "primary" | "secondary" | "ghost";
+type Size = "md" | "sm" | "icon" | "icon-sm";
 
 const variants: Record<Variant, string> = {
-  primary: "bg-accent text-accent-ink hover:brightness-110 active:brightness-95",
-  secondary: "bg-surface text-ink border border-line hover:border-line-strong hover:bg-surface-2",
-  ghost: "text-ink-2 hover:text-ink hover:bg-surface-2",
-  danger: "bg-danger text-white hover:brightness-110",
-  "danger-ghost": "text-danger hover:bg-danger/10",
+  primary: "border-0 bg-primary text-on-primary font-semibold hover:brightness-110",
+  secondary: "border border-line2 bg-surface text-ink font-medium hover:bg-hover",
+  ghost: "border-0 bg-transparent text-ink2 hover:bg-hover hover:text-ink",
 };
 
 const sizes: Record<Size, string> = {
-  sm: "h-8 px-2.5 text-sm gap-1.5",
-  md: "h-9 px-3.5 text-sm gap-2",
-  icon: "size-8",
+  md: "h-[38px] gap-2 rounded-[10px] px-4 text-[13.5px]",
+  sm: "h-[34px] gap-1.5 rounded-[9px] px-3.5 text-[13px]",
+  icon: "size-[38px] rounded-[10px]",
+  "icon-sm": "size-[30px] rounded-lg",
 };
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -32,7 +31,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       ref={ref}
       type={type}
       className={cn(
-        "inline-flex shrink-0 items-center justify-center rounded-lg font-medium transition-[background,color,border,filter] duration-150 disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4",
+        "inline-flex shrink-0 items-center justify-center whitespace-nowrap transition-[background,color,filter,border-color] duration-150 disabled:pointer-events-none disabled:opacity-50",
         variants[variant],
         sizes[size],
         className,
@@ -43,18 +42,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
 });
 
 export const IconButton = forwardRef<HTMLButtonElement, ButtonProps & { label: string }>(function IconButton(
-  { label, className, variant = "ghost", ...props },
+  { label, variant = "ghost", size = "icon-sm", ...props },
   ref,
 ) {
-  return (
-    <Button
-      ref={ref}
-      variant={variant}
-      size="icon"
-      aria-label={label}
-      title={label}
-      className={className}
-      {...props}
-    />
-  );
+  return <Button ref={ref} variant={variant} size={size} aria-label={label} title={label} {...props} />;
 });

@@ -1,4 +1,4 @@
-import { isColorKey } from "@/domain/project";
+import { isProjectIcon, isTone } from "@/domain/project";
 import type {
   BoardColumn,
   CampaignDetails,
@@ -18,6 +18,8 @@ export type ProjectRow = {
   kind: Project["kind"];
   status: Project["status"];
   color: string;
+  icon: string | null;
+  due_on: string | null;
   position: number;
   archived_at: string | null;
   created_at: string;
@@ -64,7 +66,9 @@ export function toProject(row: ProjectRow, counts?: CountRow): Project {
     description: row.description,
     kind: row.kind,
     status: row.status,
-    color: isColorKey(row.color) ? row.color : "petroleo",
+    color: isTone(row.color) ? row.color : "violet",
+    icon: isProjectIcon(row.icon) ? row.icon : row.kind === "campaign" ? "megaphone" : "folder",
+    dueOn: row.due_on,
     position: row.position,
     archivedAt: row.archived_at,
     createdAt: row.created_at,
@@ -91,6 +95,8 @@ export function fromProjectInput(input: Partial<ProjectInput> & { archivedAt?: s
   if (input.kind !== undefined) row.kind = input.kind;
   if (input.status !== undefined) row.status = input.status;
   if (input.color !== undefined) row.color = input.color;
+  if (input.icon !== undefined) row.icon = input.icon;
+  if (input.dueOn !== undefined) row.due_on = input.dueOn;
   if (input.archivedAt !== undefined) row.archived_at = input.archivedAt;
   return row;
 }
@@ -118,7 +124,7 @@ export const toLabel = (r: LabelRow): Label => ({
   id: r.id,
   projectId: r.project_id,
   name: r.name,
-  color: isColorKey(r.color) ? r.color : "petroleo",
+  color: isTone(r.color) ? r.color : "gray",
 });
 
 export const toTask = (r: TaskRow): Task => ({
