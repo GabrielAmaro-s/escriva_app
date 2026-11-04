@@ -16,7 +16,7 @@ vi.mock("@/data/supabase/usuario-servidor", () => ({
 }));
 
 type Modulo = Record<string, (r: Request, e: { params: Promise<Record<string, string>> }) => Promise<Response>>;
-const ROTAS: [RegExp, string[], () => Promise<Modulo>][] = [
+const ROTAS: [RegExp, string[], () => Promise<unknown>][] = [
   [/^\/api\/projetos$/, [], () => import("./projetos/route")],
   [/^\/api\/projetos\/([^/]+)$/, ["id"], () => import("./projetos/[id]/route")],
   [/^\/api\/projetos\/([^/]+)\/quadro$/, ["id"], () => import("./projetos/[id]/quadro/route")],
@@ -40,7 +40,7 @@ async function fetchFalso(entrada: string | URL | Request, init?: RequestInit): 
   for (const [padrao, nomes, carregar] of ROTAS) {
     const m = url.pathname.match(padrao);
     if (!m) continue;
-    const modulo = await carregar();
+    const modulo = (await carregar()) as Modulo;
     const metodo = (init?.method ?? "GET").toUpperCase();
     const manipulador = modulo[metodo];
     if (!manipulador) return new Response(null, { status: 405 });
