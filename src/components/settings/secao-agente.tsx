@@ -19,6 +19,11 @@ import { LinhaConfiguracao } from "./linha-configuracao";
 const mensagem = (e: unknown) => (e instanceof Error ? e.message : "Algo deu errado. Tente de novo.");
 
 const NOME_DA_FERRAMENTA: Record<string, string> = {
+  listar_projetos: "Consultou os projetos",
+  ver_quadro: "Consultou um quadro",
+  buscar_tarefas: "Buscou tarefas",
+  resumir_projeto: "Resumiu um projeto",
+  lembretes_proximos: "Conferiu os lembretes",
   criar_tarefas: "Criou tarefas",
   atualizar_tarefa: "Atualizou uma tarefa",
   mover_tarefa: "Moveu uma tarefa",
