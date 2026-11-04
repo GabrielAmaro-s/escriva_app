@@ -34,6 +34,7 @@ Outros comandos:
 | `npm run db:tipos` | Gera `src/data/supabase/tipos-banco.ts` a partir do banco vinculado |
 | `npm test` | Roda os testes (vitest) |
 | `npm run typecheck` | Confere os tipos |
+| `npm run verificar` | Typecheck, testes e build em sequência; para no primeiro erro |
 
 Os dados do modo local não vão para o Supabase sozinhos: em Configurações, use **Importar dados deste navegador**.
 
