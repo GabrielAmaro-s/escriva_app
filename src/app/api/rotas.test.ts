@@ -2,6 +2,8 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 import { armazenamentoVazio, criarRepositorioLocal } from "@/data/local/repositorio-local";
 import type { Repositorio } from "@/data/repositorio";
 import { colunasDoModelo } from "@/domain/quadro";
+import { clienteVazio } from "@/domain/cliente";
+import { detalhesProcessoVazios } from "@/domain/processo";
 import { dadosProjetoVazios } from "@/domain/projeto";
 
 // Teste de integração do caminho navegador -> /api -> services -> repositório.
@@ -33,6 +35,8 @@ const ROTAS: [RegExp, string[], () => Promise<unknown>][] = [
   [/^\/api\/agente\/registro\/([^/]+)\/desfazer$/, ["id"], () => import("./agente/registro/[id]/desfazer/route")],
   [/^\/api\/agente\/estado$/, [], () => import("./agente/estado/route")],
   [/^\/api\/importar$/, [], () => import("./importar/route")],
+  [/^\/api\/clientes$/, [], () => import("./clientes/route")],
+  [/^\/api\/clientes\/([^/]+)$/, ["id"], () => import("./clientes/[id]/route")],
 ];
 
 async function fetchFalso(entrada: string | URL | Request, init?: RequestInit): Promise<Response> {
@@ -136,5 +140,50 @@ describe("telas gravando pela API", () => {
     expect(await chamarApi("/api/agente/estado")).toMatchObject({ situacao: "nunca", limiteMin: 60 });
     await repoServidor.registrarHeartbeatAgente(new Date().toISOString());
     expect(await chamarApi("/api/agente/estado")).toMatchObject({ situacao: "ativo", minutosSemSinal: 0 });
+  });
+});
+
+describe("clientes e processos pela API", () => {
+  /** Chama a rota e devolve status e corpo, sem lançar. */
+  async function bruto(caminho: string, metodo: string, corpo?: unknown) {
+    const r = await fetch(caminho, { method: metodo, headers: { "Content-Type": "application/json" }, body: corpo === undefined ? undefined : JSON.stringify(corpo) });
+    return { status: r.status, corpo: r.status === 204 ? null : ((await r.json()) as Record<string, unknown>) };
+  }
+
+  it("cria, edita, lista e exclui cliente; o processo fica sem cliente", async () => {
+    const cliente = await http.criarCliente({ ...clienteVazio(), nome: "Imobiliária Exemplo", tipo: "pj", documento: "11.222.333/0001-81" });
+    expect(cliente).toMatchObject({ nome: "Imobiliária Exemplo", documento: "11222333000181" });
+
+    const processo = await http.criarProjeto({ ...dadosProjetoVazios(), name: "Cobrança de aluguéis", clienteId: cliente.id }, colunasDoModelo("civel"));
+    expect(processo).toMatchObject({ clienteId: cliente.id, processo: { area: "civel" } });
+
+    expect((await http.atualizarCliente(cliente.id, { ...clienteVazio(), nome: "Imobiliária Exemplo Ltda", tipo: "pj", documento: "11222333000181" })).nome).toBe(
+      "Imobiliária Exemplo Ltda",
+    );
+    expect((await http.listarClientes()).map((c) => c.nome)).toContain("Imobiliária Exemplo Ltda");
+
+    await http.excluirCliente(cliente.id);
+    expect((await http.listarProjetos()).find((p) => p.id === processo.id)?.clienteId).toBeNull();
+  });
+
+  it("CPF/CNPJ repetido responde 409 com mensagem clara", async () => {
+    await http.criarCliente({ ...clienteVazio(), nome: "Primeiro", documento: "529.982.247-25" });
+    const r = await bruto("/api/clientes", "POST", { ...clienteVazio(), nome: "Segundo", documento: "52998224725" });
+    expect(r).toEqual({ status: 409, corpo: { erro: "Já existe um cliente com esse CPF/CNPJ." } });
+  });
+
+  it("número de processo repetido responde 409 com mensagem clara", async () => {
+    const dados = { ...dadosProjetoVazios(), name: "Primeiro", processo: { ...detalhesProcessoVazios("civel"), numeroCnj: "0001234-47.2026.8.21.0001" } };
+    await http.criarProjeto(dados, colunasDoModelo("civel"));
+    const r = await bruto("/api/projetos", "POST", { dados: { ...dados, name: "Segundo" }, colunas: colunasDoModelo("civel") });
+    expect(r).toEqual({ status: 409, corpo: { erro: "Já existe um processo com esse número." } });
+  });
+
+  it("CPF inválido e número CNJ inválido respondem 400", async () => {
+    const cpf = await bruto("/api/clientes", "POST", { ...clienteVazio(), nome: "X", documento: "111.111.111-11" });
+    expect(cpf).toEqual({ status: 400, corpo: { erro: "CPF inválido. Confira os números." } });
+    const [projeto] = await http.listarProjetos();
+    const cnj = await bruto(`/api/projetos/${projeto.id}`, "PATCH", { processo: { ...detalhesProcessoVazios(), numeroCnj: "123" } });
+    expect(cnj.status).toBe(400);
   });
 });

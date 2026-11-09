@@ -11,7 +11,9 @@ npm run dev
 
 Abra http://localhost:3000. Sem configuração nenhuma o app roda em **modo local**: os dados ficam no navegador e já vêm alguns casos jurídicos fictícios de exemplo.
 
-Telas: **Hoje** (`/hoje`), **Processos** (`/`), **Consultivo** (`/consultivo`), **Prazos e tarefas** (`/prazos`) e **Configurações**. Os endereços antigos `/visao-geral`, `/campanhas` e `/tarefas` redirecionam para os novos. Ao criar um processo ou caso consultivo, escolha o modelo de quadro: Cível/JEC, Trabalhista, Previdenciário, Família ou Consultivo.
+Telas: **Hoje** (`/hoje`), **Processos** (`/`), **Consultivo** (`/consultivo`), **Prazos e tarefas** (`/prazos`), **Clientes** (`/clientes`) e **Configurações**. Os endereços antigos `/visao-geral`, `/campanhas` e `/tarefas` redirecionam para os novos. Ao criar um processo, escolha o modelo de quadro (Cível/JEC, Trabalhista, Previdenciário ou Família), o cliente e, se quiser, o número CNJ e os outros dados do processo. Caso consultivo usa o modelo Consultivo e tem tipo de serviço, pedido do cliente e prazo de entrega.
+
+Quem já usava o modo local antes desta versão continua com os dados que tinha. Para ver o exemplo novo, com clientes, apague a chave `myplan:v2` do localStorage.
 
 ## Conectar ao Supabase
 
@@ -37,12 +39,25 @@ Outros comandos:
 | `npm test` | Roda os testes (vitest) |
 | `npm run typecheck` | Confere os tipos |
 | `npm run verificar` | Typecheck, testes e build em sequência; para no primeiro erro |
+| `npm run test:banco-local` | Testes de integração contra o Supabase local (opcional; veja abaixo) |
+
+### Testar as migrações no Supabase local
+
+`npm run test:banco-local` roda `supabase/testes/` contra um Supabase local, com dois usuários de verdade. Ele confere RLS, as chaves compostas com a chave de serviço, a exclusão de cliente e a lista e a criação de processos com o código do app. Não faz parte do `npm test` nem do `npm run verificar`.
+
+1. Com o Docker rodando: `npx supabase start` (só é preciso o banco, a autenticação e a API; para subir menos coisas, use `-x studio,imgproxy,storage-api,realtime,edge-runtime,logflare,vector,supavisor,mailpit,postgres-meta`).
+2. Para começar limpo e aplicar as migrações do zero: `npx supabase db reset` (local por padrão; nunca passe `--remote`).
+3. `npm run test:banco-local`.
+4. No fim: `npx supabase stop`.
+
+O script lê a URL e as chaves de `npx supabase status`, nunca do `.env.local`, e recusa rodar se a URL não for local, porque o teste cria usuários e grava dados. Cada rodada cria usuários novos, então dá para repetir sem reset.
 
 Os dados do modo local não vão para o Supabase sozinhos: em Configurações, use **Importar dados deste navegador**.
 
 ## Publicar na Vercel
 
 1. **Migre o banco antes do primeiro deploy.** Com o `.env.local` apontando para o projeto de produção: `npm run db:vincular` e depois `npm run db:migrar`.
+   A partir da etapa 2 da versão jurídica, o código depende da migração `0004_processos_e_clientes.sql` (clientes e detalhes do processo). Publicar esse código num banco sem a 0004 quebra a lista de processos; aplique a migração antes.
 2. **Importe o repositório** em vercel.com > Add New > Project. O framework (Next.js) é detectado sozinho.
 3. **Região das funções:** em Settings > Functions > Function Region, escolha **São Paulo (gru1)**, que fica na mesma região AWS do Supabase (`sa-east-1`). Assim as rotas /api e o servidor MCP ficam perto do banco.
 4. **Cadastre as variáveis** em Settings > Environment Variables (ambiente Production). As `NEXT_PUBLIC_*` são embutidas no build: cadastre antes do primeiro deploy e faça um novo deploy sempre que mudar alguma.

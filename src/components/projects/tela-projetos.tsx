@@ -5,7 +5,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { CabecalhoPagina, CampoBusca, EstadoVazio, OpcoesFiltro, Pagina } from "@/components/ui/pecas";
 import { Botao } from "@/components/ui/botao";
+import { Selecao } from "@/components/ui/campo";
+import { AREAS, ROTULO_AREA } from "@/domain/processo";
 import { type FiltroProjetos, filtrarProjetos } from "@/domain/projeto";
+import type { AreaProcesso } from "@/domain/tipos";
+import { useClientes } from "@/hooks/use-clientes";
 import { useProjetos } from "@/hooks/use-projetos";
 import { CartaoProjeto } from "./cartao-projeto";
 import { useInterfaceProjeto } from "./interface-projeto";
@@ -14,8 +18,10 @@ export function TelaProjetos() {
   const parametros = useSearchParams();
   const router = useRouter();
   const estado = useProjetos();
+  const { nomeDoCliente } = useClientes();
   const { abrirNovo } = useInterfaceProjeto();
   const [busca, setBusca] = useState("");
+  const [area, setArea] = useState<AreaProcesso | null>(null);
   const filtro = (parametros.get("filtro") as FiltroProjetos | null) ?? "all";
   const definirFiltro = (f: FiltroProjetos) => router.replace(f === "all" ? "/" : `/?filtro=${f}`, { scroll: false });
 
@@ -30,7 +36,7 @@ export function TelaProjetos() {
     };
   }, [estado.projetos]);
 
-  const lista = filtrarProjetos(estado.projetos, filtro, busca);
+  const lista = filtrarProjetos(estado.projetos, filtro, busca, { nomeDoCliente, area });
   const opcoes: { valor: FiltroProjetos; rotulo: string }[] = [
     { valor: "all", rotulo: `Todos (${contagens.all})` },
     { valor: "active", rotulo: `Ativos (${contagens.active})` },
@@ -52,8 +58,18 @@ export function TelaProjetos() {
       <CabecalhoPagina titulo="Processos" descricao="Acompanhe seus processos e casos consultivos em um só lugar." acao={botaoNovo} />
 
       <div className="mb-5 mt-6 flex flex-wrap items-center gap-x-5 gap-y-3">
-        <CampoBusca valor={busca} aoMudar={setBusca} placeholder="Buscar processos…" />
+        <CampoBusca valor={busca} aoMudar={setBusca} placeholder="Buscar por nome, cliente, número ou parte contrária…" />
         <OpcoesFiltro rotulo="Filtrar por status" valor={filtro} aoMudar={definirFiltro} opcoes={opcoes} />
+        <div className="w-[190px]">
+          <Selecao aria-label="Filtrar por área" value={area ?? ""} onChange={(e) => setArea((e.target.value || null) as AreaProcesso | null)}>
+            <option value="">Todas as áreas</option>
+            {AREAS.map((a) => (
+              <option key={a} value={a}>
+                {ROTULO_AREA[a]}
+              </option>
+            ))}
+          </Selecao>
+        </div>
       </div>
 
       {estado.carregando ? (
@@ -81,6 +97,7 @@ export function TelaProjetos() {
               tamanho="sm"
               onClick={() => {
                 setBusca("");
+                setArea(null);
                 definirFiltro("all");
               }}
             >

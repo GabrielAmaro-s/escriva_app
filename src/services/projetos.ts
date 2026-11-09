@@ -1,4 +1,5 @@
-import { type ModeloQuadro, colunasDoModelo, modeloPadrao } from "@/domain/quadro";
+import { MODELOS_DE_QUADRO, type ModeloQuadro, colunasDoModelo, modeloPadrao, modeloPermitido } from "@/domain/quadro";
+import { ErroDeValidacao } from "@/domain/erros";
 import { validarDadosProjeto } from "@/domain/projeto";
 import type { DadosProjeto, Projeto, StatusProjeto } from "@/domain/tipos";
 import type { Repositorio } from "@/data/repositorio";
@@ -9,13 +10,21 @@ import type { Repositorio } from "@/data/repositorio";
 /** Cria o projeto com as colunas do modelo escolhido (padrão: Cível/JEC para processo, Consultivo para campanha). */
 export async function criarProjeto(repo: Repositorio, dados: DadosProjeto, modelo?: ModeloQuadro): Promise<Projeto> {
   const resultado = validarDadosProjeto(dados);
-  if (!resultado.ok) throw new Error(resultado.erro);
-  return repo.criarProjeto(resultado.valor, colunasDoModelo(modelo ?? modeloPadrao(resultado.valor.kind)));
+  if (!resultado.ok) throw new ErroDeValidacao(resultado.erro);
+  const tipo = resultado.valor.kind;
+  if (modelo && !modeloPermitido(tipo, modelo)) {
+    throw new ErroDeValidacao(
+      tipo === "campaign"
+        ? "Caso consultivo usa o modelo Consultivo."
+        : `O modelo ${MODELOS_DE_QUADRO[modelo].nome} é só para casos consultivos. Escolha Cível/JEC, Trabalhista, Previdenciário ou Família.`,
+    );
+  }
+  return repo.criarProjeto(resultado.valor, colunasDoModelo(modelo ?? modeloPadrao(tipo)));
 }
 
 export async function atualizarProjeto(repo: Repositorio, id: string, dados: DadosProjeto): Promise<Projeto> {
   const resultado = validarDadosProjeto(dados);
-  if (!resultado.ok) throw new Error(resultado.erro);
+  if (!resultado.ok) throw new ErroDeValidacao(resultado.erro);
   return repo.atualizarProjeto(id, resultado.valor);
 }
 

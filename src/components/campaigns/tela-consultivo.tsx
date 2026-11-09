@@ -1,28 +1,30 @@
 "use client";
 
-import { CalendarBlankIcon, CheckCircleIcon, DotsThreeIcon, MegaphoneIcon, PlusIcon, TargetIcon } from "@phosphor-icons/react";
+import { BriefcaseIcon, CalendarBlankIcon, CheckCircleIcon, DotsThreeIcon, PlusIcon, TargetIcon, UserIcon } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useInterfaceProjeto } from "@/components/projects/interface-projeto";
 import { BarraProgresso, BlocoTom, CabecalhoPagina, CampoBusca, EstadoVazio, OpcoesFiltro, Pagina, SeloStatus } from "@/components/ui/pecas";
 import { Botao } from "@/components/ui/botao";
 import { useMenuDeContexto } from "@/components/ui/menu-contexto";
-import { formatarPeriodo } from "@/domain/quadro";
+import { formatarData } from "@/domain/quadro";
 import { calcularProgresso, filtrarProjetos } from "@/domain/projeto";
 import type { Projeto } from "@/domain/tipos";
+import { useClientes } from "@/hooks/use-clientes";
 import { useProjetos } from "@/hooks/use-projetos";
 
 type Filtro = "all" | "active" | "done";
 
 export function TelaConsultivo() {
   const estado = useProjetos();
+  const { nomeDoCliente } = useClientes();
   const { abrirNovo } = useInterfaceProjeto();
   const [busca, setBusca] = useState("");
   const [filtro, setFiltro] = useState<Filtro>("all");
 
   const casos = estado.projetos.filter((p) => p.kind === "campaign" && !p.archivedAt);
   const contar = (f: Filtro) => casos.filter((p) => f === "all" || (f === "done") === (p.status === "done")).length;
-  const linhas = filtrarProjetos(casos, "all", busca).filter((p) => filtro === "all" || (filtro === "done") === (p.status === "done"));
+  const linhas = filtrarProjetos(casos, "all", busca, { nomeDoCliente }).filter((p) => filtro === "all" || (filtro === "done") === (p.status === "done"));
 
   return (
     <Pagina largura={1040}>
@@ -38,7 +40,7 @@ export function TelaConsultivo() {
       />
 
       <div className="mb-5 mt-6 flex flex-wrap items-center gap-x-5 gap-y-3">
-        <CampoBusca valor={busca} aoMudar={setBusca} placeholder="Buscar casos consultivos…" />
+        <CampoBusca valor={busca} aoMudar={setBusca} placeholder="Buscar por nome ou cliente…" />
         <OpcoesFiltro
           rotulo="Filtrar casos consultivos"
           valor={filtro}
@@ -52,7 +54,7 @@ export function TelaConsultivo() {
       </div>
 
       {!estado.carregando && linhas.length === 0 ? (
-        <EstadoVazio icone={MegaphoneIcon} titulo="Nenhum caso consultivo por aqui" texto="Crie um caso consultivo para planejar entregas, tipo de serviço e período.">
+        <EstadoVazio icone={BriefcaseIcon} titulo="Nenhum caso consultivo por aqui" texto="Crie um caso consultivo para planejar entregas, tipo de serviço e período.">
           <Botao variante="primaria" tamanho="sm" onClick={() => abrirNovo("campaign")}>
             + Novo caso consultivo
           </Botao>
@@ -72,6 +74,8 @@ function LinhaConsultivo({ projeto }: { projeto: Projeto }) {
   const router = useRouter();
   const abrirMenu = useMenuDeContexto();
   const { acoesDe } = useInterfaceProjeto();
+  const { nomeDoCliente } = useClientes();
+  const cliente = nomeDoCliente(projeto.clienteId);
   const c = projeto.campaign;
   const entregas = c?.deliverables ?? [];
   const pct = calcularProgresso(projeto);
@@ -96,16 +100,20 @@ function LinhaConsultivo({ projeto }: { projeto: Projeto }) {
         {projeto.description && <p className="mt-[3px] text-[12.5px] text-ink2">{projeto.description}</p>}
         <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-xs text-ink2">
           <span className="inline-flex items-center gap-1.5">
+            <UserIcon size={14} />
+            {cliente ?? "Sem cliente"}
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <BriefcaseIcon size={14} />
+            {c?.tipoServico || "Sem tipo de serviço"}
+          </span>
+          <span className="inline-flex items-center gap-1.5">
             <TargetIcon size={14} />
-            {c?.objective || "Sem objetivo"}
+            {c?.objective || "Sem pedido do cliente"}
           </span>
           <span className="inline-flex items-center gap-1.5">
             <CalendarBlankIcon size={14} />
-            {formatarPeriodo(c?.startsOn ?? null, c?.endsOn ?? null)}
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <MegaphoneIcon size={14} />
-            {c?.channels.length ? c.channels.join(", ") : "Sem tipo de serviço"}
+            {c?.endsOn ? `Entrega até ${formatarData(c.endsOn)}` : "Sem prazo de entrega"}
           </span>
           <span className="inline-flex items-center gap-1.5">
             <CheckCircleIcon size={14} />

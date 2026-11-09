@@ -67,7 +67,7 @@ export function SecaoDados() {
     <>
       <p className="mb-2.5 mt-7 text-xs font-semibold text-ink3">Dados</p>
       <div className="rounded-[14px] border border-line bg-surface px-[18px]">
-        <LinhaConfiguracao titulo="Exportar dados" dica="Baixa um arquivo JSON com processos, casos consultivos, colunas, tarefas e etiquetas.">
+        <LinhaConfiguracao titulo="Exportar dados" dica="Baixa um arquivo JSON com clientes, processos, casos consultivos, colunas, tarefas e etiquetas.">
           <Botao tamanho="sm" onClick={exportar} disabled={exportando}>
             <DownloadSimpleIcon size={15} />
             {exportando ? "Exportando…" : "Exportar"}

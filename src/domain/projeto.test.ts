@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { calcularProgresso, dadosProjetoVazios, ehIconeProjeto, ehTom, filtrarProjetos, prazoDoProjeto, validarDadosProjeto } from "./projeto";
+import { detalhesProcessoVazios } from "./processo";
 import type { Projeto } from "./tipos";
 
 function projeto(parcial: Partial<Projeto> = {}): Projeto {
@@ -17,6 +18,8 @@ function projeto(parcial: Partial<Projeto> = {}): Projeto {
     createdAt: "",
     updatedAt: "",
     campaign: null,
+    clienteId: null,
+    processo: null,
     taskCount: 0,
     doneCount: 0,
     ...parcial,
@@ -86,7 +89,7 @@ describe("validação de campanha", () => {
   it("o fim não pode ser antes do início", () => {
     const dados = { ...dadosProjetoVazios("campaign"), name: "Verão" };
     dados.campaign = { ...dados.campaign!, startsOn: "2026-12-10", endsOn: "2026-12-01" };
-    expect(validarDadosProjeto(dados)).toEqual({ ok: false, erro: "A data de fim precisa ser depois do início." });
+    expect(validarDadosProjeto(dados)).toEqual({ ok: false, erro: "O prazo de entrega precisa ser depois da data de recebimento." });
   });
 
   it("normaliza objetivo, canais e entregas e zera o prazo do projeto", () => {
@@ -111,7 +114,65 @@ describe("validação de campanha", () => {
       endsOn: "2027-02-15",
       channels: ["Instagram", "Ads"],
       deliverables: [{ id: "1", title: "Landing page", done: false }],
+      tipoServico: "Instagram",
     });
+  });
+
+  it("tipo de serviço próprio vale mais que o primeiro canal", () => {
+    const dados = { ...dadosProjetoVazios("campaign"), name: "Contrato" };
+    dados.campaign = { ...dados.campaign!, channels: ["Parecer"], tipoServico: "  Contrato " };
+    const r = validarDadosProjeto(dados);
+    expect(r.ok && r.valor.campaign?.tipoServico).toBe("Contrato");
+  });
+
+  it("caso consultivo não guarda detalhes de processo", () => {
+    const r = validarDadosProjeto({ ...dadosProjetoVazios("campaign"), name: "Parecer", processo: detalhesProcessoVazios("civel") });
+    expect(r.ok && r.valor.processo).toBeNull();
+  });
+});
+
+describe("validação de processo", () => {
+  it("padrões: ícone de balança, área Cível e sem cliente", () => {
+    const d = dadosProjetoVazios("project");
+    expect(d).toMatchObject({ icon: "scales", clienteId: null, processo: { area: "civel", segredoJustica: false } });
+    expect(dadosProjetoVazios("campaign")).toMatchObject({ icon: "briefcase", processo: null });
+  });
+
+  it("normaliza o número CNJ e recusa número com dígito errado", () => {
+    const base = { ...dadosProjetoVazios("project"), name: "Cobrança" };
+    const ok = validarDadosProjeto({ ...base, processo: { ...base.processo!, numeroCnj: "0001234-47.2026.8.21.0001" } });
+    expect(ok.ok && ok.valor.processo?.numeroCnj).toBe("00012344720268210001");
+    const errado = validarDadosProjeto({ ...base, processo: { ...base.processo!, numeroCnj: "0001234-48.2026.8.21.0001" } });
+    expect(errado.ok).toBe(false);
+  });
+
+  it("sem processo na entrada, não mexe nos detalhes (o agente cria sem eles)", () => {
+    const { processo: _p, clienteId: _c, ...semDetalhes } = dadosProjetoVazios("project");
+    const r = validarDadosProjeto({ ...semDetalhes, name: "X" });
+    expect(r.ok && "processo" in r.valor).toBe(false);
+    expect(r.ok && "clienteId" in r.valor).toBe(false);
+  });
+});
+
+describe("busca de processos", () => {
+  const lista = [
+    projeto({ name: "Cobrança", clienteId: "k1", processo: { ...detalhesProcessoVazios("civel"), numeroCnj: "00012344720268210001", parteContraria: "Construtora Exemplo" } }),
+    projeto({ name: "Horas extras", processo: detalhesProcessoVazios("trabalhista") }),
+    projeto({ name: "Parecer", kind: "campaign" }),
+  ];
+  const nomeDoCliente = (id: string) => (id === "k1" ? "Imobiliária Exemplo" : undefined);
+  const nomes = (r: Projeto[]) => r.map((p) => p.name);
+
+  it("acha pelo cliente, pela parte contrária e pelo número com ou sem pontuação", () => {
+    expect(nomes(filtrarProjetos(lista, "all", "imobiliária", { nomeDoCliente }))).toEqual(["Cobrança"]);
+    expect(nomes(filtrarProjetos(lista, "all", "construtora"))).toEqual(["Cobrança"]);
+    expect(nomes(filtrarProjetos(lista, "all", "0001234-47.2026"))).toEqual(["Cobrança"]);
+    expect(nomes(filtrarProjetos(lista, "all", "00012344720268210001"))).toEqual(["Cobrança"]);
+  });
+
+  it("filtra por área, deixando os casos consultivos de fora", () => {
+    expect(nomes(filtrarProjetos(lista, "all", "", { area: "trabalhista" }))).toEqual(["Horas extras"]);
+    expect(nomes(filtrarProjetos(lista, "all", "", { area: null }))).toEqual(["Cobrança", "Horas extras", "Parecer"]);
   });
 });
 

@@ -9,6 +9,7 @@ import { posicaoEntre } from "@/domain/quadro";
 import type {
   AlteracaoLembrete,
   AlteracaoTarefa,
+  DadosCliente,
   DadosNovaColuna,
   DadosNovaTarefa,
   DadosNovoLembrete,
@@ -20,6 +21,7 @@ import type {
 } from "@/domain/tipos";
 import type { Repositorio } from "../repositorio";
 import {
+  type LinhaCliente,
   type LinhaColuna,
   type LinhaContagem,
   type LinhaEtiqueta,
@@ -32,7 +34,10 @@ import {
   deAlteracaoLembrete,
   deAlteracaoTarefa,
   deCampanha,
+  deDadosCliente,
   deDadosProjeto,
+  deProcesso,
+  paraCliente,
   paraColuna,
   paraEtiqueta,
   paraProjeto,
@@ -41,11 +46,12 @@ import {
   paraTarefa,
   paraToken,
 } from "./conversores";
+import { type ErroDoBanco, traduzirErroDoBanco } from "./erros";
 
-const SELECAO_PROJETO = "*, campaign_details(*)";
+const SELECAO_PROJETO = "*, campaign_details(*), processo_detalhes(*)";
 
-function conferir<T>(resposta: { data: T | null; error: { message: string } | null }): T {
-  if (resposta.error) throw new Error(resposta.error.message);
+function conferir<T>(resposta: { data: T | null; error: ErroDoBanco | null }): T {
+  if (resposta.error) throw traduzirErroDoBanco(resposta.error);
   return resposta.data as T;
 }
 
@@ -75,6 +81,17 @@ export function criarRepositorioSupabase(sb: ClienteDados): Repositorio {
     }
   }
 
+  async function salvarProcesso(projetoId: string, dados: Partial<DadosProjeto>) {
+    if (dados.processo === undefined && dados.kind === undefined) return;
+    if (dados.kind === "campaign" || dados.processo === null) {
+      conferir(await sb.from("processo_detalhes").delete().eq("project_id", projetoId));
+      return;
+    }
+    if (dados.processo) {
+      conferir(await sb.from("processo_detalhes").upsert(deProcesso(projetoId, dados.processo)));
+    }
+  }
+
   return {
     modo: "supabase",
 
@@ -99,6 +116,15 @@ export function criarRepositorioSupabase(sb: ClienteDados): Repositorio {
           .insert(colunas.map((c, i) => ({ project_id: linha.id, title: c.title, kind: c.kind, position: c.position ?? (i + 1) * 1024 }))),
       );
       if (dados.kind === "campaign" && dados.campaign) await salvarCampanha(linha.id, dados);
+      if (dados.kind === "project" && dados.processo) {
+        try {
+          await salvarProcesso(linha.id, dados);
+        } catch (e) {
+          // Número repetido: não deixa um processo pela metade (as colunas vão junto, em cascata).
+          await sb.from("projects").delete().eq("id", linha.id);
+          throw e;
+        }
+      }
 
       const projeto = await buscarProjeto(linha.id);
       if (!projeto) throw new Error("Não foi possível carregar o projeto criado.");
@@ -109,6 +135,7 @@ export function criarRepositorioSupabase(sb: ClienteDados): Repositorio {
       const alteracao = deDadosProjeto(dados);
       if (Object.keys(alteracao).length) conferir(await sb.from("projects").update(alteracao).eq("id", id));
       await salvarCampanha(id, dados);
+      await salvarProcesso(id, dados);
       const projeto = await buscarProjeto(id);
       if (!projeto) throw new Error("Projeto não encontrado.");
       return projeto;
@@ -183,6 +210,22 @@ export function criarRepositorioSupabase(sb: ClienteDados): Repositorio {
 
     async excluirEtiqueta(id) {
       conferir(await sb.from("labels").delete().eq("id", id));
+    },
+
+    async listarClientes() {
+      return (conferir(await sb.from("clientes").select("*").order("nome")) as LinhaCliente[]).map(paraCliente);
+    },
+
+    async criarCliente(dados: DadosCliente) {
+      return paraCliente(conferir(await sb.from("clientes").insert(deDadosCliente(dados)).select("*").single()) as LinhaCliente);
+    },
+
+    async atualizarCliente(id, dados) {
+      return paraCliente(conferir(await sb.from("clientes").update(deDadosCliente(dados)).eq("id", id).select("*").single()) as LinhaCliente);
+    },
+
+    async excluirCliente(id) {
+      conferir(await sb.from("clientes").delete().eq("id", id));
     },
 
     async listarLembretes(filtro: FiltroLembretes = {}) {
