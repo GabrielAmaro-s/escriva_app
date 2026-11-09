@@ -1,8 +1,10 @@
-import { colunasDoModelo, modeloPadrao, novoId } from "@/domain/quadro";
+import { type ModeloQuadro, colunasDoModelo, novoId } from "@/domain/quadro";
 import type { Coluna, Etiqueta, IconeProjeto, PrioridadeTarefa, StatusProjeto, Tarefa, TipoColuna, Tom } from "@/domain/tipos";
 import type { ArmazenamentoLocal } from "./repositorio-local";
 
-// Dados de exemplo do modo local, os mesmos do protótipo de design.
+// Dados de exemplo do modo local: casos jurídicos fictícios e genéricos, sem pessoas reais.
+// A estrutura (quantidade de tarefas, colunas, prioridades e datas) segue o protótipo de design,
+// e os testes do agente e da importação contam com ela.
 // As datas são relativas ao dia de hoje para o exemplo continuar fazendo sentido.
 
 const HOJE_DO_DESIGN = Date.UTC(2026, 10, 4);
@@ -18,18 +20,21 @@ function deslocar(iso: string | undefined, hoje = new Date()): string | null {
 }
 
 const TOM_DA_ETIQUETA: Record<string, Tom> = {
-  Planejamento: "green",
-  Conteúdo: "violet",
+  Estratégia: "green",
+  Documentos: "violet",
   Pesquisa: "green",
-  Técnico: "gray",
-  Design: "red",
-  Desenvolvimento: "blue",
-  Revisão: "amber",
-  Externo: "blue",
-  Home: "blue",
-  Social: "pink",
-  Mídia: "amber",
-  "E-mail": "violet",
+  Cartório: "gray",
+  Petição: "red",
+  Inicial: "blue",
+  Cálculos: "blue",
+  Decisão: "amber",
+  Cliente: "blue",
+  Audiência: "pink",
+  Perícia: "amber",
+  Levantamento: "green",
+  Minuta: "violet",
+  Cláusulas: "red",
+  Parecer: "violet",
 };
 
 const TIPO: Record<string, TipoColuna> = { todo: "todo", doing: "doing", wait: "waiting", done: "done" };
@@ -41,6 +46,7 @@ interface ProjetoDeExemplo {
   nome: string;
   descricao: string;
   tipo: "project" | "campaign";
+  modelo: ModeloQuadro;
   tom: Tom;
   icone: IconeProjeto;
   status: StatusProjeto;
@@ -54,49 +60,49 @@ interface ProjetoDeExemplo {
 
 const PROJETOS: ProjetoDeExemplo[] = [
   {
-    nome: "Novo site", descricao: "Redesign do site institucional com novo conteúdo e otimização.", tipo: "project", tom: "violet", icone: "monitor", status: "active", prazo: "2026-11-28",
+    nome: "Cobrança de aluguéis", descricao: "Cobrança de aluguéis e encargos atrasados no Juizado Especial Cível.", tipo: "project", modelo: "civel", tom: "violet", icone: "folder", status: "active", prazo: "2026-11-28",
     tarefas: [
-      ["Definir estrutura do site", "todo", "Planejamento", "med", "2026-11-28", [["Mapear páginas", 0], ["Definir navegação", 0]]],
-      ["Coletar novos conteúdos", "todo", "Conteúdo", "med", "2026-11-12"],
-      ["Revisar referências", "todo", "Pesquisa", "low", "", [["Benchmark de 5 sites", 0], ["Organizar no quadro", 0], ["Resumir achados", 0]]],
-      ["Ajustar sitemap", "todo", "Técnico", "low"],
-      ["Desenvolver layout da home", "doing", "Design,Home", "high", "2026-11-10", [["Definir estrutura do layout", 1], ["Criar proposta visual", 1], ["Validar com o time", 0], ["Ajustar versão final", 0]], "Criar o layout da página inicial com base no briefing aprovado, seguindo a nova identidade visual."],
-      ["Implementar novas páginas", "doing", "Desenvolvimento", "med", "2026-11-20", [["Sobre", 1], ["Serviços", 0], ["Contato", 0]]],
-      ["Configurar formulários", "doing", "Técnico", "low", "2026-11-24"],
-      ["Aprovação do layout", "wait", "Revisão", "high", "2026-11-04"],
-      ["Conteúdo final do cliente", "wait", "Externo", "med", "2026-11-06"],
-      ["Briefing do projeto", "done"], ["Definir paleta de cores", "done", "Design"], ["Criar wireframes", "done", "Design"], ["Auditoria do site atual", "done", "Pesquisa"], ["Reunião de kickoff", "done"], ["Escolher plataforma", "done", "Técnico"], ["Levantar requisitos", "done", "Planejamento"],
+      ["Montar planilha do débito", "todo", "Estratégia", "med", "2026-11-28", [["Levantar aluguéis em aberto", 0], ["Aplicar correção e multa", 0]]],
+      ["Pedir contrato ao cliente", "todo", "Documentos", "med", "2026-11-12"],
+      ["Pesquisar jurisprudência do TJ", "todo", "Pesquisa", "low", "", [["Buscar cinco julgados", 0], ["Separar as ementas", 0], ["Resumir o entendimento", 0]]],
+      ["Conferir custas iniciais", "todo", "Cartório", "low"],
+      ["Redigir petição inicial", "doing", "Petição,Inicial", "high", "2026-11-10", [["Narrar os fatos", 1], ["Fundamentar o pedido", 1], ["Revisar com o cliente", 0], ["Ajustar versão final", 0]], "Redigir a petição inicial com base no contrato e na planilha aprovada, pedindo os aluguéis e os encargos em atraso."],
+      ["Atualizar cálculos", "doing", "Cálculos", "med", "2026-11-20", [["Aluguéis", 1], ["Multa contratual", 0], ["Honorários", 0]]],
+      ["Emitir guia de custas", "doing", "Cartório", "low", "2026-11-24"],
+      ["Aguardar despacho inicial", "wait", "Decisão", "high", "2026-11-04"],
+      ["Comprovantes do cliente", "wait", "Cliente", "med", "2026-11-06"],
+      ["Primeira reunião com o cliente", "done"], ["Enviar notificação ao inquilino", "done", "Petição"], ["Minuta de acordo", "done", "Petição"], ["Analisar contrato de locação", "done", "Pesquisa"], ["Assinatura da procuração", "done"], ["Definir competência do JEC", "done", "Cartório"], ["Levantar débitos", "done", "Estratégia"],
     ],
   },
   {
-    nome: "Campanha de Verão", descricao: "Planejamento e execução da campanha de verão nos canais digitais.", tipo: "campaign", tom: "red", icone: "megaphone", status: "active", inicio: "2026-12-01", prazo: "2027-02-15",
-    objetivo: "Geração de leads", canais: ["Instagram", "YouTube", "Ads"],
-    entregas: [["Roteiro dos vídeos", true], ["Peças para o feed", true], ["Landing page", false], ["Plano de mídia paga", false], ["Relatório final", false]],
-    tarefas: [["Roteiro dos vídeos", "done", "Conteúdo"], ["Peças para o feed", "done", "Social,Design"], ["Landing page da campanha", "doing", "Desenvolvimento", "high", "2026-11-25"], ["Gravar depoimentos", "doing", "Conteúdo", "med", "2026-11-18"], ["Plano de mídia paga", "todo", "Mídia", "med", "2026-11-30"], ["Cronograma de posts", "todo", "Social", "low"], ["Aprovação do cliente", "wait", "Revisão", "med", "2026-11-09"]],
+    nome: "Contrato de prestação de serviços", descricao: "Revisão e redação do contrato de prestação de serviços de uma pequena empresa.", tipo: "campaign", modelo: "consultivo", tom: "red", icone: "megaphone", status: "active", inicio: "2026-12-01", prazo: "2027-02-15",
+    objetivo: "Revisar o contrato antes da assinatura", canais: ["Contrato"],
+    entregas: [["Reunião de levantamento", true], ["Minuta inicial", true], ["Cláusulas de rescisão e multa", false], ["Revisão com o cliente", false], ["Versão final para assinatura", false]],
+    tarefas: [["Reunião de levantamento", "done", "Levantamento"], ["Minuta inicial", "done", "Minuta,Cláusulas"], ["Cláusulas de rescisão e multa", "doing", "Cláusulas", "high", "2026-11-25"], ["Pesquisar modelos de contrato", "doing", "Pesquisa", "med", "2026-11-18"], ["Conferir dados das partes", "todo", "Documentos", "med", "2026-11-30"], ["Lista de pendências", "todo", "Minuta", "low"], ["Aprovação do cliente", "wait", "Cliente", "med", "2026-11-09"]],
   },
   {
-    nome: "Novo produto", descricao: "Desenvolvimento e lançamento do novo produto.", tipo: "project", tom: "blue", icone: "box", status: "paused",
-    tarefas: [["Definir roadmap", "done", "Planejamento"], ["Protótipo v1", "doing", "Design", "high", "2026-11-15"], ["Pesquisa com usuários", "wait", "Pesquisa"], ["Precificação", "todo", "", "med"]],
+    nome: "Cobrança de cheques", descricao: "Ação monitória para cobrar cheques prescritos.", tipo: "project", modelo: "civel", tom: "blue", icone: "folder", status: "paused",
+    tarefas: [["Reunião inicial", "done", "Estratégia"], ["Petição da ação monitória", "doing", "Petição", "high", "2026-11-15"], ["Cópias dos cheques", "wait", "Documentos"], ["Calcular juros e correção", "todo", "", "med"]],
   },
   {
-    nome: "Evento anual", descricao: "Organização do evento com palestras, convidados e divulgação.", tipo: "project", tom: "green", icone: "calendar", status: "active", prazo: "2027-03-10",
-    tarefas: [["Fechar local", "done"], ["Orçamento geral", "done", "Planejamento"], ["Convidar palestrantes", "doing", "Externo", "high", "2026-12-01"], ["Divulgação", "todo", "Social", "med", "2027-01-15"], ["Credenciamento", "todo", "Técnico"], ["Catering", "wait", "Externo", "low", "2027-02-10"]],
+    nome: "Reclamação trabalhista", descricao: "Horas extras e verbas rescisórias de um ex-empregado do comércio.", tipo: "project", modelo: "trabalhista", tom: "green", icone: "calendar", status: "active", prazo: "2027-03-10",
+    tarefas: [["Entrevista com o cliente", "done"], ["Cálculo das verbas rescisórias", "done", "Cálculos"], ["Preparar testemunhas", "doing", "Audiência", "high", "2026-12-01"], ["Rol de testemunhas", "todo", "Audiência", "med", "2027-01-15"], ["Juntar holerites e CTPS", "todo", "Documentos"], ["Laudo pericial", "wait", "Perícia", "low", "2027-02-10"]],
   },
   {
-    nome: "Campanha de lançamento", descricao: "Divulgação do novo produto e geração de leads.", tipo: "campaign", tom: "amber", icone: "chart", status: "active", inicio: "2026-11-20", prazo: "2026-12-05",
-    objetivo: "Lançamento do produto", canais: ["Instagram", "LinkedIn", "E-mail"],
-    entregas: [["Teaser nas redes", true], ["Sequência de e-mails", false], ["Press kit", false], ["Post de lançamento", false]],
-    tarefas: [["Teaser nas redes", "done", "Social"], ["Kit de imagens", "done", "Design"], ["Sequência de e-mails", "doing", "E-mail", "high", "2026-11-14"], ["Post de lançamento", "todo", "Social", "med", "2026-11-20"], ["Press kit", "wait", "Conteúdo", "med", "2026-11-17"]],
+    nome: "Parecer sobre LGPD", descricao: "Parecer sobre o tratamento de dados pessoais de clientes de uma loja virtual.", tipo: "campaign", modelo: "consultivo", tom: "amber", icone: "chart", status: "active", inicio: "2026-11-20", prazo: "2026-12-05",
+    objetivo: "Adequar a empresa à LGPD", canais: ["Parecer"],
+    entregas: [["Questionário ao cliente", true], ["Parecer escrito", false], ["Política de privacidade", false], ["Reunião de apresentação", false]],
+    tarefas: [["Questionário ao cliente", "done", "Levantamento"], ["Mapa de dados pessoais", "done", "Levantamento"], ["Redigir parecer", "doing", "Parecer", "high", "2026-11-14"], ["Revisar política de privacidade", "todo", "Minuta", "med", "2026-11-20"], ["Respostas do cliente", "wait", "Cliente", "med", "2026-11-17"]],
   },
   {
-    nome: "Revisão de processos", descricao: "Atualização dos fluxos e documentos internos.", tipo: "project", tom: "green", icone: "check", status: "done",
-    tarefas: [["Mapear fluxos atuais", "done"], ["Revisar documentos", "done"], ["Definir responsáveis", "done"], ["Publicar nova versão", "done"]],
+    nome: "Aposentadoria por idade", descricao: "Requerimento de aposentadoria por idade no INSS, já concedido.", tipo: "project", modelo: "previdenciario", tom: "green", icone: "check", status: "done",
+    tarefas: [["Reunir documentos do cliente", "done"], ["Simular tempo de contribuição", "done"], ["Protocolar requerimento no INSS", "done"], ["Conferir carta de concessão", "done"]],
   },
   {
-    nome: "Campanha Black Friday", descricao: "Ações promocionais e aumento de vendas.", tipo: "campaign", tom: "pink", icone: "gift", status: "done", inicio: "2025-11-01", prazo: "2025-11-30",
-    objetivo: "Aumento de vendas", canais: ["Instagram", "Ads", "E-mail"],
-    entregas: [["Banners e criativos", true], ["Cupons e regras", true], ["Disparo de e-mails", true]],
-    tarefas: [["Banners e criativos", "done", "Design"], ["Cupons e regras", "done"], ["Disparo de e-mails", "done", "E-mail"], ["Relatório de resultados", "done"], ["Retrospectiva", "done"]],
+    nome: "Notificação extrajudicial", descricao: "Notificação a um inquilino sobre aluguéis em atraso.", tipo: "campaign", modelo: "consultivo", tom: "pink", icone: "gift", status: "done", inicio: "2025-11-01", prazo: "2025-11-30",
+    objetivo: "Cobrar os aluguéis sem precisar de ação judicial", canais: ["Notificação extrajudicial"],
+    entregas: [["Minuta da notificação", true], ["Envio pelo cartório", true], ["Comprovante de entrega", true]],
+    tarefas: [["Minuta da notificação", "done", "Minuta"], ["Revisão com o cliente", "done"], ["Envio pelo cartório", "done", "Cartório"], ["Comprovante de entrega", "done"], ["Arquivar a resposta", "done"]],
   },
 ];
 
@@ -132,7 +138,7 @@ export function criarDadosDeExemplo(hoje = new Date()): ArmazenamentoLocal {
       };
     }
 
-    const colunas: Coluna[] = colunasDoModelo(modeloPadrao(pe.tipo)).map((c, i) => ({ id: novoId(), projectId: id, title: c.title, kind: c.kind, position: (i + 1) * 1024 }));
+    const colunas: Coluna[] = colunasDoModelo(pe.modelo).map((c, i) => ({ id: novoId(), projectId: id, title: c.title, kind: c.kind, position: (i + 1) * 1024 }));
     dados.columns.push(...colunas);
 
     const etiquetas = new Map<string, Etiqueta>();
@@ -161,10 +167,10 @@ export function criarDadosDeExemplo(hoje = new Date()): ArmazenamentoLocal {
         createdAt: carimbo,
         updatedAt: carimbo,
       };
-      if (titulo === "Desenvolver layout da home") {
+      if (titulo === "Redigir petição inicial") {
         tarefa.links = [
-          { id: novoId(), url: "", title: "Briefing do projeto" },
-          { id: novoId(), url: "", title: "Referências de layout" },
+          { id: novoId(), url: "", title: "Contrato de locação" },
+          { id: novoId(), url: "", title: "Modelo de petição inicial" },
         ];
       }
       dados.tasks.push(tarefa);

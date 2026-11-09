@@ -84,27 +84,27 @@ describe("servidor MCP", () => {
   it("chamar uma ferramenta grava o registro e atualiza o último uso do token", async () => {
     const r = await rpc(tokenEscrita, "tools/call", {
       name: "criar_tarefas",
-      arguments: { projeto: "Novo site", tarefas: [{ titulo: "Testar formulário" }] },
+      arguments: { projeto: "Cobrança de aluguéis", tarefas: [{ titulo: "Testar formulário" }] },
     });
     const conteudo = (r.corpo.result!.content as { text: string }[])[0].text;
-    expect(JSON.parse(conteudo)).toMatchObject({ mensagem: "Criei “Testar formulário” em Novo site." });
+    expect(JSON.parse(conteudo)).toMatchObject({ mensagem: "Criei “Testar formulário” em Cobrança de aluguéis." });
     expect((await repo.listarRegistroAgente(1))[0]).toMatchObject({ ferramenta: "criar_tarefas", tokenId: idEscrita, sucesso: true });
     expect((await repo.listarTokensAgente()).find((t) => t.id === idEscrita)?.ultimoUsoEm).not.toBeNull();
   });
 
   it("token de leitura não consegue chamar ferramenta de escrita", async () => {
-    const r = await rpc(tokenLeitura, "tools/call", { name: "excluir_tarefa", arguments: { tarefa: "Ajustar sitemap", confirmado: true } });
+    const r = await rpc(tokenLeitura, "tools/call", { name: "excluir_tarefa", arguments: { tarefa: "Conferir custas iniciais", confirmado: true } });
     expect(JSON.stringify(r.corpo)).toMatch(/not found|não|unknown|error/i);
-    expect((await repo.obterEspacoDeTrabalho()).tarefas.some((t) => t.title === "Ajustar sitemap")).toBe(true);
+    expect((await repo.obterEspacoDeTrabalho()).tarefas.some((t) => t.title === "Conferir custas iniciais")).toBe(true);
   });
 
   it("token de leitura chamando escrita direto: erro claro, nada muda e a tentativa fica registrada", async () => {
     const antes = JSON.stringify(await repo.obterEspacoDeTrabalho()) + JSON.stringify(await repo.listarLembretes());
     const tentativas: [string, Record<string, unknown>][] = [
-      ["criar_tarefas", { projeto: "Novo site", tarefas: [{ titulo: "Não deveria existir" }] }],
-      ["mover_tarefa", { tarefa: "Ajustar sitemap", coluna: "concluido" }],
+      ["criar_tarefas", { projeto: "Cobrança de aluguéis", tarefas: [{ titulo: "Não deveria existir" }] }],
+      ["mover_tarefa", { tarefa: "Conferir custas iniciais", coluna: "concluido" }],
       ["criar_lembrete", { texto: "Não deveria existir", quando: "2026-12-01T10:00" }],
-      ["excluir_tarefa", { tarefa: "Ajustar sitemap", confirmado: true }],
+      ["excluir_tarefa", { tarefa: "Conferir custas iniciais", confirmado: true }],
     ];
     for (const [nome, argumentos] of tentativas) {
       const r = await rpc(tokenLeitura, "tools/call", { name: nome, arguments: argumentos });

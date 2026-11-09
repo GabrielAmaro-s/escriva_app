@@ -46,14 +46,14 @@ async function fotografar(repo: Repositorio, nome: string) {
 describe("exportar e importar", () => {
   const exemplo = () => criarRepositorioLocal({ dados: criarDadosDeExemplo(new Date(2026, 10, 4)) });
 
-  it("a importação reproduz o quadro 'Novo site' igual ao exemplo", async () => {
+  it("a importação reproduz o quadro 'Cobrança de aluguéis' igual ao exemplo", async () => {
     const origem = exemplo();
     const destino = criarRepositorioLocal({ dados: armazenamentoVazio() });
 
     const arquivo = JSON.parse(JSON.stringify(await exportarDados(origem)));
     const resumo = await importarDados(destino, arquivo);
 
-    expect(await fotografar(destino, "Novo site")).toEqual(await fotografar(origem, "Novo site"));
+    expect(await fotografar(destino, "Cobrança de aluguéis")).toEqual(await fotografar(origem, "Cobrança de aluguéis"));
     expect(resumo).toEqual({ projetos: 7, campanhas: 3, colunas: 28, etiquetas: expect.any(Number), tarefas: 47 });
   });
 
@@ -67,7 +67,7 @@ describe("exportar e importar", () => {
 
     const nomes = async (r: Repositorio) => (await r.listarProjetos()).map((p) => `${p.name}|${p.archivedAt ?? ""}`);
     expect(await nomes(destino)).toEqual(await nomes(origem));
-    expect(await fotografar(destino, "Campanha de Verão")).toEqual(await fotografar(origem, "Campanha de Verão"));
+    expect(await fotografar(destino, "Contrato de prestação de serviços")).toEqual(await fotografar(origem, "Contrato de prestação de serviços"));
   });
 
   it("recusa arquivo inválido sem gravar nada", async () => {
