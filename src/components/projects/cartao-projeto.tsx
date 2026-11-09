@@ -1,18 +1,23 @@
 "use client";
 
-import { CalendarBlankIcon, DotsThreeIcon } from "@phosphor-icons/react";
+import { CalendarBlankIcon, DotsThreeIcon, LockSimpleIcon, UserIcon } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import { BarraProgresso, BlocoTom, SeloStatus } from "@/components/ui/pecas";
 import { useMenuDeContexto } from "@/components/ui/menu-contexto";
+import { ROTULO_AREA, formatarNumeroCnj } from "@/domain/processo";
 import { formatarData } from "@/domain/quadro";
 import { calcularProgresso, prazoDoProjeto } from "@/domain/projeto";
 import type { Projeto } from "@/domain/tipos";
+import { useClientes } from "@/hooks/use-clientes";
 import { useInterfaceProjeto } from "./interface-projeto";
 
 export function CartaoProjeto({ projeto }: { projeto: Projeto }) {
   const router = useRouter();
   const abrirMenu = useMenuDeContexto();
   const { acoesDe } = useInterfaceProjeto();
+  const { nomeDoCliente } = useClientes();
+  const cliente = nomeDoCliente(projeto.clienteId);
+  const d = projeto.processo;
   const pct = calcularProgresso(projeto);
   const prazo = prazoDoProjeto(projeto);
   const mostrarPrazo = prazo && projeto.status !== "done";
@@ -45,6 +50,28 @@ export function CartaoProjeto({ projeto }: { projeto: Projeto }) {
         </div>
       </div>
       <h3 className="mt-3.5 text-[15px] font-semibold tracking-[-0.01em]">{projeto.name}</h3>
+      {(cliente || d?.numeroCnj || d?.area || d?.segredoJustica) && (
+        <div className="mt-1 flex flex-col gap-0.5 text-xs text-ink2">
+          {cliente && (
+            <span className="flex items-center gap-1.5">
+              <UserIcon size={13} className="shrink-0" />
+              <span className="truncate">{cliente}</span>
+            </span>
+          )}
+          {(d?.numeroCnj || d?.area || d?.segredoJustica) && (
+            <span className="flex flex-wrap items-center gap-x-2 text-ink3">
+              {d?.numeroCnj && <span className="tabular-nums">{formatarNumeroCnj(d.numeroCnj)}</span>}
+              {d?.area && <span>{ROTULO_AREA[d.area]}</span>}
+              {d?.segredoJustica && (
+                <span className="inline-flex items-center gap-1" title="Segredo de justiça">
+                  <LockSimpleIcon size={12} />
+                  Segredo
+                </span>
+              )}
+            </span>
+          )}
+        </div>
+      )}
       <p className="mt-1 line-clamp-2 min-h-[38px] text-[12.5px] leading-normal text-ink2">{projeto.description}</p>
       <div className="mt-auto flex justify-between pt-3.5 text-xs text-ink2">
         <span>

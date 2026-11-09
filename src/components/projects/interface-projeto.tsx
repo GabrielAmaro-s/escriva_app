@@ -13,8 +13,10 @@ import {
 import { useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 import type { ItemMenu } from "@/components/ui/menu-contexto";
+import { clienteVazio } from "@/domain/cliente";
 import { dadosProjetoVazios, paraDadosProjeto } from "@/domain/projeto";
 import type { Projeto, TipoProjeto } from "@/domain/tipos";
+import { useClientes } from "@/hooks/use-clientes";
 import { useProjetos } from "@/hooks/use-projetos";
 import { FormularioProjeto } from "./formulario-projeto";
 
@@ -36,6 +38,7 @@ export function useInterfaceProjeto(): InterfaceProjeto {
 /** Formulário de projeto e menu de ações, disponíveis em qualquer tela. */
 export function ProvedorInterfaceProjeto({ children }: { children: ReactNode }) {
   const estado = useProjetos();
+  const clientes = useClientes();
   const router = useRouter();
   const [formulario, setFormulario] = useState<{ aberto: boolean; tipo: TipoProjeto; projeto?: Projeto }>({ aberto: false, tipo: "project" });
 
@@ -83,7 +86,13 @@ export function ProvedorInterfaceProjeto({ children }: { children: ReactNode }) 
         editando={Boolean(formulario.projeto)}
         inicial={inicial}
         aoFechar={() => setFormulario((f) => ({ ...f, aberto: false }))}
-        aoEnviar={async (dados, modelo) => {
+        aoEnviar={async (dados, { modelo, clienteNovo }) => {
+          if (clienteNovo) {
+            // Cliente digitado que ainda não existe: cadastra só com o nome; o resto se completa depois.
+            const cliente = await clientes.criar({ ...clienteVazio(), nome: clienteNovo }, { silencioso: true });
+            if (!cliente) return false;
+            dados = { ...dados, clienteId: cliente.id };
+          }
           if (formulario.projeto) return Boolean(await estado.atualizar(formulario.projeto.id, dados));
           const criado = await estado.criar(dados, modelo);
           if (criado) router.push(`/projetos/${criado.id}`);

@@ -1,11 +1,13 @@
 "use client";
 
-import { PlusIcon } from "@phosphor-icons/react";
+import { ArrowSquareOutIcon, PlusIcon } from "@phosphor-icons/react";
 import { useState } from "react";
 import { BarraProgresso, Marcador } from "@/components/ui/pecas";
-import { formatarData, formatarPeriodo, novoId } from "@/domain/quadro";
+import { ROTULO_AREA, ROTULO_FASE, ROTULO_POLO, formatarNumeroCnj, formatarValor } from "@/domain/processo";
+import { formatarData, novoId } from "@/domain/quadro";
 import { ROTULO_STATUS, calcularProgresso, paraDadosProjeto } from "@/domain/projeto";
 import type { Projeto } from "@/domain/tipos";
+import { useClientes } from "@/hooks/use-clientes";
 import { useProjetos } from "@/hooks/use-projetos";
 import { classes } from "@/lib/classes";
 
@@ -15,6 +17,7 @@ function Titulo({ children }: { children: React.ReactNode }) {
 
 export function AbaDetalhes({ projeto }: { projeto: Projeto }) {
   const estado = useProjetos();
+  const { nomeDoCliente } = useClientes();
   const [novaEntrega, setNovaEntrega] = useState("");
   const ehCampanha = projeto.kind === "campaign";
   const c = projeto.campaign;
@@ -33,14 +36,32 @@ export function AbaDetalhes({ projeto }: { projeto: Projeto }) {
     setNovaEntrega("");
   };
 
+  const d = projeto.processo;
+  // Só aparecem os dados preenchidos, menos os que sempre ajudam (status, tipo, cliente, prazo).
   const fatos = [
     { k: "Status", v: projeto.archivedAt ? "Arquivado" : ROTULO_STATUS[projeto.status] },
     { k: "Tipo", v: ehCampanha ? "Consultivo" : "Processo" },
-    ehCampanha
-      ? { k: "Período", v: formatarPeriodo(c?.startsOn ?? null, c?.endsOn ?? null) }
-      : { k: "Prazo", v: projeto.dueOn ? formatarData(projeto.dueOn) : "Sem prazo" },
+    { k: "Cliente", v: nomeDoCliente(projeto.clienteId) ?? "Sem cliente" },
+    ...(ehCampanha
+      ? [
+          { k: "Tipo de serviço", v: c?.tipoServico || null },
+          { k: "Recebido em", v: c?.startsOn ? formatarData(c.startsOn) : null },
+          { k: "Prazo de entrega", v: c?.endsOn ? formatarData(c.endsOn) : "Sem prazo" },
+        ]
+      : [
+          { k: "Prazo", v: projeto.dueOn ? formatarData(projeto.dueOn) : "Sem prazo" },
+          { k: "Número", v: d?.numeroCnj ? formatarNumeroCnj(d.numeroCnj) : null },
+          { k: "Área", v: d?.area ? ROTULO_AREA[d.area] : null },
+          { k: "Fase", v: d?.fase ? ROTULO_FASE[d.fase] : null },
+          { k: "Tribunal", v: d?.tribunal || null },
+          { k: "Vara ou turma", v: d?.orgao || null },
+          { k: "Polo do cliente", v: d?.polo ? ROTULO_POLO[d.polo] : null },
+          { k: "Parte contrária", v: d?.parteContraria || null },
+          { k: "Valor da causa", v: d?.valorCausa != null ? formatarValor(d.valorCausa) : null },
+          { k: "Segredo de justiça", v: d?.segredoJustica ? "Sim" : null },
+        ]),
     { k: "Tarefas", v: `${projeto.doneCount} de ${projeto.taskCount} · ${pct}%` },
-  ];
+  ].filter((f): f is { k: string; v: string } => f.v !== null);
 
   return (
     <div className="flex animate-in flex-wrap items-start gap-x-10 gap-y-7">
@@ -48,22 +69,8 @@ export function AbaDetalhes({ projeto }: { projeto: Projeto }) {
         {ehCampanha ? (
           <>
             <div>
-              <Titulo>Objetivo</Titulo>
-              <p className="text-sm leading-normal">{c?.objective || "Ainda sem objetivo. Defina em Editar."}</p>
-            </div>
-            <div>
-              <p className="mb-2 text-xs font-semibold text-ink3">Tipo de serviço</p>
-              {c?.channels.length ? (
-                <div className="flex flex-wrap gap-1.5">
-                  {c.channels.map((canal) => (
-                    <span key={canal} className="rounded-full border border-line bg-hover px-[11px] py-1 text-[12.5px] text-ink2">
-                      {canal}
-                    </span>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-ink2">Nenhum tipo de serviço escolhido.</p>
-              )}
+              <Titulo>Pedido do cliente</Titulo>
+              <p className="text-sm leading-normal">{c?.objective || "Ainda sem pedido do cliente. Defina em Editar."}</p>
             </div>
             <div>
               <p className="mb-2 text-xs font-semibold text-ink3">
@@ -100,6 +107,12 @@ export function AbaDetalhes({ projeto }: { projeto: Projeto }) {
           <div>
             <Titulo>Sobre o processo</Titulo>
             <p className="text-sm leading-relaxed text-ink2">{projeto.description || "Sem descrição. Adicione uma em Editar."}</p>
+            {d?.linkAutos && (
+              <a href={d.linkAutos} target="_blank" rel="noreferrer noopener" className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-medium text-primary">
+                <ArrowSquareOutIcon size={14} />
+                Abrir os autos
+              </a>
+            )}
           </div>
         )}
       </div>
