@@ -139,10 +139,10 @@ Rota atual	Vira
 Na janela da tarefa: escolha do tipo; para prazo, campos "data de início" e "quantidade de dias", com vencimento calculado e memória visível antes de salvar.
 
 10. Etapas
-Renomear e reorganizar (rápido). Rotas e textos da interface, modelos de colunas, campo de área. Critério de pronto: um advogado consegue cadastrar seus processos sem estranhar o vocabulário.
-Processo e clientes. Migração com clientes e processo_detalhes, formulário, tela de clientes, cartão do processo com cliente e número.
+Renomear e reorganizar (rápido). Rotas e textos da interface, modelos de colunas. Critério de pronto: um advogado consegue cadastrar seus processos sem estranhar o vocabulário. O campo de área passou para a etapa 2, porque precisa de coluna nova no banco.
+Processo e clientes. Migração com clientes e processo_detalhes (incluindo o campo de área), formulário, tela de clientes, cartão do processo com cliente e número. Ícones jurídicos para processos e casos consultivos.
 Motor de prazos. domain/prazos.ts com testes, tabela de feriados, tipos de tarefa, lembretes automáticos D-3/D-1/dia, histórico de alterações de prazo.
-Agente jurídico. Ferramentas da seção 8, SOUL.md ajustado, resumos novos.
+Agente jurídico. Ferramentas da seção 8, SOUL.md ajustado, resumos novos. Mensagens do agente com o vocabulário jurídico (hoje ele ainda responde "Criei o projeto X" e "Criei a campanha X").
 DataJud. Consulta por número CNJ e aviso de movimentação nova (sem substituir a leitura das intimações).
 Andamento para o cliente. Texto em linguagem simples, depois um link de acompanhamento só de leitura, se fizer sentido.
 
@@ -157,3 +157,5 @@ Concorrência. Astrea, ADVBOX, Projuris, EasyJur e CPJ já oferecem gestão comp
 Nome do produto.
 Validação com advogados autônomos (dores, preço, uso do WhatsApp para trabalho).
 Revisão das regras de prazo por alguém da área antes de qualquer uso real.
+Ícones jurídicos (etapa 2). Na etapa 1 o Consultivo ficou com o megafone, na tela e no agente, e os ícones do menu não mudaram.
+Vocabulário das mensagens do agente (etapa 4). Na etapa 1 só a ferramenta criar_projeto mudou, com o parâmetro modelo.

@@ -1,6 +1,6 @@
 # myPlan
 
-Gerenciador pessoal de projetos e campanhas, com um quadro Kanban por projeto.
+Gerenciador pessoal de projetos e campanhas, com um quadro Kanban por projeto. Está sendo adaptado para advogados autônomos: na interface, projetos aparecem como **Processos** e campanhas como **Consultivo** (ver `docs/PROPOSTA_JURIDICA.md`).
 
 ## Rodar
 
@@ -9,7 +9,9 @@ npm install
 npm run dev
 ```
 
-Abra http://localhost:3000. Sem configuração nenhuma o app roda em **modo local**: os dados ficam no navegador e já vêm alguns projetos de exemplo.
+Abra http://localhost:3000. Sem configuração nenhuma o app roda em **modo local**: os dados ficam no navegador e já vêm alguns casos jurídicos fictícios de exemplo.
+
+Telas: **Hoje** (`/hoje`), **Processos** (`/`), **Consultivo** (`/consultivo`), **Prazos e tarefas** (`/prazos`) e **Configurações**. Os endereços antigos `/visao-geral`, `/campanhas` e `/tarefas` redirecionam para os novos. Ao criar um processo ou caso consultivo, escolha o modelo de quadro: Cível/JEC, Trabalhista, Previdenciário, Família ou Consultivo.
 
 ## Conectar ao Supabase
 
@@ -74,7 +76,7 @@ Os dados do modo local não vão para o Supabase sozinhos: em Configurações, u
 6. **Faça o deploy** e, se usar domínio próprio, aponte-o em Settings > Domains.
 7. **Confira depois do deploy:**
    - `https://<domínio>/api/saude` responde `{"ok":true,"modoLocal":false,"banco":"ok"}`. A rota mostra só esses três campos, sem chaves nem erros do banco; o detalhe de uma falha fica no log da função na Vercel;
-   - o login por link mágico funciona: peça o link em `/login`, abra o e-mail no mesmo navegador e confirme que caiu em Meus projetos;
+   - o login por link mágico funciona: peça o link em `/login`, abra o e-mail no mesmo navegador e confirme que caiu em Processos;
    - `https://<domínio>/api/mcp` sem token responde 401.
 
 ## Estrutura

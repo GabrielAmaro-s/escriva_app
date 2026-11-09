@@ -1,6 +1,8 @@
 myPlan: arquitetura
 
-Gerenciador pessoal de projetos e campanhas. Um quadro Kanban por projeto, pensado para uma pessoa só, com um agente pessoal (nanobot) que cria tarefas e lembretes pelo WhatsApp.
+Gerenciador pessoal de projetos e campanhas, em adaptação para advogados autônomos (ver PROPOSTA_JURIDICA.md). Um quadro Kanban por projeto, pensado para uma pessoa só, com um agente pessoal (nanobot) que cria tarefas e lembretes pelo WhatsApp.
+
+Vocabulário: no código e no banco os nomes continuam projeto (kind = project) e campanha (kind = campaign). Na interface, projeto aparece como processo e campanha como caso consultivo.
 
 1. Proposta de arquitetura
 
@@ -39,13 +41,17 @@ src/config/ambiente.ts valida com zod as variáveis públicas (NEXT_PUBLIC_*). s
 O visual segue o protótipo myPlan_standalone.html: fonte Inter, ícones Phosphor, cor de destaque configurável (violeta por padrão) e modo escuro.
 
 Rota	Tela
-/visao-geral	Visão geral: números do momento, próximos lembretes e próximas entregas
-/	Meus projetos: busca, filtros por status e cartões
-/campanhas	Campanhas em lista, com objetivo, período, canais e entregas
-/tarefas	Todas as tarefas abertas ou concluídas, ordenadas por prazo
+/hoje	Hoje: números do momento, próximos lembretes e próximos prazos
+/	Processos: busca, filtros por status e cartões
+/consultivo	Consultivo: casos consultivos em lista, com objetivo, período, tipo de serviço e entregas
+/prazos	Prazos e tarefas: todas as tarefas abertas ou concluídas, ordenadas por prazo
 /configuracoes	Aparência, Dados (exportar e importar) e Agente (estado, tokens, atividade)
 /projetos/[id]	Quadro Kanban, com a aba Detalhes (?aba=detalhes) e a tarefa aberta (?tarefa=<id>)
 /login	Entrada por link mágico (só com Supabase)
+
+As rotas antigas /visao-geral, /campanhas e /tarefas redirecionam (307) para /hoje, /consultivo e /prazos, em next.config.ts. /projetos/[id] não mudou, porque o agente manda links nesse formato.
+
+No Consultivo, o campo channels da campanha aparece como "Tipo de serviço", com as sugestões Contrato, Parecer, Notificação extrajudicial e Inventário extrajudicial. Não houve migração.
 Rotas de servidor (src/app/api)
 
 Todas, menos saude e mcp, exigem login (cookies) e respondem 401 sem ele. Entradas validadas com zod (api/esquemas.ts) e erros em JSON { erro }.
@@ -73,11 +79,11 @@ Componentes
 src/components/
 ├── layout/      estrutura-app (menu lateral; vira gaveta abaixo de 820px), menu-lateral
 ├── projects/    tela-projetos, cartao-projeto, formulario-projeto, interface-projeto
-├── campaigns/   tela-campanhas
+├── campaigns/   tela-consultivo
 ├── board/       tela-quadro, quadro-kanban (DndContext), coluna-quadro, cartao-tarefa (sino
 │                quando há lembrete), aba-detalhes
 ├── tasks/       janela-tarefa (com campo Lembrete), lista-tarefas, lista-lembretes,
-│                tela-visao-geral, tela-tarefas
+│                tela-hoje, tela-prazos
 ├── settings/    tela-configuracoes, linha-configuracao, secao-dados, secao-agente
 └── ui/          pecas, botao, campo, janela, menu-contexto, aviso
 Nomes no código
@@ -85,7 +91,7 @@ Nomes no código
 Funções, hooks, componentes, tipos e variáveis estão em português (criarTarefa, useTarefas, CartaoProjeto, Tarefa). Ficam como estão: nomes exigidos pelo framework (page.tsx, route.ts, GET, proxy), as tabelas e colunas que já existiam e os campos das entidades antigas (title, dueOn, projectId...), que espelham essas colunas e o formato já salvo no navegador. As tabelas novas têm colunas em português (texto, quando, criado_em).
 
 Camada	Arquivos
-domain/	tipos.ts, quadro.ts (posições, regra de Concluído, datas), projeto.ts (progresso, filtros, validação), lembrete.ts (status ativos, validação, situação do agente), datas.ts (fuso IANA)
+domain/	tipos.ts, quadro.ts (modelos de quadro, posições, regra de Concluído, datas), projeto.ts (progresso, filtros, validação), lembrete.ts (status ativos, validação, situação do agente), datas.ts (fuso IANA)
 data/	repositorio.ts, index.ts (obterRepositorio), http/repositorio-http.ts, local/repositorio-local.ts, local/exemplo.ts, supabase/repositorio-supabase.ts, supabase/conversores.ts, supabase/cliente.ts, supabase/servidor.ts, supabase/admin.ts, supabase/usuario-servidor.ts, supabase/contexto-agente.ts
 services/	projetos.ts, tarefas.ts, lembretes.ts, tokens.ts, desfazer.ts, importacao.ts, agente/ (ferramentas, executor e auxiliares)
 hooks/	use-projetos.tsx, use-tarefas.ts, use-lembretes.tsx, use-usuario-atual.ts
@@ -117,6 +123,7 @@ heartbeats_agente   user_id (pk), ultimo_em
 Escolhas:
 
 Colunas são linhas no banco, não um enum fixo. O campo kind diz o papel de cada coluna.
+Modelos de quadro (domain/quadro.ts, MODELOS_DE_QUADRO): Cível/JEC, Trabalhista, Previdenciário, Família e Consultivo. Todos têm uma coluna de cada kind (todo, doing, waiting, done), só os títulos mudam. O modelo é escolhido ao criar e só decide as colunas criadas; ele não fica gravado. Sem escolha, criarProjeto usa Cível/JEC para projeto e Consultivo para campanha.
 Checklist, links e entregas em jsonb. São listas pequenas que sempre se leem junto com a tarefa.
 Etiquetas por projeto, aplicadas via label_ids.
 RLS em todas as tabelas: cada linha tem user_id preenchido com auth.uid() e só o dono lê ou escreve. A 0003 também dá grant explícito ao papel authenticated, porque projetos novos do Supabase podem não expor tabelas novas sozinhos.
@@ -144,7 +151,7 @@ mover_tarefa	troca de coluna com a regra de Concluído	sim	não
 adicionar_checklist	subtarefas	sim	não
 criar_lembrete	lembrete com data e hora, origem = agente	sim	não
 marcar_lembrete	agendado ou enviado (com quando_esperado)	sim	não
-criar_projeto	projeto ou campanha com as 4 colunas padrão	sim	não
+criar_projeto	projeto ou campanha com as colunas do modelo de quadro (parâmetro opcional modelo)	sim	não
 sugerir_prioridades	propõe prioridades e ordem pelo prazo	sim	sim
 concluir_em_lote	fecha várias tarefas	sim	sim
 excluir_tarefa	remove uma tarefa ou um lembrete	sim	sim
@@ -157,8 +164,8 @@ O agente (nanobot numa VPS, WhatsApp) está documentado em agente/README.md.
 
 npm test roda o vitest:
 
-domain/: posições, regra de Concluído, alternar conclusão, validação de projeto e campanha, datas, períodos e fuso;
-importação: o quadro "Novo site" é reproduzido campo a campo;
+domain/: modelos de quadro, posições, regra de Concluído, alternar conclusão, validação de projeto e campanha, datas, períodos e fuso;
+importação: o quadro "Cobrança de aluguéis" do exemplo é reproduzido campo a campo;
 ambiente;
 tokens e lembretes;
 filtro de usuário do repositório do agente;
@@ -173,3 +180,4 @@ Novo design (feito). Visão geral, Campanhas, Tarefas e Configurações; desfaze
 Polimento. Reordenar projetos na página inicial, busca rápida (Ctrl+K), atalhos de teclado no quadro.
 Dados confiáveis (feito). Testes de domain/, exportar JSON, importar do navegador para a conta.
 Agente (feito). API no servidor, tokens, registro, lembretes, servidor MCP e configuração do nanobot.
+Versão jurídica, etapa 1 (feito). Vocabulário jurídico na interface, rotas /hoje, /consultivo e /prazos, modelos de quadro por área e dados de exemplo jurídicos. As próximas etapas estão em PROPOSTA_JURIDICA.md.

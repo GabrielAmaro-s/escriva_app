@@ -171,7 +171,7 @@ Faça estas três conferências antes de usar o agente no dia a dia:
 1. **"Cria 3 tarefas no Novo site para sexta: revisar textos, testar no celular e publicar."**
    O agente chama `criar_tarefas` e responde algo como *"Criei 3 tarefas em Novo site, prazo sexta."* com o link. No app, as tarefas aparecem em A fazer.
 2. **"Me lembra amanhã às 15h de ligar para o cliente."**
-   Chama `criar_lembrete`, cria um cron para amanhã às 15:00 e marca como agendado. Amanhã às 15h chega *"⏰ Ligar para o cliente"*. No app, o lembrete aparece em Visão geral > Próximos lembretes.
+   Chama `criar_lembrete`, cria um cron para amanhã às 15:00 e marca como agendado. Amanhã às 15h chega *"⏰ Ligar para o cliente"*. No app, o lembrete aparece em Hoje > Próximos lembretes.
 3. **"Conclui as tarefas atrasadas do Novo site."**
    Busca as tarefas, chama `concluir_em_lote` sem confirmar e pergunta *"Vou concluir 2 tarefas. Responda sim para confirmar."*. Só depois do seu "sim" ele conclui. Dá para desfazer em Configurações > Agente.
 
