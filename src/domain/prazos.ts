@@ -1,12 +1,16 @@
-import { somarDias } from "./datas";
+import { dataNoFuso, interpretarDataHora, partesNoFuso, somarDias } from "./datas";
 import type {
+  AlteracaoTarefa,
   AreaProcesso,
+  ContagemPrazo,
   DetalhesProcesso,
   DiaExcluido,
   Feriado,
   LembreteAutomatico,
   MeioIntimacao,
   RegraPrazo,
+  Tarefa,
+  TipoTarefa,
   UnidadePrazo,
 } from "./tipos";
 
@@ -454,4 +458,119 @@ export function validarDadosPrazo(dados: DadosPrazo & { margem?: number }): { ok
     return { ok: false, erro: `A margem deve ficar entre 0 e ${MARGEM_MAXIMA} dias úteis.` };
   }
   return { ok: true };
+}
+
+// Tipo da tarefa ------------------------------------------------------------------------
+
+type CamposDoTipo = Pick<Tarefa, "tipo" | "prazoFatal" | "contagem" | "localAudiencia" | "horarioAudiencia">;
+
+export const ROTULO_TIPO: Record<TipoTarefa, string> = { prazo: "Prazo", providencia: "Providência", audiencia: "Audiência" };
+
+/**
+ * Completa uma alteração para os campos ficarem coerentes com o tipo final: prazo fatal e
+ * contagem só no prazo; local e horário só na audiência. Vai na mesma gravação da troca de tipo.
+ */
+export function ajustarAlteracaoAoTipo(tarefa: CamposDoTipo, alteracao: AlteracaoTarefa): AlteracaoTarefa {
+  const final = { ...tarefa, ...alteracao };
+  const ajuste: AlteracaoTarefa = {};
+  if (final.tipo !== "prazo") {
+    if (final.prazoFatal !== null) ajuste.prazoFatal = null;
+    if (final.contagem !== null) ajuste.contagem = null;
+  }
+  if (final.tipo !== "audiencia") {
+    if (final.localAudiencia !== null) ajuste.localAudiencia = null;
+    if (final.horarioAudiencia !== null) ajuste.horarioAudiencia = null;
+  }
+  return { ...alteracao, ...ajuste };
+}
+
+/** Contagem para gravar na tarefa e o prazo interno sugerido pela margem. */
+export function montarContagem(
+  dados: DadosPrazo & { margem: number },
+  feriados: Feriado[],
+  tribunal: string | null,
+): { contagem: ContagemPrazo; prazoInterno: string } {
+  const calculo = calcularPrazoDaIntimacao(dados, feriados, tribunal);
+  const interno = prazoInterno(calculo.vencimento, dados.margem, criarCalendario({ feriados, tribunal }));
+  return {
+    prazoInterno: interno,
+    contagem: {
+      inicio: dados.inicio,
+      meio: dados.meio,
+      dias: dados.dias,
+      regra: dados.regra,
+      unidade: calculo.unidade,
+      emDobro: Boolean(dados.emDobro),
+      suspenderNoRecesso: calculo.suspenderNoRecesso,
+      tribunal,
+      margem: dados.margem,
+      comeco: calculo.comeco,
+      vencimento: calculo.vencimento,
+      excluidos: calculo.diasExcluidos,
+      memoria: calculo.memoria,
+    },
+  };
+}
+
+// Lembretes automáticos -------------------------------------------------------------------
+
+export const HORA_DOS_LEMBRETES = "09:00";
+/** No dia da audiência, o lembrete sai esta quantidade de horas antes. */
+export const HORAS_ANTES_DA_AUDIENCIA = 2;
+
+export interface LembreteDesejado {
+  automatico: LembreteAutomatico;
+  quando: string;
+  texto: string;
+}
+
+function encurtar(texto: string, limite: number): string {
+  return texto.length > limite ? `${texto.slice(0, limite - 1)}…` : texto;
+}
+
+/**
+ * Lembretes que a tarefa deve ter agora: D-3, D-1 (dias com expediente) e no dia, contados do
+ * prazo fatal ou da data da audiência, às 09:00 no fuso (na audiência, o do dia sai 2 h antes).
+ * Tarefa concluída, providência ou sem data: nenhum. Horários que já passaram ficam de fora.
+ */
+export function lembretesDesejados(
+  tarefa: Pick<Tarefa, "title" | "tipo" | "prazoFatal" | "horarioAudiencia" | "localAudiencia" | "completed">,
+  calendario: Calendario,
+  fuso: string,
+  agora = new Date(),
+): LembreteDesejado[] {
+  if (tarefa.completed) return [];
+  const titulo = encurtar(tarefa.title, 300);
+  const as9 = (data: string) => interpretarDataHora(`${data}T${HORA_DOS_LEMBRETES}`, fuso)!.toISOString();
+  let lista: LembreteDesejado[] = [];
+
+  if (tarefa.tipo === "prazo" && tarefa.prazoFatal) {
+    const datas = datasDosLembretes(tarefa.prazoFatal, calendario);
+    const vence = formatarDataCurta(tarefa.prazoFatal);
+    lista = [
+      { automatico: "d-3", quando: as9(datas["d-3"]), texto: `Prazo fatal em ${vence}: ${titulo}` },
+      { automatico: "d-1", quando: as9(datas["d-1"]), texto: `Prazo fatal em ${vence}: ${titulo}` },
+      { automatico: "dia", quando: as9(datas.dia), texto: `Prazo fatal hoje: ${titulo}` },
+    ];
+  }
+
+  if (tarefa.tipo === "audiencia" && tarefa.horarioAudiencia) {
+    const instante = new Date(tarefa.horarioAudiencia);
+    const dia = dataNoFuso(instante, fuso);
+    const datas = datasDosLembretes(dia, calendario);
+    const p = partesNoFuso(instante, fuso);
+    const hora = `${String(p.hora).padStart(2, "0")}:${String(p.minuto).padStart(2, "0")}`;
+    const onde = tarefa.localAudiencia ? ` (${encurtar(tarefa.localAudiencia, 120)})` : "";
+    lista = [
+      { automatico: "d-3", quando: as9(datas["d-3"]), texto: `Audiência em ${formatarDataCurta(dia)} às ${hora}: ${titulo}${onde}` },
+      { automatico: "d-1", quando: as9(datas["d-1"]), texto: `Audiência em ${formatarDataCurta(dia)} às ${hora}: ${titulo}${onde}` },
+      {
+        automatico: "dia",
+        quando: new Date(instante.getTime() - HORAS_ANTES_DA_AUDIENCIA * 3_600_000).toISOString(),
+        texto: `Audiência hoje às ${hora}: ${titulo}${onde}`,
+      },
+    ];
+  }
+
+  return lista.filter((l) => new Date(l.quando).getTime() > agora.getTime());
 }

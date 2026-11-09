@@ -18,9 +18,18 @@ export function listarLembretes(repo: Repositorio, filtro?: FiltroLembretes): Pr
  * Lembretes pendentes que tocam nas próximas `horas` (padrão 1).
  * Os atrasados (horário já passou e ninguém agendou) também entram, para não se perderem.
  */
-export function lembretesProximos(repo: Repositorio, horas = 1, agora = new Date()): Promise<Lembrete[]> {
+export async function lembretesProximos(repo: Repositorio, horas = 1, agora = new Date()): Promise<Lembrete[]> {
   const ate = new Date(agora.getTime() + horas * 3_600_000).toISOString();
-  return repo.listarLembretes({ status: ["pendente"], ate });
+  const lista = await repo.listarLembretes({ status: ["pendente"], ate });
+  if (!lista.some((l) => l.automatico)) return lista;
+  // Lembrete automático de tarefa já concluída (por qualquer caminho, inclusive o agente) é cancelado, não enviado.
+  const concluidas = new Set((await repo.obterEspacoDeTrabalho()).tarefas.filter((t) => t.completed).map((t) => t.id));
+  const valem: Lembrete[] = [];
+  for (const l of lista) {
+    if (l.automatico && l.tarefaId && concluidas.has(l.tarefaId)) await repo.atualizarLembrete(l.id, { status: "cancelado" });
+    else valem.push(l);
+  }
+  return valem;
 }
 
 /**
