@@ -11,6 +11,31 @@ const campanha = z.object({
   endsOn: data,
   channels: z.array(z.string().max(40)).max(20),
   deliverables: z.array(z.object({ id: z.string(), title: z.string().max(200), done: z.boolean() })).max(100),
+  tipoServico: z.string().max(80).nullable().optional(),
+});
+
+const textoOpcional = (max: number) => z.string().max(max).nullable();
+
+const processo = z.object({
+  numeroCnj: textoOpcional(40),
+  tribunal: textoOpcional(40),
+  orgao: textoOpcional(120),
+  area: z.enum(["civel", "consumidor", "trabalhista", "previdenciario", "familia", "criminal", "tributario", "administrativo", "outra"]).nullable(),
+  fase: z.enum(["administrativa", "inicial", "instrucao", "sentenca", "recurso", "execucao"]).nullable(),
+  polo: z.enum(["autor", "reu", "terceiro"]).nullable(),
+  parteContraria: textoOpcional(200),
+  valorCausa: z.number().nonnegative().nullable(),
+  segredoJustica: z.boolean(),
+  linkAutos: textoOpcional(2000),
+});
+
+export const esquemaDadosCliente = z.object({
+  nome: z.string().max(120),
+  tipo: z.enum(["pf", "pj"]),
+  documento: textoOpcional(30),
+  telefone: textoOpcional(30),
+  email: textoOpcional(200),
+  observacoes: textoOpcional(2000),
 });
 
 export const esquemaDadosProjeto = z.object({
@@ -19,9 +44,11 @@ export const esquemaDadosProjeto = z.object({
   kind: z.enum(["project", "campaign"]),
   status: z.enum(["active", "paused", "done"]),
   color: tom,
-  icon: z.enum(["folder", "monitor", "box", "calendar", "chart", "check", "gift", "megaphone", "star", "target"]),
+  icon: z.enum(["folder", "monitor", "box", "calendar", "chart", "check", "gift", "megaphone", "star", "target", "scales", "briefcase", "gavel", "file"]),
   dueOn: data,
   campaign: campanha.nullable(),
+  clienteId: z.uuid({ error: "Cliente inválido." }).nullable().optional(),
+  processo: processo.nullable().optional(),
 });
 
 export const esquemaNovoProjeto = z.object({

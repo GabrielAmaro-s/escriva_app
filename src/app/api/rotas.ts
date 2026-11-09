@@ -2,6 +2,7 @@ import "server-only";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { ambientePublico } from "@/config/ambiente";
+import { ErroDeConflito, ErroDeValidacao } from "@/domain/erros";
 import type { Repositorio } from "@/data/repositorio";
 import { ErroNaoAutenticado, obterRepositorioDoUsuario } from "@/data/supabase/usuario-servidor";
 
@@ -36,7 +37,8 @@ export function rotaDoUsuario<P = Record<string, never>>(
 
 export function responderErro(e: unknown): Response {
   if (e instanceof ErroNaoAutenticado) return NextResponse.json({ erro: e.message }, { status: 401 });
-  if (e instanceof ErroDeEntrada) return NextResponse.json({ erro: e.message }, { status: 400 });
+  if (e instanceof ErroDeEntrada || e instanceof ErroDeValidacao) return NextResponse.json({ erro: e.message }, { status: 400 });
+  if (e instanceof ErroDeConflito) return NextResponse.json({ erro: e.message }, { status: 409 });
   if (e instanceof ErroNaoEncontrado) return NextResponse.json({ erro: e.message }, { status: 404 });
   if (e instanceof z.ZodError) return NextResponse.json({ erro: e.issues[0]?.message ?? "Dados inválidos." }, { status: 400 });
   const mensagem = e instanceof Error ? e.message : "Algo deu errado no servidor. Tente de novo.";
