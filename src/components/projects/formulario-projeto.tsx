@@ -6,6 +6,7 @@ import { Botao, BotaoIcone } from "@/components/ui/botao";
 import { AreaTexto, CampoTexto, RotuloCampo } from "@/components/ui/campo";
 import { Janela } from "@/components/ui/janela";
 import { NOME_DO_TOM, SUGESTOES_DE_CANAIS, TONS_PROJETO, campanhaVazia, dadosProjetoVazios, validarDadosProjeto } from "@/domain/projeto";
+import { MODELOS, MODELOS_DE_QUADRO, type ModeloQuadro, modeloPadrao } from "@/domain/quadro";
 import type { DadosProjeto, TipoProjeto } from "@/domain/tipos";
 import { classes } from "@/lib/classes";
 
@@ -25,12 +26,14 @@ export function FormularioProjeto({
   inicial: DadosProjeto;
   editando: boolean;
   aoFechar: () => void;
-  aoEnviar: (dados: DadosProjeto) => Promise<boolean>;
+  /** O modelo só vem ao criar; na edição o quadro já existe. */
+  aoEnviar: (dados: DadosProjeto, modelo?: ModeloQuadro) => Promise<boolean>;
 }) {
   const [formulario, setFormulario] = useState<DadosProjeto>(inicial);
   const [erro, setErro] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
   const [outroCanal, setOutroCanal] = useState("");
+  const [modelo, setModelo] = useState<ModeloQuadro>(modeloPadrao(inicial.kind));
 
   // Reinicia só ao abrir, para não perder o que está sendo digitado.
   useEffect(() => {
@@ -38,6 +41,7 @@ export function FormularioProjeto({
       setFormulario(inicial);
       setErro(null);
       setOutroCanal("");
+      setModelo(modeloPadrao(inicial.kind));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aberto]);
@@ -49,6 +53,7 @@ export function FormularioProjeto({
 
   const definirTipo = (tipo: TipoProjeto) => {
     const padrao = dadosProjetoVazios(tipo);
+    setModelo(modeloPadrao(tipo));
     setFormulario((f) => ({
       ...f,
       kind: tipo,
@@ -72,7 +77,7 @@ export function FormularioProjeto({
       return;
     }
     setSalvando(true);
-    const ok = await aoEnviar(resultado.valor);
+    const ok = await aoEnviar(resultado.valor, editando ? undefined : modelo);
     setSalvando(false);
     if (ok) aoFechar();
   }
@@ -157,6 +162,33 @@ export function FormularioProjeto({
             placeholder="Descreva brevemente o objetivo…"
           />
         </div>
+
+        {!editando && (
+          <div className="mt-4">
+            <p className="mb-2 text-[12.5px] font-semibold">Modelo de quadro</p>
+            <div role="radiogroup" aria-label="Modelo de quadro" className="flex flex-wrap gap-[7px]">
+              {MODELOS.map((m) => {
+                const ativo = modelo === m;
+                return (
+                  <button
+                    key={m}
+                    type="button"
+                    role="radio"
+                    aria-checked={ativo}
+                    onClick={() => setModelo(m)}
+                    className={classes(
+                      "h-7 rounded-full border px-3 text-[12.5px] transition-[background,border-color,color] duration-150",
+                      ativo ? "border-primary-line bg-primary-soft text-primary" : "border-line bg-surface text-ink2 hover:text-ink",
+                    )}
+                  >
+                    {MODELOS_DE_QUADRO[m].nome}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-1.5 text-xs text-ink3">Colunas: {MODELOS_DE_QUADRO[modelo].colunas.map((c) => c.title).join(", ")}.</p>
+          </div>
+        )}
 
         {ehCampanha && (
           <>
