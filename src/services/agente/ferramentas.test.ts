@@ -198,6 +198,23 @@ describe("escrita", () => {
     expect((quadro.corpo.colunas as { titulo: string }[]).map((c) => c.titulo)).toEqual(["A fazer", "Em andamento", "Aguardando decisão", "Concluído"]);
     const campanha = await chamar("criar_projeto", { nome: "Natal", tipo: "campanha", inicio: "2026-12-01", prazo: "2026-12-25", canais: ["Instagram"] });
     expect(campanha.corpo.mensagem).toBe("Criei a campanha Natal.");
+    const quadroDaCampanha = await chamar("ver_quadro", { projeto: "Natal" });
+    expect((quadroDaCampanha.corpo.colunas as { titulo: string }[]).map((c) => c.titulo)).toEqual(["A fazer", "Redigindo", "Aguardando cliente", "Entregue"]);
+  });
+
+  it("criar_projeto aceita o modelo de quadro", async () => {
+    const r = await chamar("criar_projeto", { nome: "Horas extras", modelo: "trabalhista" });
+    expect(r.erro).toBe(false);
+    const quadro = await chamar("ver_quadro", { projeto: "Horas extras" });
+    const colunas = quadro.corpo.colunas as { titulo: string; papel: string }[];
+    expect(colunas.map((c) => c.titulo)).toEqual(["A fazer", "Em andamento", "Aguardando audiência", "Concluído"]);
+    expect(colunas.map((c) => c.papel)).toEqual(["a_fazer", "em_andamento", "aguardando", "concluido"]);
+  });
+
+  it("criar_projeto recusa modelo que não existe", async () => {
+    const r = await chamar("criar_projeto", { nome: "Inventário", modelo: "tributario" });
+    expect(r.erro).toBe(true);
+    expect((await repo.listarProjetos()).some((p) => p.name === "Inventário")).toBe(false);
   });
 });
 
