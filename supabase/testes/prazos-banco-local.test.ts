@@ -3,6 +3,15 @@
 // Cria dois usuários novos a cada rodada, então pode rodar de novo sem reset.
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { beforeAll, describe, expect, it } from "vitest";
+import { criarRepositorioDoAgente } from "@/data/supabase/contexto-agente";
+import { criarRepositorioSupabase } from "@/data/supabase/repositorio-supabase";
+import { ErroDeConflito, ErroDeValidacao } from "@/domain/erros";
+import { alteracaoDePrazo } from "@/domain/prazos";
+import { detalhesProcessoVazios } from "@/domain/processo";
+import { dadosProjetoVazios } from "@/domain/projeto";
+import { lembretesProximos } from "@/services/lembretes";
+import { alterarTarefa, calcularPrazoDaTarefa, criarFeriadoLocal, salvarPreferencias } from "@/services/prazos";
+import { criarProjeto } from "@/services/projetos";
 
 const URL = process.env.SB_URL!;
 const ANON = process.env.SB_ANON!;
@@ -33,6 +42,7 @@ async function quadro(sb: SupabaseClient, nome: string): Promise<{ projeto: stri
 }
 
 const marca = Date.now();
+const ctx = { fuso: "America/Sao_Paulo", agora: new Date("2026-11-10T12:00:00Z") };
 let A: { id: string; sb: SupabaseClient };
 let B: { id: string; sb: SupabaseClient };
 let quadroA: { projeto: string; coluna: string };
@@ -209,5 +219,72 @@ describe("preferências", () => {
     expect((await B.sb.from("preferencias").update({ margem_prazo_interno: 9 }).eq("user_id", A.id).select()).data).toEqual([]);
     expect((await A.sb.from("preferencias").update({ margem_prazo_interno: 31 }).eq("user_id", A.id)).error?.code).toBe("23514");
     expect((await B.sb.from("preferencias").insert({ user_id: A.id })).error?.code).toBe("42501");
+  });
+});
+
+describe("código do app e do agente contra a 0005", () => {
+  it("app: prazo pelo service grava contagem, lembretes automáticos e histórico; trocar o tipo limpa tudo", async () => {
+    const repo = criarRepositorioSupabase(A.sb);
+    const p = await criarProjeto(repo, { ...dadosProjetoVazios(), name: "Processo TJRS", processo: { ...detalhesProcessoVazios("civel"), numeroCnj: "00099990720268210001" } });
+    const coluna = (await repo.obterQuadro(p.id))!.colunas[0];
+    const tarefa = await repo.criarTarefa({ projectId: p.id, columnId: coluna.id, title: "Contestação" });
+    const { contagem, prazoInterno } = await calcularPrazoDaTarefa(repo, p.id, { inicio: "2026-11-09", meio: "dje", dias: 15, regra: "civel" });
+    expect(contagem).toMatchObject({ tribunal: "TJRS", vencimento: "2026-12-02" });
+    const salva = await alterarTarefa(repo, tarefa, alteracaoDePrazo(contagem, prazoInterno), ctx);
+    expect(salva).toMatchObject({ tipo: "prazo", prazoFatal: "2026-12-02", dueOn: "2026-11-30", contagem: { memoria: contagem.memoria } });
+    expect((await repo.listarLembretes({ tarefaId: tarefa.id })).map((l) => [l.automatico, l.quando])).toEqual([
+      ["d-3", "2026-11-27T12:00:00.000Z"],
+      ["d-1", "2026-12-01T12:00:00.000Z"],
+      ["dia", "2026-12-02T12:00:00.000Z"],
+    ]);
+    expect((await repo.listarAlteracoesDaTarefa(tarefa.id)).map((a) => [a.campo, a.depois, a.origem]).sort()).toEqual([
+      ["due_on", "2026-11-30", "app"],
+      ["prazo_fatal", "2026-12-02", "app"],
+    ]);
+    const providencia = await alterarTarefa(repo, salva, { tipo: "providencia" }, ctx);
+    expect(providencia).toMatchObject({ tipo: "providencia", prazoFatal: null, contagem: null });
+    expect(await repo.listarLembretes({ tarefaId: tarefa.id, status: ["pendente", "agendado"] })).toEqual([]);
+  });
+
+  it("app: prazo fatal sem o tipo prazo vira ErroDeValidacao com mensagem clara", async () => {
+    const repo = criarRepositorioSupabase(A.sb);
+    const t = await repo.criarTarefa({ projectId: quadroA.projeto, columnId: quadroA.coluna, title: "Sem tipo" });
+    const erro = await repo.atualizarTarefa(t.id, { prazoFatal: "2026-12-10" }).catch((e) => e);
+    expect(erro).toBeInstanceOf(ErroDeValidacao);
+    expect(erro.message).toBe("Só tarefas do tipo prazo têm prazo fatal.");
+  });
+
+  it("app: feriado local repetido vira ErroDeConflito; preferências por upsert", async () => {
+    const repo = criarRepositorioSupabase(B.sb);
+    await criarFeriadoLocal(repo, { data: "2026-06-15", descricao: "Feriado municipal" });
+    const erro = await criarFeriadoLocal(repo, { data: "2026-06-15", descricao: "De novo" }).catch((e) => e);
+    expect(erro).toBeInstanceOf(ErroDeConflito);
+    expect(await repo.obterPreferencias()).toEqual({ margemPrazoInterno: 2 });
+    expect(await salvarPreferencias(repo, { margemPrazoInterno: 3 })).toEqual({ margemPrazoInterno: 3 });
+    expect(await salvarPreferencias(repo, { margemPrazoInterno: 4 })).toEqual({ margemPrazoInterno: 4 });
+  });
+
+  it("agente: lê a carga geral e os próprios feriados, não os de outra conta; grava com o próprio user_id", async () => {
+    const agenteA = criarRepositorioDoAgente(A.id, admin);
+    const lista = await agenteA.listarFeriados();
+    expect(lista.some((f) => f.userId === null && f.tribunal === "TJRS")).toBe(true);
+    expect(lista.some((f) => f.id === feriadoA)).toBe(true);
+    expect(lista.every((f) => f.userId === null || f.userId === A.id)).toBe(true);
+    const novo = await agenteA.criarFeriado({ data: "2026-07-01", descricao: "Pelo agente" });
+    expect(novo.userId).toBe(A.id);
+    expect(await agenteA.salvarPreferencias({ margemPrazoInterno: 5 })).toEqual({ margemPrazoInterno: 5 });
+    expect((await admin.from("preferencias").select("margem_prazo_interno").eq("user_id", A.id).single()).data!.margem_prazo_interno).toBe(5);
+  });
+
+  it("agente: concluir pelo repositório e lembretesProximos cancela o automático em vez de devolver", async () => {
+    const repoA = criarRepositorioSupabase(A.sb);
+    const t = await repoA.criarTarefa({ projectId: quadroA.projeto, columnId: quadroA.coluna, title: "Prazo do agente" });
+    const { contagem, prazoInterno } = await calcularPrazoDaTarefa(repoA, quadroA.projeto, { inicio: "2026-11-09", meio: "pessoal", dias: 5, regra: "civel" });
+    await alterarTarefa(repoA, t, alteracaoDePrazo(contagem, prazoInterno), ctx);
+    const agenteA = criarRepositorioDoAgente(A.id, admin);
+    await agenteA.atualizarTarefa(t.id, { completed: true, completedAt: "2026-11-12T12:00:00Z" });
+    const proximos = await lembretesProximos(agenteA, 24 * 30, new Date("2026-11-12T13:00:00Z"));
+    expect(proximos.filter((l) => l.tarefaId === t.id)).toEqual([]);
+    expect(await repoA.listarLembretes({ tarefaId: t.id, status: ["pendente", "agendado"] })).toEqual([]);
   });
 });
