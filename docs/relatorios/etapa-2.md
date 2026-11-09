@@ -4,7 +4,7 @@ Branch `juridico/etapa-2`. Referência: seção 10, item 2, de `docs/PROPOSTA_JU
 
 ## Resumo
 
-O advogado passa a cadastrar clientes e a ligar cada processo ou caso consultivo a um deles. O processo ganha número CNJ, área, fase, tribunal, vara, polo, parte contrária, valor da causa, segredo de justiça e link dos autos. O consultivo ganha tipo de serviço, pedido do cliente e prazo de entrega. A migração 0004 está escrita e revisada, mas **não foi aplicada em nenhum banco**.
+O advogado passa a cadastrar clientes e a ligar cada processo ou caso consultivo a um deles. O processo ganha número CNJ, área, fase, tribunal, vara, polo, parte contrária, valor da causa, segredo de justiça e link dos autos. O consultivo ganha tipo de serviço, pedido do cliente e prazo de entrega. A migração 0004 foi testada no Supabase local (ver "Banco") e **não foi aplicada em produção**: isso fica com você, depois do backup.
 
 ## O que mudou
 
@@ -129,7 +129,7 @@ O advogado passa a cadastrar clientes e a ligar cada processo ou caso consultivo
 
 ## Banco
 
-Migração `supabase/migrations/0004_processos_e_clientes.sql`. **Não foi aplicada.** Também não foi executada em nenhum Postgres, nem descartável.
+Migração `supabase/migrations/0004_processos_e_clientes.sql`. **Não foi aplicada em produção.** Foi testada no Supabase local em 09/11/2026 (resultado no fim desta seção).
 
 - **Tabela nova `clientes`:**
   - campos `id`, `user_id`, `nome`, `tipo` (pf|pj), `documento`, `telefone`, `email`, `observacoes`, `criado_em` e `atualizado_em`;
@@ -148,6 +148,50 @@ Migração `supabase/migrations/0004_processos_e_clientes.sql`. **Não foi aplic
 - **RLS:** políticas "own clientes" e "own processos" (`user_id = auth.uid()`).
 - **Grants:** `select, insert, update, delete` para `authenticated`, e `all` para `service_role`, nas duas tabelas novas.
 
+### Teste no Supabase local (09/11/2026)
+
+O teste rodou com Supabase CLI 3.0.0, Postgres 17 (`major_version` do `config.toml`), `npx supabase start` e `npx supabase db reset`, só no banco local (`127.0.0.1:54322`). Nenhum comando usou `--remote` ou o projeto vinculado.
+
+1. **As quatro migrações aplicam do zero sem erro.** Isso foi conferido no `start` e em dois `db reset` completos (0001, 0002, 0003, 0004). A tabela `supabase_migrations.schema_migrations` registra as quatro versões.
+2. **Preenchimento de `tipo_servico`.** Resetei até a 0003 (`db reset --version 0003`), gravei consultivos antigos direto no banco e apliquei a 0004 com `migration up`:
+
+   | Consultivo antigo | `channels` | `tipo_servico` depois da 0004 |
+   |---|---|---|
+   | com canais | `{" Parecer ",Contrato}` | `'Parecer'` |
+   | sem canais | `{}` | nulo |
+   | canal em branco | `{"  "}` | nulo |
+
+   `channels` ficou intacto. Um processo antigo seguiu sem cliente e sem linha em `processo_detalhes`.
+3. **Teste de integração (17 de 17 passaram).** Um teste com o vitest usou o código real do app (`criarRepositorioSupabase`, `criarRepositorioDoAgente`, `services/clientes.ts`, `services/projetos.ts` e `traduzirErroDoBanco`). Ele rodou contra a API local, com dois usuários de verdade criados pelo Auth local e logados por senha:
+   - **App contra o banco:**
+     - criar processo com cliente, número, área, valor e segredo devolve tudo preenchido;
+     - a lista de processos traz `processo_detalhes` embutido. O PostgREST resolve o embutido pela chave composta, que era a dúvida em aberto;
+     - as colunas do modelo Trabalhista são criadas;
+     - o CNPJ alfanumérico é gravado sem pontuação;
+     - número repetido gera `ErroDeConflito` ("Já existe um processo com esse número."), sem deixar processo pela metade;
+     - o mesmo número em outra conta é aceito;
+     - CPF/CNPJ repetido gera `ErroDeConflito` ("Já existe um cliente com esse CPF/CNPJ.");
+     - o gatilho `set_atualizado_em` atualiza `atualizado_em`;
+     - o consultivo grava `tipo_servico`.
+   - **RLS com dois usuários:**
+     - B não lê clientes nem `processo_detalhes` de A;
+     - update e delete de B nas linhas de A não afetam nada (0 linhas, e os dados de A conferidos com a chave de serviço);
+     - inserir cliente com o `user_id` de A é recusado (42501);
+     - gravar detalhes no processo de A é recusado;
+     - ligar o processo de B ao cliente de A é recusado com "Cliente não encontrado.".
+   - **Chave composta com a chave de serviço (sem RLS):**
+     - `cliente_id` de outra conta é recusado (23503, traduzido para "Cliente não encontrado."), e o valor antigo fica;
+     - `processo_detalhes` com `user_id` diferente do dono do projeto é recusado, tanto ao inserir quanto ao trocar o dono (23503);
+     - inserir sem `user_id` falha (23502), o que confirma que no agente `auth.uid()` é nulo;
+     - o repositório do agente cria cliente e processo com o `user_id` certo e não enxerga dados de B.
+   - **Excluir cliente:** `cliente_id` fica nulo, e o projeto continua com o mesmo `user_id` e os mesmos detalhes. Excluir o projeto apaga os detalhes em cascata.
+
+   Na primeira rodada, um teste falhou por erro do próprio teste. O projeto de B escolhido já tinha o mesmo número de A, e o índice único barrou a troca de dono (23505) antes da chave composta. Com um projeto sem número, a chave composta recusou a inserção e a troca de dono (23503).
+
+   O teste fica fora do repositório, porque não foi pedido como código. Ele pode virar um `npm run test:banco-local` opcional, se você quiser repetir antes de aplicar em produção.
+
+O Supabase local foi desligado no fim (`npx supabase stop`, com backup dos volumes locais).
+
 ## Testes
 
 - **Antes:** 127 testes em 11 arquivos (a `main` depois da Etapa 1).
@@ -163,6 +207,7 @@ Migração `supabase/migrations/0004_processos_e_clientes.sql`. **Não foi aplic
   - `importacao.test.ts`: cliente e detalhes na fotografia, arquivo antigo e cliente reaproveitado.
   - `ferramentas.test.ts`: `criar_projeto` recusando modelo que não combina com o tipo.
 - **Resultado do `npm run verificar`:** passou (typecheck, 166 testes e build).
+- **Banco real:** 17 testes de integração contra o Supabase local passaram (detalhes em "Banco").
 - **Conferência extra no navegador:** com Chrome sem interface sobre o build de produção, em modo local:
   - `/`, `/clientes` e `/consultivo` renderizaram sem erro de JavaScript;
   - criar um processo com cliente novo, modelo Trabalhista e número CNJ funcionou: a área foi sugerida e o cartão mostrou cliente, número e área;
@@ -191,11 +236,13 @@ Migração `supabase/migrations/0004_processos_e_clientes.sql`. **Não foi aplic
 7. Exclua um cliente com processos. Depois de 5 segundos, os cartões devem ficar sem cliente. Teste também o "Desfazer".
 8. Em Configurações, exporte e confira se o arquivo traz `clientes` e `processos`.
 
-**Com Supabase (só depois da sua confirmação para aplicar a 0004):**
+**Com o Supabase local (já testado, ver "Banco"):**
 
-1. Aplique a 0004 num projeto de desenvolvimento com `npm run db:migrar`.
-2. Repita os passos acima logado.
+1. Rode `npx supabase start` e depois `npx supabase db reset` (local por padrão; nunca com `--remote`).
+2. Para usar o app com ele, aponte um `.env.local` de teste para `http://127.0.0.1:54321`, com as chaves de `npx supabase status`, e repita os passos acima logado.
 3. Confira 409 e 400 na aba Rede do navegador.
+
+**Em produção:** fica com você, depois do backup. Aplique a 0004 antes de publicar o código desta branch.
 
 **No agente:**
 
@@ -218,20 +265,21 @@ Migração `supabase/migrations/0004_processos_e_clientes.sql`. **Não foi aplic
 ## Riscos e dúvidas para a próxima etapa
 
 **Riscos**
-- **A migração não foi executada em nenhum Postgres.**
-  - A sintaxe segue a 0001–0003, mas `on delete set null (cliente_id)` exige Postgres 15 ou mais novo.
-  - O embutido `processo_detalhes(*)` do PostgREST passa por uma chave estrangeira composta. Ele deve funcionar, mas só um banco real confirma.
-  - O Docker está disponível nesta máquina para um teste num Postgres descartável, se você autorizar.
+- **Versão do Postgres em produção.** `on delete set null (cliente_id)` exige Postgres 15 ou mais novo. O teste local usou 17, conforme o `config.toml`. Vale conferir com `SHOW server_version;` antes de aplicar.
+- **Teste só no banco local.** O comportamento foi confirmado no Supabase local (ver "Banco"), mas a produção pode ter dados que a migração não encontrou aqui. Um exemplo é um `channels[1]` com mais de 80 caracteres, que faria o `update` de `tipo_servico` falhar no check. Antes de aplicar: `select max(char_length(channels[1])) from campaign_details;`.
 - **Ordem de publicação.** O código desta branch quebra a lista de processos num banco sem a 0004. É preciso aplicar a migração antes do deploy.
 - **Cliente cadastrado pelo nome no formulário.** Se a gravação do processo falhar depois (número repetido, por exemplo), o cliente novo fica cadastrado sem processo. Na segunda tentativa ele é reaproveitado pelo nome.
 - **Clientes com o mesmo nome.** O formulário escolhe o primeiro. Mostrar o documento na sugestão ajudaria.
 - **Segredo de justiça é só uma marca.** Ele não muda quem vê nem o que vai para o agente. Se quiser algum efeito (por exemplo, o agente não citar a parte contrária), isso precisa ser decidido.
 
-**Dúvidas para a Etapa 3**
-1. **Documentos pendentes:** contam todos os itens de checklist abertos dos processos do cliente, ou só os de uma etiqueta ou tipo "documento"?
-2. **Prazo fatal e prazo interno:** a margem padrão (em dias úteis) é configurável por conta em Configurações, como diz a seção 9?
-3. **Feriados:** quem alimenta a tabela nacional e estadual na primeira versão? Você, por migração com dados, ou uma tela de administração?
-4. **Advogados de Pelotas:** a seção 10 pede validar com dois ou três advogados antes da Etapa 3. Isso já aconteceu, ou a Etapa 3 começa só pelo que não depende da validação (tipos de tarefa e histórico)?
+**Respostas para a Etapa 3 (já decididas por você, etapa ainda não começada)**
+1. **Documento pendente:** item de checklist com um campo novo `doCliente`, guardado no jsonb sem migração e marcável na tela.
+2. **Margem do prazo interno:** 2 dias úteis por padrão, ajustável em Configurações e editável por tarefa.
+3. **Feriados:**
+   - nacionais fixos e móveis calculados em `domain/`, sem tabela;
+   - a tabela guarda feriados e suspensões por tribunal, começando por TJRS, TRT4 e TRF4, carregados por migração;
+   - ela também guarda feriados locais do usuário, com `user_id`. O RLS lê os gerais e os próprios, e grava só os próprios.
+4. **Validação com advogados de Pelotas:** ainda não aconteceu.
 
 ## Commits
 
