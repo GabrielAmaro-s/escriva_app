@@ -151,6 +151,8 @@ export interface ItemChecklist {
   id: string;
   text: string;
   done: boolean;
+  /** Documento que o cliente precisa entregar (aparece em "Documentos pendentes"). */
+  doCliente?: boolean;
 }
 
 export interface LinkTarefa {
@@ -160,13 +162,56 @@ export interface LinkTarefa {
   title: string | null;
 }
 
+export type TipoTarefa = "prazo" | "providencia" | "audiencia";
+
+export type RegraPrazo = "civel" | "trabalhista" | "juizado" | "penal";
+export type UnidadePrazo = "uteis" | "corridos";
+export type MeioIntimacao = "dje" | "portal" | "pessoal";
+
+/** Dia (ou período) fora da contagem, com o motivo, para a memória do cálculo. */
+export interface DiaExcluido {
+  data: string;
+  /** Último dia, quando são vários dias seguidos com o mesmo motivo. */
+  ate?: string;
+  motivo: string;
+}
+
+/** O que o advogado informou e o que o motor calculou. Fica em tasks.contagem. */
+export interface ContagemPrazo {
+  /** Data da disponibilização (DJe), da ciência (portal) ou da intimação pessoal. */
+  inicio: string;
+  meio: MeioIntimacao;
+  dias: number;
+  regra: RegraPrazo;
+  unidade: UnidadePrazo;
+  emDobro: boolean;
+  suspenderNoRecesso: boolean;
+  /** Sigla usada para os feriados (TJRS, TRT4...), ou null quando não foi identificada. */
+  tribunal: string | null;
+  /** Margem do prazo interno, em dias úteis antes do vencimento. */
+  margem: number;
+  /** Dia do começo: excluído da contagem. */
+  comeco: string;
+  vencimento: string;
+  excluidos: DiaExcluido[];
+  memoria: string;
+}
+
 export interface Tarefa {
   id: string;
   projectId: string;
   columnId: string;
   title: string;
   description: string | null;
+  /** No tipo prazo, guarda o prazo interno. */
   dueOn: string | null; // AAAA-MM-DD
+  tipo: TipoTarefa;
+  /** Data limite (só no tipo prazo). */
+  prazoFatal: string | null;
+  contagem: ContagemPrazo | null;
+  localAudiencia: string | null;
+  /** Instante em ISO 8601 (só no tipo audiência). */
+  horarioAudiencia: string | null;
   priority: PrioridadeTarefa;
   labelIds: string[];
   checklist: ItemChecklist[];
@@ -179,7 +224,9 @@ export interface Tarefa {
 }
 
 export type DadosNovaTarefa = Pick<Tarefa, "projectId" | "columnId" | "title"> &
-  Partial<Pick<Tarefa, "description" | "dueOn" | "priority" | "labelIds" | "position">>;
+  Partial<
+    Pick<Tarefa, "description" | "dueOn" | "priority" | "labelIds" | "position" | "tipo" | "prazoFatal" | "contagem" | "localAudiencia" | "horarioAudiencia">
+  >;
 
 export type AlteracaoTarefa = Partial<Omit<Tarefa, "id" | "projectId" | "createdAt" | "updatedAt">>;
 
@@ -202,6 +249,8 @@ export interface EspacoDeTrabalho {
 
 export type StatusLembrete = "pendente" | "agendado" | "enviado" | "cancelado";
 export type OrigemLembrete = "app" | "agente";
+/** Lembrete criado pelo prazo ou pela audiência. */
+export type LembreteAutomatico = "d-3" | "d-1" | "dia";
 
 export interface Lembrete {
   id: string;
@@ -214,10 +263,12 @@ export interface Lembrete {
   origem: OrigemLembrete;
   agendadoEm: string | null;
   enviadoEm: string | null;
+  /** D-3, D-1 ou no dia, quando foi criado pelo prazo ou pela audiência; null quando foi feito à mão. */
+  automatico: LembreteAutomatico | null;
   criadoEm: string;
 }
 
-export type DadosNovoLembrete = Pick<Lembrete, "texto" | "quando"> & Partial<Pick<Lembrete, "tarefaId" | "projetoId" | "origem">>;
+export type DadosNovoLembrete = Pick<Lembrete, "texto" | "quando"> & Partial<Pick<Lembrete, "tarefaId" | "projetoId" | "origem" | "automatico">>;
 
 export type AlteracaoLembrete = Partial<Pick<Lembrete, "texto" | "quando" | "status" | "agendadoEm" | "enviadoEm">>;
 
@@ -226,6 +277,41 @@ export interface FiltroLembretes {
   tarefaId?: string;
   /** Só lembretes com `quando` até este instante (ISO). */
   ate?: string;
+}
+
+// Feriados, histórico de prazos e preferências ----------------------------------
+
+export type TipoFeriado = "feriado" | "suspensao" | "expediente_reduzido";
+
+export interface Feriado {
+  id: string;
+  /** null: carga geral do tribunal. Preenchido: feriado local do advogado. */
+  userId: string | null;
+  /** Sigla (TJRS, TRT4...). Num feriado local, null vale para todos os tribunais. */
+  tribunal: string | null;
+  data: string;
+  /** Último dia de um período (null quando é um dia só). */
+  ate: string | null;
+  tipo: TipoFeriado;
+  descricao: string;
+  fonte: string | null;
+}
+
+export type DadosNovoFeriado = Pick<Feriado, "data" | "descricao"> & Partial<Pick<Feriado, "tribunal" | "ate" | "tipo">>;
+
+export interface AlteracaoRegistrada {
+  id: string;
+  entidadeId: string;
+  campo: "due_on" | "prazo_fatal";
+  antes: string | null;
+  depois: string | null;
+  origem: OrigemLembrete;
+  criadoEm: string;
+}
+
+export interface Preferencias {
+  /** Dias úteis entre o prazo interno e o vencimento. */
+  margemPrazoInterno: number;
 }
 
 export type EscopoToken = "leitura" | "escrita";
