@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckSquareIcon, FolderIcon, MegaphoneIcon, SlidersHorizontalIcon, SquaresFourIcon, StackIcon, type Icon } from "@phosphor-icons/react";
+import { BriefcaseIcon, CheckSquareIcon, ScalesIcon, SlidersHorizontalIcon, StackIcon, SunIcon, UsersIcon, type Icon } from "@phosphor-icons/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useProjetos } from "@/hooks/use-projetos";
@@ -8,10 +8,11 @@ import { useUsuarioAtual } from "@/hooks/use-usuario-atual";
 import { classes } from "@/lib/classes";
 
 const NAVEGACAO: { href: string; rotulo: string; icone: Icon }[] = [
-  { href: "/hoje", rotulo: "Hoje", icone: SquaresFourIcon },
-  { href: "/", rotulo: "Processos", icone: FolderIcon },
-  { href: "/consultivo", rotulo: "Consultivo", icone: MegaphoneIcon },
+  { href: "/hoje", rotulo: "Hoje", icone: SunIcon },
+  { href: "/", rotulo: "Processos", icone: ScalesIcon },
+  { href: "/consultivo", rotulo: "Consultivo", icone: BriefcaseIcon },
   { href: "/prazos", rotulo: "Prazos e tarefas", icone: CheckSquareIcon },
+  { href: "/clientes", rotulo: "Clientes", icone: UsersIcon },
   { href: "/configuracoes", rotulo: "Configurações", icone: SlidersHorizontalIcon },
 ];
 
