@@ -11,7 +11,9 @@ npm run dev
 
 Abra http://localhost:3000. Sem configuração nenhuma o app roda em **modo local**: os dados ficam no navegador e já vêm alguns casos jurídicos fictícios de exemplo.
 
-Telas: **Hoje** (`/hoje`), **Processos** (`/`), **Consultivo** (`/consultivo`), **Prazos e tarefas** (`/prazos`) e **Configurações**. Os endereços antigos `/visao-geral`, `/campanhas` e `/tarefas` redirecionam para os novos. Ao criar um processo ou caso consultivo, escolha o modelo de quadro: Cível/JEC, Trabalhista, Previdenciário, Família ou Consultivo.
+Telas: **Hoje** (`/hoje`), **Processos** (`/`), **Consultivo** (`/consultivo`), **Prazos e tarefas** (`/prazos`), **Clientes** (`/clientes`) e **Configurações**. Os endereços antigos `/visao-geral`, `/campanhas` e `/tarefas` redirecionam para os novos. Ao criar um processo, escolha o modelo de quadro (Cível/JEC, Trabalhista, Previdenciário ou Família), o cliente e, se quiser, o número CNJ e os outros dados do processo. Caso consultivo usa o modelo Consultivo e tem tipo de serviço, pedido do cliente e prazo de entrega.
+
+Quem já usava o modo local antes desta versão continua com os dados que tinha. Para ver o exemplo novo, com clientes, apague a chave `myplan:v2` do localStorage.
 
 ## Conectar ao Supabase
 
@@ -43,6 +45,7 @@ Os dados do modo local não vão para o Supabase sozinhos: em Configurações, u
 ## Publicar na Vercel
 
 1. **Migre o banco antes do primeiro deploy.** Com o `.env.local` apontando para o projeto de produção: `npm run db:vincular` e depois `npm run db:migrar`.
+   A partir da etapa 2 da versão jurídica, o código depende da migração `0004_processos_e_clientes.sql` (clientes e detalhes do processo). Publicar esse código num banco sem a 0004 quebra a lista de processos; aplique a migração antes.
 2. **Importe o repositório** em vercel.com > Add New > Project. O framework (Next.js) é detectado sozinho.
 3. **Região das funções:** em Settings > Functions > Function Region, escolha **São Paulo (gru1)**, que fica na mesma região AWS do Supabase (`sa-east-1`). Assim as rotas /api e o servidor MCP ficam perto do banco.
 4. **Cadastre as variáveis** em Settings > Environment Variables (ambiente Production). As `NEXT_PUBLIC_*` são embutidas no build: cadastre antes do primeiro deploy e faça um novo deploy sempre que mudar alguma.
