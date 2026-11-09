@@ -484,6 +484,11 @@ export function ajustarAlteracaoAoTipo(tarefa: CamposDoTipo, alteracao: Alteraca
   return { ...alteracao, ...ajuste };
 }
 
+/** Alteração que transforma a tarefa num prazo com a contagem calculada. */
+export function alteracaoDePrazo(contagem: ContagemPrazo, prazoInterno: string): AlteracaoTarefa {
+  return { tipo: "prazo", prazoFatal: contagem.vencimento, contagem, dueOn: prazoInterno <= contagem.vencimento ? prazoInterno : contagem.vencimento };
+}
+
 /** Contagem para gravar na tarefa e o prazo interno sugerido pela margem. */
 export function montarContagem(
   dados: DadosPrazo & { margem: number },

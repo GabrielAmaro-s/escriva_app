@@ -70,6 +70,11 @@ export async function sincronizarLembretesAutomaticos(repo: Repositorio, tarefa:
 
 const CAMPOS_DOS_LEMBRETES: (keyof AlteracaoTarefa)[] = ["tipo", "prazoFatal", "horarioAudiencia", "localAudiencia", "completed", "title"];
 
+/** A alteração pode mudar os lembretes automáticos (a tela recarrega a lista depois). */
+export function mexeNosLembretes(alteracao: AlteracaoTarefa): boolean {
+  return CAMPOS_DOS_LEMBRETES.some((c) => alteracao[c] !== undefined);
+}
+
 /**
  * Grava uma alteração de tarefa: os campos que não valem para o tipo final vão a nulo na
  * mesma gravação, e os lembretes automáticos acompanham (concluir cancela, reabrir recria).
@@ -83,11 +88,6 @@ export async function alterarTarefa(repo: Repositorio, antes: Tarefa, alteracao:
     await sincronizarLembretesAutomaticos(repo, depois, ctx);
   }
   return depois;
-}
-
-/** Alteração que transforma a tarefa num prazo com a contagem calculada. */
-export function alteracaoDePrazo(contagem: ContagemPrazo, prazoInterno: string): AlteracaoTarefa {
-  return { tipo: "prazo", prazoFatal: contagem.vencimento, contagem, dueOn: prazoInterno <= contagem.vencimento ? prazoInterno : contagem.vencimento };
 }
 
 // Feriados locais ---------------------------------------------------------------------

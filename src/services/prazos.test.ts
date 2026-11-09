@@ -2,13 +2,13 @@ import { describe, expect, it } from "vitest";
 import { armazenamentoVazio, criarRepositorioLocal } from "@/data/local/repositorio-local";
 import type { Repositorio } from "@/data/repositorio";
 import { ErroDeConflito, ErroDeValidacao } from "@/domain/erros";
+import { alteracaoDePrazo } from "@/domain/prazos";
 import { detalhesProcessoVazios } from "@/domain/processo";
 import { dadosProjetoVazios } from "@/domain/projeto";
 import type { AlteracaoTarefa, Tarefa } from "@/domain/tipos";
 import { aplicarDesfazer } from "./desfazer";
 import { lembretesProximos } from "./lembretes";
 import {
-  alteracaoDePrazo,
   alterarTarefa,
   calcularPrazoDaTarefa,
   criarFeriadoLocal,

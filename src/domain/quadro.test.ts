@@ -13,6 +13,7 @@ import {
   ordenarPorPosicao,
   posicaoEntre,
   posicaoNoTopo,
+  documentosPendentes,
   progressoDoChecklist,
   proximaPosicaoNaColuna,
   tarefasDaColuna,
@@ -205,5 +206,19 @@ describe("datas", () => {
     expect(corDoPrazo("2026-11-04", false, "2026-11-04")).toBe("var(--s-amber)");
     expect(corDoPrazo("2026-11-05", false, "2026-11-04")).toBe("var(--ink3)");
     expect(corDoPrazo("2026-11-01", true, "2026-11-04")).toBe("var(--ink3)");
+  });
+});
+
+describe("documentos pendentes do cliente", () => {
+  it("só itens do cliente, não entregues, de tarefas abertas", () => {
+    const lista = documentosPendentes([
+      tarefa({ id: "a", checklist: [
+        { id: "1", text: "Procuração", done: false, doCliente: true },
+        { id: "2", text: "RG", done: true, doCliente: true },
+        { id: "3", text: "Revisar minuta", done: false },
+      ] }),
+      tarefa({ id: "b", completed: true, checklist: [{ id: "4", text: "CTPS", done: false, doCliente: true }] }),
+    ]);
+    expect(lista).toEqual([{ tarefaId: "a", projectId: "p", itemId: "1", texto: "Procuração" }]);
   });
 });

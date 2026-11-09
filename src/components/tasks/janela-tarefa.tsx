@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowSquareOutIcon, CopyIcon, DotsThreeIcon, FlagIcon, LinkIcon, PlusIcon, TrashIcon, XIcon } from "@phosphor-icons/react";
+import { ArrowSquareOutIcon, CopyIcon, DotsThreeIcon, FlagIcon, IdentificationCardIcon, LinkIcon, PlusIcon, TrashIcon, XIcon } from "@phosphor-icons/react";
 import { useEffect, useState, type ReactNode } from "react";
 import { Marcador, Pilula } from "@/components/ui/pecas";
 import { BotaoIcone } from "@/components/ui/botao";
@@ -10,10 +10,12 @@ import { Janela } from "@/components/ui/janela";
 import { COR_MARCADOR_COLUNA, COR_PRIORIDADE, PRIORIDADES, ROTULO_PRIORIDADE, alteracaoAoMudarColuna, novoId, proximaPosicaoNaColuna } from "@/domain/quadro";
 import type { LinkTarefa, PrioridadeTarefa, Projeto } from "@/domain/tipos";
 import { useLembretes } from "@/hooks/use-lembretes";
+import { usePrazos } from "@/hooks/use-prazos";
 import type { ApiTarefas } from "@/hooks/use-tarefas";
 import { useUsuarioAtual } from "@/hooks/use-usuario-atual";
 import { paraCampoDataHora } from "@/domain/datas";
 import { classes } from "@/lib/classes";
+import { CamposDoTipo, ContagemDoPrazo, HistoricoDoPrazo } from "./secao-prazo";
 
 const NOVA_ETIQUETA = "__nova__";
 
@@ -67,6 +69,7 @@ export function JanelaTarefa({
   const abrirMenu = useMenuDeContexto();
   const usuario = useUsuarioAtual();
   const lembretes = useLembretes();
+  const prazos = usePrazos();
   const [lembrete, setLembrete] = useState("");
   const [titulo, setTitulo] = useState("");
   const [descricao, setDescricao] = useState("");
@@ -100,6 +103,7 @@ export function JanelaTarefa({
   const aplicadas = tarefa.labelIds.map((id) => api.etiquetasPorId.get(id)).filter((l) => l !== undefined);
   const disponiveis = etiquetasDoProjeto.filter((l) => !tarefa.labelIds.includes(l.id));
   const itensFeitos = tarefa.checklist.filter((i) => i.done).length;
+  const alterar = (alteracao: Parameters<typeof api.atualizarTarefa>[1]) => api.atualizarTarefa(tarefa.id, alteracao);
 
   const confirmarTitulo = () => {
     const limpo = titulo.trim().slice(0, 200);
@@ -203,6 +207,17 @@ export function JanelaTarefa({
 
       <div className="flex flex-wrap gap-x-7 gap-y-6 px-[22px] pb-[22px] pt-4">
         <div className="flex min-w-0 flex-[2_1_340px] flex-col gap-[22px]">
+          {tarefa.tipo === "prazo" && (
+            <ContagemDoPrazo
+              key={tarefa.id}
+              tarefa={tarefa}
+              projeto={projeto}
+              feriados={prazos.feriados}
+              margemPadrao={prazos.margemPadrao}
+              alterar={alterar}
+            />
+          )}
+
           <Secao titulo="Descrição">
             <textarea
               value={descricao}
@@ -232,6 +247,11 @@ export function JanelaTarefa({
                   >
                     <Marcador marcado={item.done} />
                   </button>
+                  {item.doCliente && (
+                    <span className="shrink-0 rounded-full bg-primary-soft px-1.5 text-[10.5px] font-semibold text-primary" title="Documento do cliente">
+                      Cliente
+                    </span>
+                  )}
                   <input
                     value={item.text}
                     aria-label="Item do checklist"
@@ -241,6 +261,16 @@ export function JanelaTarefa({
                     onBlur={(e) => !e.target.value.trim() && api.atualizarTarefa(tarefa.id, { checklist: tarefa.checklist.filter((i) => i.id !== item.id) })}
                     className={classes("h-[30px] min-w-0 flex-1 border-0 bg-transparent text-[13.5px] outline-none", item.done ? "text-ink3 line-through" : "text-ink")}
                   />
+                  <BotaoIcone
+                    rotulo={item.doCliente ? "Não é documento do cliente" : "Marcar como documento do cliente"}
+                    aria-pressed={Boolean(item.doCliente)}
+                    className={classes("size-[22px] rounded-md", item.doCliente ? "text-primary" : "text-ink3")}
+                    onClick={() =>
+                      api.atualizarTarefa(tarefa.id, { checklist: tarefa.checklist.map((i) => (i.id === item.id ? { ...i, doCliente: !i.doCliente } : i)) })
+                    }
+                  >
+                    <IdentificationCardIcon size={14} />
+                  </BotaoIcone>
                   <BotaoIcone
                     rotulo="Remover"
                     className="size-[22px] rounded-md text-ink3"
@@ -314,6 +344,8 @@ export function JanelaTarefa({
         </div>
 
         <div className="flex min-w-0 flex-[1_1_220px] flex-col gap-4">
+          <CamposDoTipo tarefa={tarefa} alterar={alterar} />
+
           <Secao titulo="Status">
             <Selecao
               aria-label="Status"
@@ -354,15 +386,17 @@ export function JanelaTarefa({
             </Selecao>
           </Secao>
 
-          <Secao titulo="Data de entrega">
-            <input
-              type="date"
-              aria-label="Data de entrega"
-              value={tarefa.dueOn ?? ""}
-              onChange={(e) => api.atualizarTarefa(tarefa.id, { dueOn: e.target.value || null })}
-              className={classes(classeControle, "h-9 rounded-[9px] px-2.5 text-[13px]")}
-            />
-          </Secao>
+          {tarefa.tipo === "providencia" && (
+            <Secao titulo="Data de entrega">
+              <input
+                type="date"
+                aria-label="Data de entrega"
+                value={tarefa.dueOn ?? ""}
+                onChange={(e) => api.atualizarTarefa(tarefa.id, { dueOn: e.target.value || null })}
+                className={classes(classeControle, "h-9 rounded-[9px] px-2.5 text-[13px]")}
+              />
+            </Secao>
+          )}
 
           <Secao titulo="Lembrete">
             <input
@@ -435,6 +469,12 @@ export function JanelaTarefa({
               )}
             </div>
           </Secao>
+
+          {tarefa.tipo === "prazo" && (
+            <Secao titulo="Histórico do prazo">
+              <HistoricoDoPrazo key={tarefa.id} carregar={() => prazos.historicoDaTarefa(tarefa.id)} />
+            </Secao>
+          )}
 
           <Secao titulo="Responsável">
             <div className="flex h-9 items-center gap-[9px] rounded-[9px] border border-line2 px-2.5 text-[13px]">

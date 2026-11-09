@@ -166,6 +166,20 @@ export function progressoDoChecklist(tarefa: Pick<Tarefa, "checklist">): { feito
   return { feitos: tarefa.checklist.filter((i) => i.done).length, total: tarefa.checklist.length };
 }
 
+export interface DocumentoPendente {
+  tarefaId: string;
+  projectId: string;
+  itemId: string;
+  texto: string;
+}
+
+/** Itens de checklist marcados como documento do cliente e ainda não entregues, em tarefas abertas. */
+export function documentosPendentes(tarefas: Pick<Tarefa, "id" | "projectId" | "completed" | "checklist">[]): DocumentoPendente[] {
+  return tarefas
+    .filter((t) => !t.completed)
+    .flatMap((t) => t.checklist.filter((i) => i.doCliente && !i.done).map((i) => ({ tarefaId: t.id, projectId: t.projectId, itemId: i.id, texto: i.text })));
+}
+
 /** Cor da data de entrega: vermelho se atrasada, âmbar se é hoje. */
 export function corDoPrazo(prazo: string, concluida: boolean, hoje = hojeIso()): string {
   if (concluida) return "var(--ink3)";

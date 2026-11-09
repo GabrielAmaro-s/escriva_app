@@ -5,7 +5,8 @@ import { colunasDoModelo } from "@/domain/quadro";
 import { clienteVazio } from "@/domain/cliente";
 import { detalhesProcessoVazios } from "@/domain/processo";
 import { dadosProjetoVazios } from "@/domain/projeto";
-import { alteracaoDePrazo, alterarTarefa, calcularPrazoDaTarefa } from "@/services/prazos";
+import { alteracaoDePrazo } from "@/domain/prazos";
+import { alterarTarefa, calcularPrazoDaTarefa } from "@/services/prazos";
 
 // Teste de integração do caminho navegador -> /api -> services -> repositório.
 // O Supabase é trocado por um repositório em memória; todo o resto é o código real.
