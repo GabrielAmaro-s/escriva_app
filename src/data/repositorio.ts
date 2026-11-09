@@ -1,18 +1,22 @@
 import type {
   AlteracaoLembrete,
+  AlteracaoRegistrada,
   AlteracaoTarefa,
   Cliente,
   DadosCliente,
   DadosNovaColuna,
   DadosNovaTarefa,
+  DadosNovoFeriado,
   DadosNovoLembrete,
   DadosNovoRegistro,
   DadosNovoToken,
   DadosProjeto,
   EspacoDeTrabalho,
   Etiqueta,
+  Feriado,
   FiltroLembretes,
   Lembrete,
+  Preferencias,
   Projeto,
   Quadro,
   RegistroAgente,
@@ -57,6 +61,19 @@ export interface Repositorio {
   criarLembrete(dados: DadosNovoLembrete): Promise<Lembrete>;
   atualizarLembrete(id: string, alteracao: AlteracaoLembrete): Promise<Lembrete>;
   excluirLembrete(id: string): Promise<void>;
+
+  // Feriados: a carga geral dos tribunais (só leitura) e os feriados locais da pessoa.
+  // Feriado local repetido na mesma data lança ErroDeConflito.
+  listarFeriados(): Promise<Feriado[]>;
+  criarFeriado(dados: DadosNovoFeriado): Promise<Feriado>;
+  excluirFeriado(id: string): Promise<void>;
+
+  /** Histórico do prazo interno e do prazo fatal de uma tarefa, do mais novo para o mais antigo. */
+  listarAlteracoesDaTarefa(tarefaId: string): Promise<AlteracaoRegistrada[]>;
+
+  /** Sem linha gravada, devolve os padrões. */
+  obterPreferencias(): Promise<Preferencias>;
+  salvarPreferencias(preferencias: Preferencias): Promise<Preferencias>;
 
   // Tokens do agente (o hash é calculado no servidor, em services/tokens.ts)
   listarTokensAgente(): Promise<TokenAgente[]>;

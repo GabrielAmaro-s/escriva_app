@@ -1,6 +1,7 @@
 import { ehIconeProjeto, ehTom } from "@/domain/projeto";
 import type {
   AlteracaoLembrete,
+  AlteracaoRegistrada,
   AlteracaoTarefa,
   Cliente,
   Coluna,
@@ -9,6 +10,7 @@ import type {
   DetalhesCampanha,
   DetalhesProcesso,
   Etiqueta,
+  Feriado,
   Lembrete,
   Projeto,
   RegistroAgente,
@@ -71,6 +73,11 @@ export type LinhaTarefa = {
   title: string;
   description: string | null;
   due_on: string | null;
+  tipo?: Tarefa["tipo"];
+  prazo_fatal?: string | null;
+  contagem?: Tarefa["contagem"];
+  local_audiencia?: string | null;
+  horario_audiencia?: string | null;
   priority: Tarefa["priority"];
   label_ids: string[];
   checklist: Tarefa["checklist"];
@@ -234,6 +241,11 @@ export const paraTarefa = (l: LinhaTarefa): Tarefa => ({
   title: l.title,
   description: l.description,
   dueOn: l.due_on,
+  tipo: l.tipo ?? "providencia",
+  prazoFatal: l.prazo_fatal ?? null,
+  contagem: l.contagem ?? null,
+  localAudiencia: l.local_audiencia ?? null,
+  horarioAudiencia: l.horario_audiencia ? new Date(l.horario_audiencia).toISOString() : null,
   priority: l.priority,
   labelIds: l.label_ids ?? [],
   checklist: l.checklist ?? [],
@@ -250,6 +262,11 @@ const CAMPOS_TAREFA: Record<keyof AlteracaoTarefa, string> = {
   title: "title",
   description: "description",
   dueOn: "due_on",
+  tipo: "tipo",
+  prazoFatal: "prazo_fatal",
+  contagem: "contagem",
+  localAudiencia: "local_audiencia",
+  horarioAudiencia: "horario_audiencia",
   priority: "priority",
   labelIds: "label_ids",
   checklist: "checklist",
@@ -280,6 +297,7 @@ export type LinhaLembrete = {
   origem: Lembrete["origem"];
   agendado_em: string | null;
   enviado_em: string | null;
+  automatico?: Lembrete["automatico"];
   criado_em: string;
 };
 
@@ -293,6 +311,7 @@ export const paraLembrete = (l: LinhaLembrete): Lembrete => ({
   origem: l.origem,
   agendadoEm: l.agendado_em,
   enviadoEm: l.enviado_em,
+  automatico: l.automatico ?? null,
   criadoEm: l.criado_em,
 });
 
@@ -349,5 +368,49 @@ export const paraRegistro = (l: LinhaRegistro): RegistroAgente => ({
   sucesso: l.sucesso,
   desfazer: l.desfazer,
   desfeitoEm: l.desfeito_em,
+  criadoEm: l.criado_em,
+});
+
+// Feriados e histórico de prazos (etapa 3) -------------------------------------------
+
+export type LinhaFeriado = {
+  id: string;
+  user_id: string | null;
+  tribunal: string | null;
+  data: string;
+  ate: string | null;
+  tipo: Feriado["tipo"];
+  descricao: string;
+  fonte: string | null;
+};
+
+export const paraFeriado = (l: LinhaFeriado): Feriado => ({
+  id: l.id,
+  userId: l.user_id,
+  tribunal: l.tribunal,
+  data: l.data,
+  ate: l.ate,
+  tipo: l.tipo,
+  descricao: l.descricao,
+  fonte: l.fonte,
+});
+
+export type LinhaAlteracao = {
+  id: string;
+  entidade_id: string;
+  campo: AlteracaoRegistrada["campo"];
+  antes: string | null;
+  depois: string | null;
+  origem: AlteracaoRegistrada["origem"];
+  criado_em: string;
+};
+
+export const paraAlteracao = (l: LinhaAlteracao): AlteracaoRegistrada => ({
+  id: l.id,
+  entidadeId: l.entidade_id,
+  campo: l.campo,
+  antes: l.antes,
+  depois: l.depois,
+  origem: l.origem,
   criadoEm: l.criado_em,
 });

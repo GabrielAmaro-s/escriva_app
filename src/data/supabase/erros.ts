@@ -1,5 +1,6 @@
 import { MENSAGEM_CLIENTE_DUPLICADO } from "@/domain/cliente";
 import { ErroDeConflito } from "@/domain/erros";
+import { MENSAGEM_FERIADO_DUPLICADO } from "@/domain/prazos";
 import { MENSAGEM_PROCESSO_DUPLICADO } from "@/domain/processo";
 
 // Erros do Postgres que viram mensagens claras para a tela e para o agente.
@@ -10,6 +11,7 @@ export type ErroDoBanco = { message: string; code?: string; details?: string | n
 const DUPLICADOS: Record<string, string> = {
   clientes_usuario_documento_idx: MENSAGEM_CLIENTE_DUPLICADO,
   processo_detalhes_usuario_cnj_idx: MENSAGEM_PROCESSO_DUPLICADO,
+  feriados_unico_idx: MENSAGEM_FERIADO_DUPLICADO,
 };
 
 export function traduzirErroDoBanco(erro: ErroDoBanco): Error {

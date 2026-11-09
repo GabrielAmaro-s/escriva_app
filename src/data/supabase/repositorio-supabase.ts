@@ -5,6 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  * (com RLS) quanto o cliente filtrado do agente (contexto-agente.ts).
  */
 export type ClienteDados = Pick<SupabaseClient, "from">;
+import { MARGEM_PADRAO } from "@/domain/prazos";
 import { posicaoEntre } from "@/domain/quadro";
 import type {
   AlteracaoLembrete,
@@ -12,6 +13,7 @@ import type {
   DadosCliente,
   DadosNovaColuna,
   DadosNovaTarefa,
+  DadosNovoFeriado,
   DadosNovoLembrete,
   DadosNovoRegistro,
   DadosNovoToken,
@@ -21,7 +23,9 @@ import type {
 } from "@/domain/tipos";
 import type { Repositorio } from "../repositorio";
 import {
+  type LinhaAlteracao,
   type LinhaCliente,
+  type LinhaFeriado,
   type LinhaColuna,
   type LinhaContagem,
   type LinhaEtiqueta,
@@ -37,8 +41,10 @@ import {
   deDadosCliente,
   deDadosProjeto,
   deProcesso,
+  paraAlteracao,
   paraCliente,
   paraColuna,
+  paraFeriado,
   paraEtiqueta,
   paraProjeto,
   paraLembrete,
@@ -184,6 +190,11 @@ export function criarRepositorioSupabase(sb: ClienteDados): Repositorio {
             title: dados.title,
             description: dados.description ?? null,
             due_on: dados.dueOn ?? null,
+            tipo: dados.tipo ?? "providencia",
+            prazo_fatal: dados.prazoFatal ?? null,
+            contagem: dados.contagem ?? null,
+            local_audiencia: dados.localAudiencia ?? null,
+            horario_audiencia: dados.horarioAudiencia ?? null,
             priority: dados.priority ?? "medium",
             label_ids: dados.labelIds ?? [],
             position: dados.position ?? 1024,
@@ -246,6 +257,7 @@ export function criarRepositorioSupabase(sb: ClienteDados): Repositorio {
             tarefa_id: dados.tarefaId ?? null,
             projeto_id: dados.projetoId ?? null,
             origem: dados.origem ?? "app",
+            automatico: dados.automatico ?? null,
           })
           .select("*")
           .single(),
@@ -260,6 +272,48 @@ export function criarRepositorioSupabase(sb: ClienteDados): Repositorio {
 
     async excluirLembrete(id) {
       conferir(await sb.from("lembretes").delete().eq("id", id));
+    },
+
+    async listarFeriados() {
+      return (conferir(await sb.from("feriados").select("*").order("data")) as LinhaFeriado[]).map(paraFeriado);
+    },
+
+    async criarFeriado(dados: DadosNovoFeriado) {
+      const linha = conferir(
+        await sb
+          .from("feriados")
+          .insert({ data: dados.data, ate: dados.ate ?? null, tribunal: dados.tribunal ?? null, tipo: dados.tipo ?? "feriado", descricao: dados.descricao })
+          .select("*")
+          .single(),
+      ) as LinhaFeriado;
+      return paraFeriado(linha);
+    },
+
+    async excluirFeriado(id) {
+      conferir(await sb.from("feriados").delete().eq("id", id));
+    },
+
+    async listarAlteracoesDaTarefa(tarefaId) {
+      const linhas = conferir(
+        await sb.from("registro_alteracoes").select("*").eq("entidade", "tarefa").eq("entidade_id", tarefaId).order("criado_em", { ascending: false }),
+      ) as LinhaAlteracao[];
+      return linhas.map(paraAlteracao);
+    },
+
+    async obterPreferencias() {
+      const linha = conferir(await sb.from("preferencias").select("margem_prazo_interno").maybeSingle()) as { margem_prazo_interno: number } | null;
+      return { margemPrazoInterno: linha?.margem_prazo_interno ?? MARGEM_PADRAO };
+    },
+
+    async salvarPreferencias(preferencias) {
+      const linha = conferir(
+        await sb
+          .from("preferencias")
+          .upsert({ margem_prazo_interno: preferencias.margemPrazoInterno }, { onConflict: "user_id" })
+          .select("margem_prazo_interno")
+          .single(),
+      ) as { margem_prazo_interno: number };
+      return { margemPrazoInterno: linha.margem_prazo_interno };
     },
 
     async listarTokensAgente() {

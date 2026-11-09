@@ -28,6 +28,7 @@ import type {
 export const AVISO_CONTAGEM_EM_VALIDACAO: string | null = "Contagem em validação. Confira o vencimento antes de usar.";
 
 export const MARGEM_PADRAO = 2;
+export const MENSAGEM_FERIADO_DUPLICADO = "Você já cadastrou um feriado nessa data.";
 export const MARGEM_MAXIMA = 30;
 export const DIAS_MAXIMOS = 365;
 

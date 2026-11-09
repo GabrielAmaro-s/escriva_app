@@ -66,6 +66,10 @@ function criarClienteFalso() {
       delete: () => iniciar("delete"),
       eq: filtro("eq"),
       in: filtro("in"),
+      or: (expressao: string) => {
+        consulta!.filtros.push(["or", "", expressao]);
+        return construtor;
+      },
       lte: filtro("lte"),
       order: () => construtor,
       limit: () => construtor,
@@ -112,15 +116,24 @@ const CHAMADAS: Record<keyof Omit<Repositorio, "modo">, (r: Repositorio) => Prom
   marcarRegistroDesfeito: (r) => r.marcarRegistroDesfeito("g1", "2026-11-04T00:00:00Z"),
   obterHeartbeatAgente: (r) => r.obterHeartbeatAgente(),
   registrarHeartbeatAgente: (r) => r.registrarHeartbeatAgente("2026-11-04T00:00:00Z"),
+  listarFeriados: (r) => r.listarFeriados(),
+  criarFeriado: (r) => r.criarFeriado({ data: "2026-02-02", descricao: "Navegantes" }),
+  excluirFeriado: (r) => r.excluirFeriado("f1"),
+  listarAlteracoesDaTarefa: (r) => r.listarAlteracoesDaTarefa("t1"),
+  obterPreferencias: (r) => r.obterPreferencias(),
+  salvarPreferencias: (r) => r.salvarPreferencias({ margemPrazoInterno: 3 }),
 };
 
-const USUARIO = "usuario-a";
+const USUARIO = "0b6f1c1e-4c1a-4f3e-9a51-6f0c2b7d9e10";
+/** Feriados: a leitura inclui a carga geral (user_id nulo), e só ela. */
+const FILTRO_FERIADOS = `user_id.is.null,user_id.eq.${USUARIO}`;
 
 function semFiltroDoUsuario(c: Consulta): boolean {
   if (c.operacao === "insert" || c.operacao === "upsert") {
     const linhas = Array.isArray(c.valores) ? c.valores : [c.valores];
     return linhas.some((v) => (v as Record<string, unknown>).user_id !== USUARIO);
   }
+  if (c.tabela === "feriados" && c.operacao === "select") return !c.filtros.some(([tipo, , valor]) => tipo === "or" && valor === FILTRO_FERIADOS);
   return !c.filtros.some(([tipo, coluna, valor]) => tipo === "eq" && coluna === "user_id" && valor === USUARIO);
 }
 
@@ -192,8 +205,23 @@ describe("repositório do agente", () => {
     expect(consultas.filter(semFiltroDoUsuario).length).toBeGreaterThan(20);
   });
 
-  it("recusa contexto sem usuário", () => {
+  it("recusa contexto sem usuário ou com usuário que não é uuid (ele entra no filtro dos feriados)", () => {
     const { cliente } = criarClienteFalso();
     expect(() => criarRepositorioDoAgente("", cliente)).toThrow(/sem usuário/);
+    expect(() => criarRepositorioDoAgente("x,user_id.not.is.null", cliente)).toThrow(/usuário inválido/);
+  });
+
+  it("feriados: lê a carga geral e os próprios, mas grava e exclui só os próprios", async () => {
+    const { cliente, consultas } = criarClienteFalso();
+    const repo = criarRepositorioDoAgente(USUARIO, cliente);
+    await repo.listarFeriados();
+    await repo.criarFeriado({ data: "2026-02-02", descricao: "Navegantes" });
+    await repo.excluirFeriado("f1");
+    expect(consultas.map((c) => [c.operacao, c.filtros.filter(([t]) => t === "or" || t === "eq").map(([t, col, v]) => `${t} ${col} ${v}`)])).toEqual([
+      ["select", [`or  ${FILTRO_FERIADOS}`]],
+      ["insert", []],
+      ["delete", [`eq user_id ${USUARIO}`, "eq id f1"]],
+    ]);
+    expect(consultas[1].valores).toMatchObject({ user_id: USUARIO });
   });
 });
