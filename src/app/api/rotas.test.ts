@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { armazenamentoVazio, criarRepositorioLocal } from "@/data/local/repositorio-local";
 import type { Repositorio } from "@/data/repositorio";
-import { COLUNAS_PADRAO } from "@/domain/quadro";
+import { colunasDoModelo } from "@/domain/quadro";
 import { dadosProjetoVazios } from "@/domain/projeto";
 
 // Teste de integração do caminho navegador -> /api -> services -> repositório.
@@ -63,7 +63,7 @@ beforeAll(async () => {
 
 describe("telas gravando pela API", () => {
   it("projeto, quadro, tarefas e etiquetas vão e voltam pelo servidor", async () => {
-    const projeto = await http.criarProjeto({ ...dadosProjetoVazios(), name: "Novo site" }, COLUNAS_PADRAO);
+    const projeto = await http.criarProjeto({ ...dadosProjetoVazios(), name: "Novo site" }, colunasDoModelo("familia"));
     expect((await repoServidor.listarProjetos()).map((p) => p.name)).toEqual(["Novo site"]);
 
     const quadro = (await http.obterQuadro(projeto.id))!;
@@ -82,7 +82,7 @@ describe("telas gravando pela API", () => {
 
   it("o servidor recusa entrada inválida com mensagem em português", async () => {
     await expect(http.criarTarefa({ projectId: "nao-e-uuid", columnId: "x", title: "" })).rejects.toThrow(/Projeto inválido|título/);
-    await expect(http.criarProjeto({ ...dadosProjetoVazios(), name: "   " }, COLUNAS_PADRAO)).rejects.toThrow("Dê um nome para continuar.");
+    await expect(http.criarProjeto({ ...dadosProjetoVazios(), name: "   " }, colunasDoModelo("familia"))).rejects.toThrow("Dê um nome para continuar.");
   });
 
   it("lembrete criado na janela da tarefa: cria, remarca (volta a pendente) e cancela", async () => {

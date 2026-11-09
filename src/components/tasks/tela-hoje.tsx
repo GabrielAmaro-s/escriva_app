@@ -10,9 +10,9 @@ import { classes } from "@/lib/classes";
 import { ListaLembretes } from "./lista-lembretes";
 import { ListaTarefas } from "./lista-tarefas";
 import { JanelaTarefa } from "./janela-tarefa";
-import { tarefasAbertas } from "./tela-tarefas";
+import { tarefasAbertas } from "./tela-prazos";
 
-export function TelaVisaoGeral() {
+export function TelaHoje() {
   const estado = useProjetos();
   const api = useTarefas();
   const lembretes = useLembretes();
@@ -27,7 +27,7 @@ export function TelaVisaoGeral() {
   const vencemLogo = abertas.filter((t) => t.dueOn && t.dueOn <= limiteDaSemana).length;
 
   const numeros = [
-    { v: estado.projetos.filter((p) => p.status === "active" && !p.archivedAt).length, l: "Projetos ativos", alerta: false },
+    { v: estado.projetos.filter((p) => p.status === "active" && !p.archivedAt).length, l: "Processos ativos", alerta: false },
     { v: abertas.length, l: "Tarefas abertas", alerta: false },
     { v: vencemLogo, l: "Vencem em 7 dias", alerta: vencemLogo > 0 },
   ].filter((n) => n.v > 0);
@@ -35,7 +35,7 @@ export function TelaVisaoGeral() {
 
   return (
     <Pagina largura={880}>
-      <CabecalhoPagina titulo="Visão geral" descricao="O que pede atenção nos seus projetos e campanhas." />
+      <CabecalhoPagina titulo="Hoje" descricao="O que pede atenção nos seus processos e casos consultivos." />
       {!carregando && numeros.length > 0 && (
         <div className="mt-6 flex flex-wrap gap-3">
           {numeros.map((n) => (
@@ -48,7 +48,7 @@ export function TelaVisaoGeral() {
       )}
       <p className="mb-2.5 mt-7 text-xs font-semibold text-ink3">Próximos lembretes</p>
       <ListaLembretes lembretes={lembretes.ativos.slice(0, 5)} projetos={projetosPorId} aoAbrirTarefa={setTarefaAberta} carregando={lembretes.carregando} />
-      <p className="mb-2.5 mt-7 text-xs font-semibold text-ink3">Próximas entregas</p>
+      <p className="mb-2.5 mt-7 text-xs font-semibold text-ink3">Próximos prazos</p>
       <ListaTarefas tarefas={proximas} projetos={projetosPorId} aoAbrir={setTarefaAberta} aoAlternar={api.alternarConclusao} carregando={carregando} />
       <JanelaTarefa api={api} tarefaId={tarefaAberta} projetos={estado.projetos} aoFechar={() => setTarefaAberta(null)} />
     </Pagina>

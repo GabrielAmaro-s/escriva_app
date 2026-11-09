@@ -14,61 +14,61 @@ import { useProjetos } from "@/hooks/use-projetos";
 
 type Filtro = "all" | "active" | "done";
 
-export function TelaCampanhas() {
+export function TelaConsultivo() {
   const estado = useProjetos();
   const { abrirNovo } = useInterfaceProjeto();
   const [busca, setBusca] = useState("");
   const [filtro, setFiltro] = useState<Filtro>("all");
 
-  const campanhas = estado.projetos.filter((p) => p.kind === "campaign" && !p.archivedAt);
-  const contar = (f: Filtro) => campanhas.filter((p) => f === "all" || (f === "done") === (p.status === "done")).length;
-  const linhas = filtrarProjetos(campanhas, "all", busca).filter((p) => filtro === "all" || (filtro === "done") === (p.status === "done"));
+  const casos = estado.projetos.filter((p) => p.kind === "campaign" && !p.archivedAt);
+  const contar = (f: Filtro) => casos.filter((p) => f === "all" || (f === "done") === (p.status === "done")).length;
+  const linhas = filtrarProjetos(casos, "all", busca).filter((p) => filtro === "all" || (filtro === "done") === (p.status === "done"));
 
   return (
     <Pagina largura={1040}>
       <CabecalhoPagina
-        titulo="Campanhas"
-        descricao="Planeje, execute e acompanhe suas campanhas."
+        titulo="Consultivo"
+        descricao="Contratos, pareceres, notificações e outros trabalhos fora do processo."
         acao={
           <Botao variante="primaria" onClick={() => abrirNovo("campaign")}>
             <PlusIcon size={15} weight="bold" />
-            Nova campanha
+            Novo caso consultivo
           </Botao>
         }
       />
 
       <div className="mb-5 mt-6 flex flex-wrap items-center gap-x-5 gap-y-3">
-        <CampoBusca valor={busca} aoMudar={setBusca} placeholder="Buscar campanhas…" />
+        <CampoBusca valor={busca} aoMudar={setBusca} placeholder="Buscar casos consultivos…" />
         <OpcoesFiltro
-          rotulo="Filtrar campanhas"
+          rotulo="Filtrar casos consultivos"
           valor={filtro}
           aoMudar={setFiltro}
           opcoes={[
-            { valor: "all", rotulo: `Todas (${contar("all")})` },
-            { valor: "active", rotulo: `Ativas (${contar("active")})` },
-            { valor: "done", rotulo: `Concluídas (${contar("done")})` },
+            { valor: "all", rotulo: `Todos (${contar("all")})` },
+            { valor: "active", rotulo: `Ativos (${contar("active")})` },
+            { valor: "done", rotulo: `Concluídos (${contar("done")})` },
           ]}
         />
       </div>
 
       {!estado.carregando && linhas.length === 0 ? (
-        <EstadoVazio icone={MegaphoneIcon} titulo="Nenhuma campanha por aqui" texto="Crie uma campanha para planejar entregas, canais e período.">
+        <EstadoVazio icone={MegaphoneIcon} titulo="Nenhum caso consultivo por aqui" texto="Crie um caso consultivo para planejar entregas, tipo de serviço e período.">
           <Botao variante="primaria" tamanho="sm" onClick={() => abrirNovo("campaign")}>
-            + Nova campanha
+            + Novo caso consultivo
           </Botao>
         </EstadoVazio>
       ) : (
         <div className="flex flex-col gap-3">
           {estado.carregando
             ? Array.from({ length: 3 }, (_, i) => <div key={i} className="h-[98px] animate-pulse rounded-[14px] border border-line bg-surface" />)
-            : linhas.map((p) => <LinhaCampanha key={p.id} projeto={p} />)}
+            : linhas.map((p) => <LinhaConsultivo key={p.id} projeto={p} />)}
         </div>
       )}
     </Pagina>
   );
 }
 
-function LinhaCampanha({ projeto }: { projeto: Projeto }) {
+function LinhaConsultivo({ projeto }: { projeto: Projeto }) {
   const router = useRouter();
   const abrirMenu = useMenuDeContexto();
   const { acoesDe } = useInterfaceProjeto();
@@ -105,7 +105,7 @@ function LinhaCampanha({ projeto }: { projeto: Projeto }) {
           </span>
           <span className="inline-flex items-center gap-1.5">
             <MegaphoneIcon size={14} />
-            {c?.channels.length ? c.channels.join(", ") : "Sem canais"}
+            {c?.channels.length ? c.channels.join(", ") : "Sem tipo de serviço"}
           </span>
           <span className="inline-flex items-center gap-1.5">
             <CheckCircleIcon size={14} />

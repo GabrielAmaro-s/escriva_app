@@ -1,11 +1,74 @@
-import type { AlteracaoTarefa, Coluna, PrioridadeTarefa, Tarefa, TipoColuna } from "./tipos";
+import type { AlteracaoTarefa, Coluna, PrioridadeTarefa, Tarefa, TipoColuna, TipoProjeto } from "./tipos";
 
-export const COLUNAS_PADRAO: { title: string; kind: TipoColuna }[] = [
-  { title: "A fazer", kind: "todo" },
-  { title: "Em andamento", kind: "doing" },
-  { title: "Aguardando", kind: "waiting" },
-  { title: "Concluído", kind: "done" },
-];
+export type ModeloQuadro = "civel" | "trabalhista" | "previdenciario" | "familia" | "consultivo";
+
+export interface DefinicaoModelo {
+  nome: string;
+  colunas: { title: string; kind: TipoColuna }[];
+}
+
+/**
+ * Colunas de cada modelo de quadro. As colunas representam o trabalho do advogado, não a fase do processo.
+ * O modelo só decide as colunas criadas junto com o quadro; ele não fica gravado.
+ */
+export const MODELOS_DE_QUADRO: Record<ModeloQuadro, DefinicaoModelo> = {
+  civel: {
+    nome: "Cível / JEC",
+    colunas: [
+      { title: "A fazer", kind: "todo" },
+      { title: "Em andamento", kind: "doing" },
+      { title: "Aguardando decisão", kind: "waiting" },
+      { title: "Concluído", kind: "done" },
+    ],
+  },
+  trabalhista: {
+    nome: "Trabalhista",
+    colunas: [
+      { title: "A fazer", kind: "todo" },
+      { title: "Em andamento", kind: "doing" },
+      { title: "Aguardando audiência", kind: "waiting" },
+      { title: "Concluído", kind: "done" },
+    ],
+  },
+  previdenciario: {
+    nome: "Previdenciário",
+    colunas: [
+      { title: "Documentos do cliente", kind: "todo" },
+      { title: "Requerimento INSS", kind: "doing" },
+      { title: "Aguardando INSS/Justiça", kind: "waiting" },
+      { title: "Concluído", kind: "done" },
+    ],
+  },
+  familia: {
+    nome: "Família",
+    colunas: [
+      { title: "A fazer", kind: "todo" },
+      { title: "Em andamento", kind: "doing" },
+      { title: "Aguardando", kind: "waiting" },
+      { title: "Concluído", kind: "done" },
+    ],
+  },
+  consultivo: {
+    nome: "Consultivo",
+    colunas: [
+      { title: "A fazer", kind: "todo" },
+      { title: "Redigindo", kind: "doing" },
+      { title: "Aguardando cliente", kind: "waiting" },
+      { title: "Entregue", kind: "done" },
+    ],
+  },
+};
+
+export const MODELOS: ModeloQuadro[] = ["civel", "trabalhista", "previdenciario", "familia", "consultivo"];
+
+/** Modelo usado quando nenhum é escolhido: Cível/JEC para processo, Consultivo para caso consultivo. */
+export function modeloPadrao(tipo: TipoProjeto): ModeloQuadro {
+  return tipo === "campaign" ? "consultivo" : "civel";
+}
+
+export function colunasDoModelo(modelo: ModeloQuadro): { title: string; kind: TipoColuna }[] {
+  return MODELOS_DE_QUADRO[modelo].colunas.map((c) => ({ ...c }));
+}
 
 export const ROTULO_PRIORIDADE: Record<PrioridadeTarefa, string> = {
   low: "Baixa",

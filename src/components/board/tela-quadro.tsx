@@ -50,16 +50,16 @@ export function TelaQuadro({ projetoId }: { projetoId: string }) {
   if (api.status !== "pronto" || !projeto) {
     return (
       <div className="mx-auto flex w-full max-w-[1400px] flex-col items-start gap-2 px-4 py-10 nav:px-10">
-        <h1 className="text-xl font-bold">{api.status === "erro" ? "Não foi possível abrir o quadro" : "Este projeto não existe mais"}</h1>
+        <h1 className="text-xl font-bold">{api.status === "erro" ? "Não foi possível abrir o quadro" : "Este processo não existe mais"}</h1>
         <p className="text-sm text-ink2">{api.status === "erro" ? "Verifique sua conexão e recarregue a página." : "Ele pode ter sido excluído."}</p>
         <Link href="/" className="mt-2 text-sm font-medium text-primary">
-          Voltar para Meus projetos
+          Voltar para Processos
         </Link>
       </div>
     );
   }
 
-  const voltar = projeto.kind === "campaign" ? "/campanhas" : "/";
+  const voltar = projeto.kind === "campaign" ? "/consultivo" : "/";
   const adicionarNoTopo = () => {
     definirAba("quadro");
     setAdicionando(colunas.find((c) => c.kind === "todo")?.id ?? colunas[0]?.id ?? null);

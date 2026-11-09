@@ -28,7 +28,8 @@ export const NOME_DO_TOM: Record<Tom, string> = {
 
 export const ICONES_PROJETO: IconeProjeto[] = ["folder", "monitor", "box", "calendar", "chart", "check", "gift", "megaphone", "star", "target"];
 
-export const SUGESTOES_DE_CANAIS = ["Instagram", "YouTube", "Ads", "E-mail", "LinkedIn", "Blog"];
+/** Sugestões para o campo channels, que na tela do Consultivo aparece como "Tipo de serviço". */
+export const SUGESTOES_DE_CANAIS = ["Contrato", "Parecer", "Notificação extrajudicial", "Inventário extrajudicial"];
 
 export function ehTom(valor: unknown): valor is Tom {
   return typeof valor === "string" && (TODOS_OS_TONS as string[]).includes(valor);

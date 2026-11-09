@@ -2,10 +2,14 @@ import { describe, expect, it } from "vitest";
 import {
   alteracaoAoAlternarConclusao,
   alteracaoAoMudarColuna,
+  colunasDoModelo,
   corDoPrazo,
   formatarData,
   formatarPeriodo,
   hojeIso,
+  MODELOS,
+  MODELOS_DE_QUADRO,
+  modeloPadrao,
   ordenarPorPosicao,
   posicaoEntre,
   posicaoNoTopo,
@@ -45,6 +49,30 @@ function tarefa(parcial: Partial<Tarefa> = {}): Tarefa {
 }
 
 const AGORA = new Date("2026-11-04T15:00:00.000Z");
+
+describe("modelos de quadro", () => {
+  it("todo modelo tem uma coluna de cada papel, na ordem a fazer, andamento, aguardando, concluído", () => {
+    for (const m of MODELOS) expect(MODELOS_DE_QUADRO[m].colunas.map((c) => c.kind)).toEqual(["todo", "doing", "waiting", "done"]);
+  });
+
+  it("as colunas seguem a proposta para cada área", () => {
+    expect(colunasDoModelo("civel").map((c) => c.title)).toEqual(["A fazer", "Em andamento", "Aguardando decisão", "Concluído"]);
+    expect(colunasDoModelo("trabalhista").map((c) => c.title)).toEqual(["A fazer", "Em andamento", "Aguardando audiência", "Concluído"]);
+    expect(colunasDoModelo("previdenciario").map((c) => c.title)).toEqual(["Documentos do cliente", "Requerimento INSS", "Aguardando INSS/Justiça", "Concluído"]);
+    expect(colunasDoModelo("familia").map((c) => c.title)).toEqual(["A fazer", "Em andamento", "Aguardando", "Concluído"]);
+    expect(colunasDoModelo("consultivo").map((c) => c.title)).toEqual(["A fazer", "Redigindo", "Aguardando cliente", "Entregue"]);
+  });
+
+  it("padrão: Cível/JEC para processo, Consultivo para caso consultivo", () => {
+    expect(modeloPadrao("project")).toBe("civel");
+    expect(modeloPadrao("campaign")).toBe("consultivo");
+  });
+
+  it("colunasDoModelo devolve uma cópia", () => {
+    colunasDoModelo("civel")[0].title = "Outra";
+    expect(MODELOS_DE_QUADRO.civel.colunas[0].title).toBe("A fazer");
+  });
+});
 
 describe("posições", () => {
   it("posicaoEntre: lista vazia, começo, fim e meio", () => {

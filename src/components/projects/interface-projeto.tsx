@@ -63,7 +63,7 @@ export function ProvedorInterfaceProjeto({ children }: { children: ReactNode }) 
         icone: TrashIcon,
         perigo: true,
         aoSelecionar: () => {
-          if (opcoes?.noQuadro) router.push(p.kind === "campaign" ? "/campanhas" : "/");
+          if (opcoes?.noQuadro) router.push(p.kind === "campaign" ? "/consultivo" : "/");
           estado.excluir(p.id);
         },
       });
@@ -83,9 +83,9 @@ export function ProvedorInterfaceProjeto({ children }: { children: ReactNode }) 
         editando={Boolean(formulario.projeto)}
         inicial={inicial}
         aoFechar={() => setFormulario((f) => ({ ...f, aberto: false }))}
-        aoEnviar={async (dados) => {
+        aoEnviar={async (dados, modelo) => {
           if (formulario.projeto) return Boolean(await estado.atualizar(formulario.projeto.id, dados));
-          const criado = await estado.criar(dados);
+          const criado = await estado.criar(dados, modelo);
           if (criado) router.push(`/projetos/${criado.id}`);
           return Boolean(criado);
         }}

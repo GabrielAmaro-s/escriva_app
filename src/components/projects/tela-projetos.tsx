@@ -43,16 +43,16 @@ export function TelaProjetos() {
   const botaoNovo = (
     <Botao variante="primaria" onClick={() => abrirNovo("project")}>
       <PlusIcon size={15} weight="bold" />
-      Novo projeto
+      Novo processo
     </Botao>
   );
 
   return (
     <Pagina largura={1240}>
-      <CabecalhoPagina titulo="Meus projetos" descricao="Acompanhe e gerencie todos os seus projetos e campanhas." acao={botaoNovo} />
+      <CabecalhoPagina titulo="Processos" descricao="Acompanhe seus processos e casos consultivos em um só lugar." acao={botaoNovo} />
 
       <div className="mb-5 mt-6 flex flex-wrap items-center gap-x-5 gap-y-3">
-        <CampoBusca valor={busca} aoMudar={setBusca} placeholder="Buscar projetos…" />
+        <CampoBusca valor={busca} aoMudar={setBusca} placeholder="Buscar processos…" />
         <OpcoesFiltro rotulo="Filtrar por status" valor={filtro} aoMudar={definirFiltro} opcoes={opcoes} />
       </div>
 
@@ -63,20 +63,20 @@ export function TelaProjetos() {
           ))}
         </div>
       ) : estado.erro ? (
-        <EstadoVazio icone={WarningCircleIcon} titulo="Não foi possível carregar seus projetos" texto={estado.erro}>
+        <EstadoVazio icone={WarningCircleIcon} titulo="Não foi possível carregar seus processos" texto={estado.erro}>
           <Botao tamanho="sm" onClick={estado.recarregar}>
             Tentar de novo
           </Botao>
         </EstadoVazio>
       ) : lista.length === 0 ? (
         contagens.all === 0 && contagens.archived === 0 ? (
-          <EstadoVazio icone={PlusIcon} titulo="Comece seu primeiro projeto" texto="Cada projeto ganha um quadro para você mover as tarefas conforme avançam.">
+          <EstadoVazio icone={PlusIcon} titulo="Cadastre seu primeiro processo" texto="Cada processo ganha um quadro para você acompanhar prazos e tarefas.">
             <Botao variante="primaria" tamanho="sm" onClick={() => abrirNovo("project")}>
-              + Novo projeto
+              + Novo processo
             </Botao>
           </EstadoVazio>
         ) : (
-          <EstadoVazio icone={MagnifyingGlassIcon} titulo="Nenhum projeto encontrado" texto="Ajuste a busca ou o filtro, ou comece algo novo.">
+          <EstadoVazio icone={MagnifyingGlassIcon} titulo="Nenhum processo encontrado" texto="Ajuste a busca ou o filtro, ou cadastre um processo novo.">
             <Botao
               tamanho="sm"
               onClick={() => {
@@ -87,7 +87,7 @@ export function TelaProjetos() {
               Limpar filtros
             </Botao>
             <Botao variante="primaria" tamanho="sm" onClick={() => abrirNovo("project")}>
-              + Novo projeto
+              + Novo processo
             </Botao>
           </EstadoVazio>
         )

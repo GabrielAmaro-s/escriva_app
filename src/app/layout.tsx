@@ -6,7 +6,7 @@ import { Provedores } from "./provedores";
 
 export const metadata: Metadata = {
   title: "myPlan",
-  description: "Seus projetos e campanhas, organizados em quadros simples.",
+  description: "Seus processos e casos consultivos, organizados em quadros simples.",
 };
 
 export const viewport: Viewport = {

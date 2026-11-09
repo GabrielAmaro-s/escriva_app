@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { interpretarDataHora } from "@/domain/datas";
 import { ordenarPorQuando } from "@/domain/lembrete";
-import { alteracaoAoMudarColuna, ordenarPorPosicao, proximaPosicaoNaColuna } from "@/domain/quadro";
+import { MODELOS, alteracaoAoMudarColuna, ordenarPorPosicao, proximaPosicaoNaColuna } from "@/domain/quadro";
 import type { AlteracaoTarefa, Desfazer, PrioridadeTarefa, Tarefa } from "@/domain/tipos";
 import { criarLembrete, lembretesProximos, marcarLembrete } from "../lembretes";
 import { criarProjeto } from "../projetos";
@@ -441,7 +441,8 @@ export function criarFerramentas(config: { limiteItens: number }): Ferramenta[] 
     definir({
       nome: "criar_projeto",
       titulo: "Criar projeto",
-      descricao: "Cria um projeto ou uma campanha com as quatro colunas padrão (A fazer, Em andamento, Aguardando, Concluído).",
+      descricao:
+        'Cria um projeto (processo) ou uma campanha (caso consultivo). As colunas vêm do modelo de quadro: "civel" (A fazer, Em andamento, Aguardando decisão, Concluído), "trabalhista" (A fazer, Em andamento, Aguardando audiência, Concluído), "previdenciario" (Documentos do cliente, Requerimento INSS, Aguardando INSS/Justiça, Concluído), "familia" (A fazer, Em andamento, Aguardando, Concluído) ou "consultivo" (A fazer, Redigindo, Aguardando cliente, Entregue). Sem modelo, usa "civel" para projeto e "consultivo" para campanha.',
       escrita: true,
       confirmacao: false,
       entrada: z.object({
@@ -453,20 +454,25 @@ export function criarFerramentas(config: { limiteItens: number }): Ferramenta[] 
         objetivo: z.string().max(200).optional().describe("Só campanhas."),
         canais: z.array(z.string().max(40)).max(10).optional().describe("Só campanhas."),
         cor: z.enum(["violet", "blue", "green", "amber", "red", "pink"]).optional(),
+        modelo: z.enum(MODELOS).optional().describe("Modelo de quadro: civel, trabalhista, previdenciario, familia ou consultivo."),
       }),
       async executar(ctx, args) {
         const campanha = args.tipo === "campanha";
         try {
-          const projeto = await criarProjeto(ctx.repo, {
-            name: args.nome,
-            description: args.descricao ?? null,
-            kind: campanha ? "campaign" : "project",
-            status: "active",
-            color: args.cor ?? (campanha ? "red" : "violet"),
-            icon: campanha ? "megaphone" : "folder",
-            dueOn: campanha ? null : (args.prazo ?? null),
-            campaign: campanha ? { objective: args.objetivo ?? null, startsOn: args.inicio ?? null, endsOn: args.prazo ?? null, channels: args.canais ?? [], deliverables: [] } : null,
-          });
+          const projeto = await criarProjeto(
+            ctx.repo,
+            {
+              name: args.nome,
+              description: args.descricao ?? null,
+              kind: campanha ? "campaign" : "project",
+              status: "active",
+              color: args.cor ?? (campanha ? "red" : "violet"),
+              icon: campanha ? "megaphone" : "folder",
+              dueOn: campanha ? null : (args.prazo ?? null),
+              campaign: campanha ? { objective: args.objetivo ?? null, startsOn: args.inicio ?? null, endsOn: args.prazo ?? null, channels: args.canais ?? [], deliverables: [] } : null,
+            },
+            args.modelo,
+          );
           return {
             mensagem: `Criei ${campanha ? "a campanha" : "o projeto"} ${projeto.name}.`,
             dados: { projeto: resumoDoProjeto(ctx, projeto), link: linkDoProjeto(ctx, projeto.id) },

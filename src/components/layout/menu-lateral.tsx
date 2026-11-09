@@ -8,10 +8,10 @@ import { useUsuarioAtual } from "@/hooks/use-usuario-atual";
 import { classes } from "@/lib/classes";
 
 const NAVEGACAO: { href: string; rotulo: string; icone: Icon }[] = [
-  { href: "/visao-geral", rotulo: "Visão geral", icone: SquaresFourIcon },
-  { href: "/", rotulo: "Meus projetos", icone: FolderIcon },
-  { href: "/campanhas", rotulo: "Campanhas", icone: MegaphoneIcon },
-  { href: "/tarefas", rotulo: "Tarefas", icone: CheckSquareIcon },
+  { href: "/hoje", rotulo: "Hoje", icone: SquaresFourIcon },
+  { href: "/", rotulo: "Processos", icone: FolderIcon },
+  { href: "/consultivo", rotulo: "Consultivo", icone: MegaphoneIcon },
+  { href: "/prazos", rotulo: "Prazos e tarefas", icone: CheckSquareIcon },
   { href: "/configuracoes", rotulo: "Configurações", icone: SlidersHorizontalIcon },
 ];
 
@@ -33,11 +33,11 @@ export function MenuLateral({ aoNavegar }: { aoNavegar?: () => void }) {
   const { projetos } = useProjetos();
   const usuario = useUsuarioAtual();
 
-  // No quadro, o item ativo segue o tipo: campanha acende "Campanhas", projeto acende "Meus projetos".
+  // No quadro, o item ativo segue o tipo: campanha acende "Consultivo", projeto acende "Processos".
   const quadroId = caminho.startsWith("/projetos/") ? caminho.split("/")[2] : null;
   const tipoDoQuadro = quadroId ? (projetos.find((p) => p.id === quadroId)?.kind ?? "project") : null;
   const estaAtivo = (href: string) =>
-    tipoDoQuadro ? href === (tipoDoQuadro === "campaign" ? "/campanhas" : "/") : href === "/" ? caminho === "/" : caminho.startsWith(href);
+    tipoDoQuadro ? href === (tipoDoQuadro === "campaign" ? "/consultivo" : "/") : href === "/" ? caminho === "/" : caminho.startsWith(href);
 
   return (
     <nav aria-label="Navegação principal" className="flex h-full flex-col gap-[22px] px-3.5 pb-3.5 pt-[18px]">
