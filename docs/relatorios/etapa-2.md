@@ -4,7 +4,7 @@ Branch `juridico/etapa-2`. Referência: seção 10, item 2, de `docs/PROPOSTA_JU
 
 ## Resumo
 
-O advogado passa a cadastrar clientes e a ligar cada processo ou caso consultivo a um deles. O processo ganha número CNJ, área, fase, tribunal, vara, polo, parte contrária, valor da causa, segredo de justiça e link dos autos. O consultivo ganha tipo de serviço, pedido do cliente e prazo de entrega. A migração 0004 foi testada no Supabase local (ver "Banco") e **não foi aplicada em produção**: isso fica com você, depois do backup.
+O advogado passa a cadastrar clientes e a ligar cada processo ou caso consultivo a um deles. O processo ganha número CNJ, área, fase, tribunal, vara, polo, parte contrária, valor da causa, segredo de justiça e link dos autos. O consultivo ganha tipo de serviço, pedido do cliente e prazo de entrega. A migração 0004 foi testada no Supabase local e **aplicada em produção em 09/11/2026**, com a sua autorização (ver "Banco").
 
 ## O que mudou
 
@@ -129,7 +129,7 @@ O advogado passa a cadastrar clientes e a ligar cada processo ou caso consultivo
 
 ## Banco
 
-Migração `supabase/migrations/0004_processos_e_clientes.sql`. **Não foi aplicada em produção.** Foi testada no Supabase local em 09/11/2026 (resultado no fim desta seção).
+Migração `supabase/migrations/0004_processos_e_clientes.sql`. Foi testada no Supabase local e **aplicada em produção em 09/11/2026** (as duas coisas estão no fim desta seção).
 
 - **Tabela nova `clientes`:**
   - campos `id`, `user_id`, `nome`, `tipo` (pf|pj), `documento`, `telefone`, `email`, `observacoes`, `criado_em` e `atualizado_em`;
@@ -194,6 +194,31 @@ O teste rodou com Supabase CLI 3.0.0, Postgres 17 (`major_version` do `config.to
 
 O Supabase local foi desligado no fim (`npx supabase stop`, com backup dos volumes locais).
 
+### Aplicação em produção (09/11/2026)
+
+A migração foi aplicada com a sua autorização ("pode aplicar"). As credenciais vieram do `myPlan/.env`, que está ignorado pelo git e não é versionado. Projeto `gmulobmdmdbebmmikhyu`, pela conexão de sessão do pooler (`aws-0-us-east-1.pooler.supabase.com:5432`). O ref do projeto bate com `DIRECT_URL` e com `NEXT_PUBLIC_SUPABASE_URL`.
+
+1. **Checagens antes, só leitura:**
+   - Postgres 17.11;
+   - histórico com 0001, 0002 e 0003, então só a 0004 era nova;
+   - nenhuma tabela, coluna ou função da 0004 existia;
+   - nenhuma linha em `projects` nem em `campaign_details`, então o preenchimento de `tipo_servico` não alterou nada e o limite de 80 caracteres não podia falhar.
+2. **Ensaio:** `supabase db push --dry-run` listou só `0004_processos_e_clientes.sql`.
+3. **Aplicação:** `supabase db push`, o mesmo comando do `npm run db:migrar`. O CLI, em modo agente, pediu confirmação explícita e não alterou nada. Depois rodou com `--yes`, aplicando a 0004 sem erro.
+4. **Conferência depois, só leitura:**
+   - histórico 0001 a 0004;
+   - tabelas `clientes` e `processo_detalhes`;
+   - colunas `projects.cliente_id` e `campaign_details.tipo_servico`;
+   - restrições `projects_id_user_unique`, `clientes_id_user_id_key`, `projects_cliente_fk` (`ON DELETE SET NULL (cliente_id)`) e `processo_detalhes_projeto_fk`;
+   - os cinco índices;
+   - RLS ligado nas duas tabelas, com as políticas "own clientes" e "own processos";
+   - grants de `select`, `insert`, `update` e `delete` para `authenticated`;
+   - gatilho `clientes_atualizado_em`;
+   - check do documento aceitando CNPJ alfanumérico.
+5. **API:** `GET /rest/v1/projects?select=*,campaign_details(*),processo_detalhes(*)` e `GET /rest/v1/clientes` responderam 200, então a lista de processos do app já funciona com o banco novo.
+
+Não houve backup feito por mim antes da aplicação. O banco não tinha projetos nem campanhas, e a 0004 só acrescenta tabelas, colunas e restrições.
+
 ## Testes
 
 - **Antes:** 127 testes em 11 arquivos (a `main` depois da Etapa 1).
@@ -244,7 +269,7 @@ O Supabase local foi desligado no fim (`npx supabase stop`, com backup dos volum
 2. Para usar o app com ele, aponte um `.env.local` de teste para `http://127.0.0.1:54321`, com as chaves de `npx supabase status`, e repita os passos acima logado.
 3. Confira 409 e 400 na aba Rede do navegador.
 
-**Em produção:** fica com você, depois do backup. Aplique a 0004 antes de publicar o código desta branch.
+**Em produção:** a 0004 já está aplicada (ver "Banco"). O código desta branch pode ser publicado.
 
 **No agente:**
 
@@ -267,8 +292,8 @@ O Supabase local foi desligado no fim (`npx supabase stop`, com backup dos volum
 ## Riscos e dúvidas para a próxima etapa
 
 **Riscos**
-- **Versão do Postgres em produção.** `on delete set null (cliente_id)` exige Postgres 15 ou mais novo. O teste local usou 17, conforme o `config.toml`. Vale conferir com `SHOW server_version;` antes de aplicar.
-- **Teste só no banco local.** O comportamento foi confirmado no Supabase local (ver "Banco"), mas a produção pode ter dados que a migração não encontrou aqui. Um exemplo é um `channels[1]` com mais de 80 caracteres, que faria o `update` de `tipo_servico` falhar no check. Antes de aplicar: `select max(char_length(channels[1])) from campaign_details;`.
+- **O arquivo de ambiente se chama `.env`, não `.env.local`.** O Next.js lê os dois, mas os scripts `npm run db:*` só leem o `.env.local`. Para usá-los, renomeie ou copie o arquivo. A 0004 foi aplicada passando as variáveis direto para o CLI.
+- **Região do banco.** O projeto está em `us-east-1`. O README recomenda funções na Vercel em `gru1`, perto de `sa-east-1`. Com o banco em `us-east-1`, vale escolher a região das funções perto dele.
 - **Ordem de publicação.** O código desta branch quebra a lista de processos num banco sem a 0004. É preciso aplicar a migração antes do deploy.
 - **Cliente cadastrado pelo nome no formulário.** Se a gravação do processo falhar depois (número repetido, por exemplo), o cliente novo fica cadastrado sem processo. Na segunda tentativa ele é reaproveitado pelo nome.
 - **Clientes com o mesmo nome.** O formulário escolhe o primeiro. Mostrar o documento na sugestão ajudaria.
