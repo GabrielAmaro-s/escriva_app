@@ -11,8 +11,8 @@ import type { DadosProjeto, TipoProjeto } from "@/domain/tipos";
 import { classes } from "@/lib/classes";
 
 const TIPOS = [
-  { tipo: "project" as const, nome: "Projeto", dica: "Organize tarefas, prazos e entregas.", icone: PackageIcon },
-  { tipo: "campaign" as const, nome: "Campanha", dica: "Planeje e acompanhe uma campanha específica.", icone: MegaphoneIcon },
+  { tipo: "project" as const, nome: "Processo", dica: "Ação judicial com prazos, audiências e tarefas.", icone: PackageIcon },
+  { tipo: "campaign" as const, nome: "Consultivo", dica: "Contrato, parecer, notificação ou outro trabalho fora do processo.", icone: MegaphoneIcon },
 ];
 
 export function FormularioProjeto({
@@ -82,7 +82,7 @@ export function FormularioProjeto({
     if (ok) aoFechar();
   }
 
-  const titulo = editando ? (ehCampanha ? "Editar campanha" : "Editar projeto") : ehCampanha ? "Nova campanha" : "Novo projeto";
+  const titulo = editando ? (ehCampanha ? "Editar caso consultivo" : "Editar processo") : ehCampanha ? "Novo caso consultivo" : "Novo processo";
   const erroNoNome = erro === "Dê um nome para continuar.";
 
   return (
@@ -92,7 +92,7 @@ export function FormularioProjeto({
           <div>
             <h2 className="text-xl font-bold tracking-[-0.02em]">{titulo}</h2>
             <p className="mt-1 text-[13px] text-ink2">
-              {editando ? "Ajuste as informações e salve." : "Crie um novo projeto ou campanha para organizar suas tarefas."}
+              {editando ? "Ajuste as informações e salve." : "Cadastre um processo ou um caso consultivo para organizar prazos e tarefas."}
             </p>
           </div>
           <BotaoIcone rotulo="Fechar" onClick={aoFechar}>
@@ -140,7 +140,7 @@ export function FormularioProjeto({
               alterar({ name: e.target.value });
               if (erroNoNome) setErro(null);
             }}
-            placeholder={ehCampanha ? "Ex.: Campanha de Inverno" : "Ex.: Novo site, Revisão de processos…"}
+            placeholder={ehCampanha ? "Ex.: Contrato de prestação de serviços" : "Ex.: Cobrança de aluguéis, Reclamação trabalhista…"}
             maxLength={120}
             className={erroNoNome ? "border-s-red" : undefined}
           />
@@ -159,7 +159,7 @@ export function FormularioProjeto({
             className="resize-none"
             value={formulario.description ?? ""}
             onChange={(e) => alterar({ description: e.target.value })}
-            placeholder="Descreva brevemente o objetivo…"
+            placeholder="Resuma o caso em poucas palavras…"
           />
         </div>
 
@@ -198,11 +198,11 @@ export function FormularioProjeto({
                 id="np-objective"
                 value={campanha.objective ?? ""}
                 onChange={(e) => alterarCampanha({ objective: e.target.value })}
-                placeholder="Ex.: Geração de leads"
+                placeholder="Ex.: Revisar o contrato antes da assinatura"
               />
             </div>
             <div className="mt-4">
-              <p className="mb-2 text-[12.5px] font-semibold">Canais de divulgação</p>
+              <p className="mb-2 text-[12.5px] font-semibold">Tipo de serviço</p>
               <div className="flex flex-wrap gap-[7px]">
                 {canais.map((c) => {
                   const ativo = campanha.channels.includes(c);
@@ -234,7 +234,7 @@ export function FormularioProjeto({
                       setOutroCanal("");
                     }}
                     placeholder="Outro"
-                    aria-label="Adicionar outro canal"
+                    aria-label="Adicionar outro tipo de serviço"
                     className="w-16 bg-transparent text-[12.5px] text-ink outline-none placeholder:text-ink3"
                   />
                 </label>
@@ -298,7 +298,7 @@ export function FormularioProjeto({
         <div className="mt-6 flex justify-end gap-2.5">
           <Botao onClick={aoFechar}>Cancelar</Botao>
           <Botao variante="primaria" type="submit" disabled={salvando} className="px-[18px]">
-            {editando ? "Salvar alterações" : ehCampanha ? "Criar campanha" : "Criar projeto"}
+            {editando ? "Salvar alterações" : ehCampanha ? "Criar caso consultivo" : "Criar processo"}
           </Botao>
         </div>
       </form>

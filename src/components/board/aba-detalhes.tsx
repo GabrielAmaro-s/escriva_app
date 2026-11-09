@@ -35,7 +35,7 @@ export function AbaDetalhes({ projeto }: { projeto: Projeto }) {
 
   const fatos = [
     { k: "Status", v: projeto.archivedAt ? "Arquivado" : ROTULO_STATUS[projeto.status] },
-    { k: "Tipo", v: ehCampanha ? "Campanha" : "Projeto" },
+    { k: "Tipo", v: ehCampanha ? "Consultivo" : "Processo" },
     ehCampanha
       ? { k: "Período", v: formatarPeriodo(c?.startsOn ?? null, c?.endsOn ?? null) }
       : { k: "Prazo", v: projeto.dueOn ? formatarData(projeto.dueOn) : "Sem prazo" },
@@ -52,7 +52,7 @@ export function AbaDetalhes({ projeto }: { projeto: Projeto }) {
               <p className="text-sm leading-normal">{c?.objective || "Ainda sem objetivo. Defina em Editar."}</p>
             </div>
             <div>
-              <p className="mb-2 text-xs font-semibold text-ink3">Canais de divulgação</p>
+              <p className="mb-2 text-xs font-semibold text-ink3">Tipo de serviço</p>
               {c?.channels.length ? (
                 <div className="flex flex-wrap gap-1.5">
                   {c.channels.map((canal) => (
@@ -62,7 +62,7 @@ export function AbaDetalhes({ projeto }: { projeto: Projeto }) {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-ink2">Nenhum canal escolhido.</p>
+                <p className="text-sm text-ink2">Nenhum tipo de serviço escolhido.</p>
               )}
             </div>
             <div>
@@ -98,7 +98,7 @@ export function AbaDetalhes({ projeto }: { projeto: Projeto }) {
           </>
         ) : (
           <div>
-            <Titulo>Sobre o projeto</Titulo>
+            <Titulo>Sobre o processo</Titulo>
             <p className="text-sm leading-relaxed text-ink2">{projeto.description || "Sem descrição. Adicione uma em Editar."}</p>
           </div>
         )}

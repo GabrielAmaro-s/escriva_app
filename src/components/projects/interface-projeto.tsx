@@ -63,7 +63,7 @@ export function ProvedorInterfaceProjeto({ children }: { children: ReactNode }) 
         icone: TrashIcon,
         perigo: true,
         aoSelecionar: () => {
-          if (opcoes?.noQuadro) router.push(p.kind === "campaign" ? "/campanhas" : "/");
+          if (opcoes?.noQuadro) router.push(p.kind === "campaign" ? "/consultivo" : "/");
           estado.excluir(p.id);
         },
       });

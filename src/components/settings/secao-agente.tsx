@@ -19,10 +19,10 @@ import { LinhaConfiguracao } from "./linha-configuracao";
 const mensagem = (e: unknown) => (e instanceof Error ? e.message : "Algo deu errado. Tente de novo.");
 
 const NOME_DA_FERRAMENTA: Record<string, string> = {
-  listar_projetos: "Consultou os projetos",
+  listar_projetos: "Consultou os processos",
   ver_quadro: "Consultou um quadro",
   buscar_tarefas: "Buscou tarefas",
-  resumir_projeto: "Resumiu um projeto",
+  resumir_projeto: "Resumiu um processo",
   lembretes_proximos: "Conferiu os lembretes",
   criar_tarefas: "Criou tarefas",
   atualizar_tarefa: "Atualizou uma tarefa",
@@ -30,7 +30,7 @@ const NOME_DA_FERRAMENTA: Record<string, string> = {
   adicionar_checklist: "Adicionou checklist",
   criar_lembrete: "Criou um lembrete",
   marcar_lembrete: "Marcou um lembrete",
-  criar_projeto: "Criou um projeto",
+  criar_projeto: "Criou um processo",
   sugerir_prioridades: "Mudou prioridades",
   concluir_em_lote: "Concluiu tarefas",
   excluir_tarefa: "Excluiu um item",
@@ -136,7 +136,7 @@ export function SecaoAgente() {
 
         <div className="border-b border-line py-4 last:border-b-0">
           <p className="text-sm font-semibold">Gerar token</p>
-          <p className="mt-0.5 text-[12.5px] text-ink2">O agente usa o token para acessar seus projetos. Leitura só consulta; escrita também cria e altera.</p>
+          <p className="mt-0.5 text-[12.5px] text-ink2">O agente usa o token para acessar seus processos. Leitura só consulta; escrita também cria e altera.</p>
           <form
             className="mt-3 flex flex-wrap items-center gap-2"
             onSubmit={(e) => {

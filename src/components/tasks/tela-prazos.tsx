@@ -21,7 +21,7 @@ export function tarefasAbertas(tarefas: Tarefa[], projetos: Map<string, Projeto>
     .sort(porPrazo);
 }
 
-export function TelaTarefas() {
+export function TelaPrazos() {
   const estado = useProjetos();
   const api = useTarefas();
   const [filtro, setFiltro] = useState<"abertas" | "concluidas">("abertas");
@@ -41,10 +41,10 @@ export function TelaTarefas() {
 
   return (
     <Pagina largura={880}>
-      <CabecalhoPagina titulo="Tarefas" descricao="Todas as tarefas em um só lugar." />
+      <CabecalhoPagina titulo="Prazos e tarefas" descricao="Todos os prazos e tarefas em um só lugar, ordenados pelo vencimento." />
       <div className="mt-[22px]">
         <OpcoesFiltro
-          rotulo="Filtrar tarefas"
+          rotulo="Filtrar prazos e tarefas"
           valor={filtro}
           aoMudar={setFiltro}
           opcoes={[

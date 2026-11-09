@@ -36,9 +36,9 @@ const mensagem = (e: unknown) => (e instanceof Error ? e.message : "Algo deu err
 const TEMPO_DESFAZER_MS = 5000;
 
 const AVISO_STATUS: Record<StatusProjeto, string> = {
-  active: "Projeto reativado",
-  paused: "Projeto pausado",
-  done: "Projeto concluído",
+  active: "Caso reativado",
+  paused: "Caso pausado",
+  done: "Caso concluído",
 };
 
 export function ProvedorProjetos({ children }: { children: ReactNode }) {
@@ -105,7 +105,7 @@ export function ProvedorProjetos({ children }: { children: ReactNode }) {
         try {
           const p = await servico.criarProjeto(repo, dados, modelo);
           setProjetos((lista) => [p, ...lista]);
-          avisar({ texto: dados.kind === "campaign" ? "Campanha criada" : "Projeto criado", tom: "info" });
+          avisar({ texto: dados.kind === "campaign" ? "Caso consultivo criado" : "Processo criado", tom: "info" });
           return p;
         } catch (e) {
           avisar({ texto: mensagem(e), tom: "erro" });
@@ -127,12 +127,12 @@ export function ProvedorProjetos({ children }: { children: ReactNode }) {
         otimista(id, { status }, () => servico.definirStatusProjeto(repo, id, status), AVISO_STATUS[status]);
       },
       arquivar(id) {
-        otimista(id, { archivedAt: new Date().toISOString() }, () => servico.arquivarProjeto(repo, id), "Projeto arquivado", () =>
+        otimista(id, { archivedAt: new Date().toISOString() }, () => servico.arquivarProjeto(repo, id), "Caso arquivado", () =>
           otimista(id, { archivedAt: null }, () => servico.restaurarProjeto(repo, id)),
         );
       },
       restaurar(id) {
-        otimista(id, { archivedAt: null }, () => servico.restaurarProjeto(repo, id), "Projeto restaurado");
+        otimista(id, { archivedAt: null }, () => servico.restaurarProjeto(repo, id), "Caso restaurado");
       },
       excluir(id) {
         const indice = projetos.findIndex((p) => p.id === id);
@@ -149,7 +149,7 @@ export function ProvedorProjetos({ children }: { children: ReactNode }) {
         const temporizador = setTimeout(executar, TEMPO_DESFAZER_MS);
         exclusoesPendentes.current.set(id, { temporizador, executar });
         avisar({
-          texto: removido.kind === "campaign" ? "Campanha excluída" : "Projeto excluído",
+          texto: removido.kind === "campaign" ? "Caso consultivo excluído" : "Processo excluído",
           tom: "info",
           acao: {
             rotulo: "Desfazer",
