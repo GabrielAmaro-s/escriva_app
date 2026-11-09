@@ -39,6 +39,18 @@ Outros comandos:
 | `npm test` | Roda os testes (vitest) |
 | `npm run typecheck` | Confere os tipos |
 | `npm run verificar` | Typecheck, testes e build em sequência; para no primeiro erro |
+| `npm run test:banco-local` | Testes de integração contra o Supabase local (opcional; veja abaixo) |
+
+### Testar as migrações no Supabase local
+
+`npm run test:banco-local` roda `supabase/testes/` contra um Supabase local, com dois usuários de verdade. Ele confere RLS, as chaves compostas com a chave de serviço, a exclusão de cliente e a lista e a criação de processos com o código do app. Não faz parte do `npm test` nem do `npm run verificar`.
+
+1. Com o Docker rodando: `npx supabase start` (só é preciso o banco, a autenticação e a API; para subir menos coisas, use `-x studio,imgproxy,storage-api,realtime,edge-runtime,logflare,vector,supavisor,mailpit,postgres-meta`).
+2. Para começar limpo e aplicar as migrações do zero: `npx supabase db reset` (local por padrão; nunca passe `--remote`).
+3. `npm run test:banco-local`.
+4. No fim: `npx supabase stop`.
+
+O script lê a URL e as chaves de `npx supabase status`, nunca do `.env.local`, e recusa rodar se a URL não for local, porque o teste cria usuários e grava dados. Cada rodada cria usuários novos, então dá para repetir sem reset.
 
 Os dados do modo local não vão para o Supabase sozinhos: em Configurações, use **Importar dados deste navegador**.
 

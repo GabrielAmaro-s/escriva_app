@@ -188,7 +188,9 @@ O teste rodou com Supabase CLI 3.0.0, Postgres 17 (`major_version` do `config.to
 
    Na primeira rodada, um teste falhou por erro do próprio teste. O projeto de B escolhido já tinha o mesmo número de A, e o índice único barrou a troca de dono (23505) antes da chave composta. Com um projeto sem número, a chave composta recusou a inserção e a troca de dono (23503).
 
-   O teste fica fora do repositório, porque não foi pedido como código. Ele pode virar um `npm run test:banco-local` opcional, se você quiser repetir antes de aplicar em produção.
+   O teste está no repositório em `supabase/testes/banco-local.test.ts` e roda com `npm run test:banco-local` (config `vitest.banco-local.config.mts`, script `scripts/banco-local.mjs`). Ele é opcional e fica fora do `npm test` e do `npm run verificar`. O script lê as chaves de `npx supabase status`, nunca do `.env.local`, e recusa rodar se a URL não for local. Os passos estão no README, em "Testar as migrações no Supabase local".
+
+   Conferido em 09/11/2026: 17 de 17 depois de `db reset`, e 17 de 17 numa segunda rodada sem reset. Com o Supabase local desligado, o script avisa "O Supabase local não está rodando. Rode antes: npx supabase start" e sai com código 1.
 
 O Supabase local foi desligado no fim (`npx supabase stop`, com backup dos volumes locais).
 
@@ -207,7 +209,7 @@ O Supabase local foi desligado no fim (`npx supabase stop`, com backup dos volum
   - `importacao.test.ts`: cliente e detalhes na fotografia, arquivo antigo e cliente reaproveitado.
   - `ferramentas.test.ts`: `criar_projeto` recusando modelo que não combina com o tipo.
 - **Resultado do `npm run verificar`:** passou (typecheck, 166 testes e build).
-- **Banco real:** 17 testes de integração contra o Supabase local passaram (detalhes em "Banco").
+- **Banco real:** 17 testes de integração contra o Supabase local passaram (detalhes em "Banco"). Eles rodam com `npm run test:banco-local`, fora do `npm test`.
 - **Conferência extra no navegador:** com Chrome sem interface sobre o build de produção, em modo local:
   - `/`, `/clientes` e `/consultivo` renderizaram sem erro de JavaScript;
   - criar um processo com cliente novo, modelo Trabalhista e número CNJ funcionou: a área foi sugerida e o cartão mostrou cliente, número e área;
@@ -295,5 +297,7 @@ O Supabase local foi desligado no fim (`npx supabase stop`, com backup dos volum
 | `dcbda44` | Adiciona a tela de clientes e os ícones jurídicos no menu |
 | `2e8df88` | Mostra cliente e dados do processo no formulário, cartões e detalhes |
 | `933f1c4` | Atualiza ARQUITETURA e README para a etapa 2 |
+| `5c5c72c` | Adiciona o relatório da etapa 2 |
+| `18cfad4` | Registra no relatório da etapa 2 o teste da 0004 no Supabase local |
 
-Este relatório entra num último commit, depois dos listados acima.
+O commit que adiciona o `npm run test:banco-local` e atualiza este relatório entra depois dos listados acima.

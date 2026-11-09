@@ -191,6 +191,8 @@ filtro de usuário do repositório do agente;
 integração navegador → API → serviços, inclusive clientes, 409 para repetidos e 400 para inválidos;
 as 15 ferramentas com o repositório em memória;
 a rota MCP de verdade (401, escopo e chamada).
+
+npm run test:banco-local (opcional, fora do npm test) roda supabase/testes contra o Supabase local: migrações do zero, RLS com dois usuários, chaves compostas com a chave de serviço, exclusão de cliente e o repositório do app e do agente contra o banco. Precisa de npx supabase start; o script só aceita URL local.
 6. Etapas de desenvolvimento
 Base (feito). Next.js, Tailwind 4, tema claro/escuro, camada de dados com Supabase e modo local.
 Meus projetos (feito). Cartões, criar, editar, arquivar, restaurar, excluir, filtros, campanhas.
