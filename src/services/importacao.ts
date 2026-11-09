@@ -1,24 +1,30 @@
 import { z } from "zod";
 import { ordenarPorPosicao } from "@/domain/quadro";
+import { validarDadosCliente } from "@/domain/cliente";
 import { validarDadosProjeto } from "@/domain/projeto";
-import type { Coluna, DetalhesCampanha, Etiqueta, Projeto, Tarefa } from "@/domain/tipos";
+import type { Cliente, Coluna, DetalhesCampanha, DetalhesProcesso, Etiqueta, Projeto, Tarefa } from "@/domain/tipos";
 import type { Repositorio } from "@/data/repositorio";
 
 // Exportar e importar todos os dados de uma conta (ou do navegador) em JSON.
+// Clientes, detalhes do processo e tipo de serviço entraram na etapa 2 como campos opcionais:
+// arquivos exportados antes continuam válidos.
 
 export const VERSAO_EXPORTACAO = 1;
 
 export interface DadosExportados {
   versao: typeof VERSAO_EXPORTACAO;
   exportadoEm: string;
-  projetos: Omit<Projeto, "campaign" | "taskCount" | "doneCount">[];
+  projetos: (Omit<Projeto, "campaign" | "processo" | "clienteId" | "taskCount" | "doneCount"> & { clienteId?: string | null })[];
   campanhas: (DetalhesCampanha & { projectId: string })[];
+  clientes?: Cliente[];
+  processos?: (DetalhesProcesso & { projectId: string })[];
   colunas: Coluna[];
   etiquetas: Etiqueta[];
   tarefas: Tarefa[];
 }
 
 export interface ResumoImportacao {
+  clientes: number;
   projetos: number;
   campanhas: number;
   colunas: number;
@@ -27,12 +33,14 @@ export interface ResumoImportacao {
 }
 
 export async function exportarDados(repo: Repositorio, agora = new Date()): Promise<DadosExportados> {
-  const [projetos, espaco] = await Promise.all([repo.listarProjetos(), repo.obterEspacoDeTrabalho()]);
+  const [projetos, espaco, clientes] = await Promise.all([repo.listarProjetos(), repo.obterEspacoDeTrabalho(), repo.listarClientes()]);
   return {
     versao: VERSAO_EXPORTACAO,
     exportadoEm: agora.toISOString(),
-    projetos: projetos.map(({ campaign: _c, taskCount: _t, doneCount: _d, ...p }) => p),
+    projetos: projetos.map(({ campaign: _c, processo: _p, taskCount: _t, doneCount: _d, ...p }) => p),
     campanhas: projetos.filter((p) => p.kind === "campaign" && p.campaign).map((p) => ({ projectId: p.id, ...p.campaign! })),
+    clientes,
+    processos: projetos.filter((p) => p.kind === "project" && p.processo).map((p) => ({ projectId: p.id, ...p.processo! })),
     colunas: espaco.colunas,
     etiquetas: espaco.etiquetas,
     tarefas: espaco.tarefas,
@@ -55,8 +63,9 @@ const esquemaExportacao = z.object({
       kind: z.enum(["project", "campaign"]),
       status: z.enum(["active", "paused", "done"]),
       color: tom,
-      icon: z.enum(["folder", "monitor", "box", "calendar", "chart", "check", "gift", "megaphone", "star", "target"]),
+      icon: z.enum(["folder", "monitor", "box", "calendar", "chart", "check", "gift", "megaphone", "star", "target", "scales", "briefcase", "gavel", "file"]),
       dueOn: data,
+      clienteId: z.string().nullable().optional(),
       position: z.number(),
       archivedAt: data,
       createdAt: z.string(),
@@ -71,8 +80,39 @@ const esquemaExportacao = z.object({
       endsOn: data,
       channels: z.array(z.string()),
       deliverables: z.array(z.object({ id: z.string(), title: z.string(), done: z.boolean() })),
+      tipoServico: z.string().nullable().optional(),
     }),
   ),
+  clientes: z
+    .array(
+      z.object({
+        id: z.string(),
+        nome: z.string(),
+        tipo: z.enum(["pf", "pj"]),
+        documento: z.string().nullable(),
+        telefone: z.string().nullable(),
+        email: z.string().nullable(),
+        observacoes: z.string().nullable(),
+      }),
+    )
+    .optional(),
+  processos: z
+    .array(
+      z.object({
+        projectId: z.string(),
+        numeroCnj: z.string().nullable(),
+        tribunal: z.string().nullable(),
+        orgao: z.string().nullable(),
+        area: z.enum(["civel", "consumidor", "trabalhista", "previdenciario", "familia", "criminal", "tributario", "administrativo", "outra"]).nullable(),
+        fase: z.enum(["administrativa", "inicial", "instrucao", "sentenca", "recurso", "execucao"]).nullable(),
+        polo: z.enum(["autor", "reu", "terceiro"]).nullable(),
+        parteContraria: z.string().nullable(),
+        valorCausa: z.number().nullable(),
+        segredoJustica: z.boolean(),
+        linkAutos: z.string().nullable(),
+      }),
+    )
+    .optional(),
   colunas: z.array(z.object({ id: z.string(), projectId: z.string(), title: z.string(), kind: z.enum(["todo", "doing", "waiting", "done"]), position: z.number() })),
   etiquetas: z.array(z.object({ id: z.string(), projectId: z.string(), name: z.string(), color: tom })),
   tarefas: z.array(
@@ -113,8 +153,27 @@ export function lerArquivoExportado(entrada: unknown): DadosExportados {
  */
 export async function importarDados(repo: Repositorio, entrada: unknown): Promise<ResumoImportacao> {
   const dados = lerArquivoExportado(entrada);
-  const resumo: ResumoImportacao = { projetos: 0, campanhas: 0, colunas: 0, etiquetas: 0, tarefas: 0 };
+  const resumo: ResumoImportacao = { clientes: 0, projetos: 0, campanhas: 0, colunas: 0, etiquetas: 0, tarefas: 0 };
   const campanhaDe = new Map(dados.campanhas.map(({ projectId, ...c }) => [projectId, c]));
+  const processoDe = new Map((dados.processos ?? []).map(({ projectId, ...d }) => [projectId, d]));
+
+  // Clientes primeiro. Quem já existe na conta com o mesmo CPF/CNPJ é reaproveitado, não duplicado.
+  const novoCliente = new Map<string, string>();
+  if (dados.clientes?.length) {
+    const existentes = await repo.listarClientes();
+    for (const c of dados.clientes) {
+      const validado = validarDadosCliente(c);
+      if (!validado.ok) throw new Error(`Cliente "${c.nome}": ${validado.erro}`);
+      const mesmo = validado.valor.documento ? existentes.find((e) => e.documento === validado.valor.documento) : undefined;
+      if (mesmo) {
+        novoCliente.set(c.id, mesmo.id);
+        continue;
+      }
+      const criado = await repo.criarCliente(validado.valor);
+      novoCliente.set(c.id, criado.id);
+      resumo.clientes += 1;
+    }
+  }
 
   for (const p of ordenarPorPosicao(dados.projetos).reverse()) {
     const validado = validarDadosProjeto({
@@ -126,6 +185,8 @@ export async function importarDados(repo: Repositorio, entrada: unknown): Promis
       icon: p.icon,
       dueOn: p.dueOn,
       campaign: p.kind === "campaign" ? (campanhaDe.get(p.id) ?? null) : null,
+      clienteId: p.clienteId ? (novoCliente.get(p.clienteId) ?? null) : null,
+      processo: p.kind === "project" ? (processoDe.get(p.id) ?? null) : null,
     });
     if (!validado.ok) throw new Error(`Projeto "${p.name}": ${validado.erro}`);
 
@@ -179,11 +240,12 @@ export async function importarDados(repo: Repositorio, entrada: unknown): Promis
 
 export function descreverResumo(r: ResumoImportacao): string {
   const partes = [
-    `${r.projetos} ${r.projetos === 1 ? "projeto" : "projetos"}`,
+    `${r.projetos} ${r.projetos === 1 ? "processo" : "processos"}`,
     `${r.tarefas} ${r.tarefas === 1 ? "tarefa" : "tarefas"}`,
     `${r.etiquetas} ${r.etiquetas === 1 ? "etiqueta" : "etiquetas"}`,
     `${r.colunas} colunas`,
   ];
-  if (r.campanhas) partes.splice(1, 0, `${r.campanhas} ${r.campanhas === 1 ? "campanha" : "campanhas"}`);
+  if (r.campanhas) partes.splice(1, 0, `${r.campanhas} ${r.campanhas === 1 ? "caso consultivo" : "casos consultivos"}`);
+  if (r.clientes) partes.unshift(`${r.clientes} ${r.clientes === 1 ? "cliente" : "clientes"}`);
   return `Importados: ${partes.join(", ")}.`;
 }

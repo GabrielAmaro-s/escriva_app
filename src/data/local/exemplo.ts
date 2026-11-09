@@ -1,8 +1,11 @@
+import { detalhesProcessoVazios } from "@/domain/processo";
 import { type ModeloQuadro, colunasDoModelo, novoId } from "@/domain/quadro";
-import type { Coluna, Etiqueta, IconeProjeto, PrioridadeTarefa, StatusProjeto, Tarefa, TipoColuna, Tom } from "@/domain/tipos";
+import type { Cliente, Coluna, DetalhesProcesso, Etiqueta, IconeProjeto, PrioridadeTarefa, StatusProjeto, Tarefa, TipoColuna, Tom } from "@/domain/tipos";
 import type { ArmazenamentoLocal } from "./repositorio-local";
 
 // Dados de exemplo do modo local: casos jurídicos fictícios e genéricos, sem pessoas reais.
+// Clientes com nomes de exemplo (Fulano de Tal, empresas "Exemplo Ltda"), sem CPF/CNPJ e sem número
+// de processo, para não coincidir com documentos ou processos de verdade.
 // A estrutura (quantidade de tarefas, colunas, prioridades e datas) segue o protótipo de design,
 // e os testes do agente e da importação contam com ela.
 // As datas são relativas ao dia de hoje para o exemplo continuar fazendo sentido.
@@ -54,13 +57,27 @@ interface ProjetoDeExemplo {
   inicio?: string;
   objetivo?: string;
   canais?: string[];
+  tipoServico?: string;
   entregas?: [string, boolean][];
+  cliente?: string;
+  processo?: Partial<DetalhesProcesso>;
   tarefas: Linha[];
 }
 
+const CLIENTES: Pick<Cliente, "nome" | "tipo" | "telefone" | "email" | "observacoes">[] = [
+  { nome: "Imobiliária Exemplo Ltda", tipo: "pj", telefone: null, email: null, observacoes: "Administra imóveis residenciais no centro." },
+  { nome: "Distribuidora Exemplo Ltda", tipo: "pj", telefone: null, email: null, observacoes: null },
+  { nome: "Fulano de Tal", tipo: "pf", telefone: null, email: null, observacoes: "Prefere contato pelo WhatsApp." },
+  { nome: "Beltrana de Tal", tipo: "pf", telefone: null, email: null, observacoes: null },
+  { nome: "Prestadora Exemplo Ltda", tipo: "pj", telefone: null, email: null, observacoes: null },
+  { nome: "Loja Virtual Exemplo Ltda", tipo: "pj", telefone: null, email: null, observacoes: null },
+];
+
 const PROJETOS: ProjetoDeExemplo[] = [
   {
-    nome: "Cobrança de aluguéis", descricao: "Cobrança de aluguéis e encargos atrasados no Juizado Especial Cível.", tipo: "project", modelo: "civel", tom: "violet", icone: "folder", status: "active", prazo: "2026-11-28",
+    nome: "Cobrança de aluguéis", descricao: "Cobrança de aluguéis e encargos atrasados no Juizado Especial Cível.", tipo: "project", modelo: "civel", tom: "violet", icone: "scales", status: "active", prazo: "2026-11-28",
+    cliente: "Imobiliária Exemplo Ltda",
+    processo: { area: "civel", fase: "inicial", polo: "autor", tribunal: "TJRS", orgao: "Juizado Especial Cível", parteContraria: "Locatário inadimplente (exemplo)", valorCausa: 18500 },
     tarefas: [
       ["Montar planilha do débito", "todo", "Estratégia", "med", "2026-11-28", [["Levantar aluguéis em aberto", 0], ["Aplicar correção e multa", 0]]],
       ["Pedir contrato ao cliente", "todo", "Documentos", "med", "2026-11-12"],
@@ -75,40 +92,48 @@ const PROJETOS: ProjetoDeExemplo[] = [
     ],
   },
   {
-    nome: "Contrato de prestação de serviços", descricao: "Revisão e redação do contrato de prestação de serviços de uma pequena empresa.", tipo: "campaign", modelo: "consultivo", tom: "red", icone: "megaphone", status: "active", inicio: "2026-12-01", prazo: "2027-02-15",
-    objetivo: "Revisar o contrato antes da assinatura", canais: ["Contrato"],
+    nome: "Contrato de prestação de serviços", descricao: "Revisão e redação do contrato de prestação de serviços de uma pequena empresa.", tipo: "campaign", modelo: "consultivo", tom: "red", icone: "briefcase", status: "active", inicio: "2026-12-01", prazo: "2027-02-15",
+    objetivo: "Revisar o contrato antes da assinatura", canais: ["Contrato"], tipoServico: "Contrato", cliente: "Prestadora Exemplo Ltda",
     entregas: [["Reunião de levantamento", true], ["Minuta inicial", true], ["Cláusulas de rescisão e multa", false], ["Revisão com o cliente", false], ["Versão final para assinatura", false]],
     tarefas: [["Reunião de levantamento", "done", "Levantamento"], ["Minuta inicial", "done", "Minuta,Cláusulas"], ["Cláusulas de rescisão e multa", "doing", "Cláusulas", "high", "2026-11-25"], ["Pesquisar modelos de contrato", "doing", "Pesquisa", "med", "2026-11-18"], ["Conferir dados das partes", "todo", "Documentos", "med", "2026-11-30"], ["Lista de pendências", "todo", "Minuta", "low"], ["Aprovação do cliente", "wait", "Cliente", "med", "2026-11-09"]],
   },
   {
-    nome: "Cobrança de cheques", descricao: "Ação monitória para cobrar cheques prescritos.", tipo: "project", modelo: "civel", tom: "blue", icone: "folder", status: "paused",
+    nome: "Cobrança de cheques", descricao: "Ação monitória para cobrar cheques prescritos.", tipo: "project", modelo: "civel", tom: "blue", icone: "scales", status: "paused",
+    cliente: "Distribuidora Exemplo Ltda",
+    processo: { area: "civel", fase: "inicial", polo: "autor", tribunal: "TJRS", orgao: "Vara Cível", parteContraria: "Emitente dos cheques (exemplo)", valorCausa: 7200 },
     tarefas: [["Reunião inicial", "done", "Estratégia"], ["Petição da ação monitória", "doing", "Petição", "high", "2026-11-15"], ["Cópias dos cheques", "wait", "Documentos"], ["Calcular juros e correção", "todo", "", "med"]],
   },
   {
-    nome: "Reclamação trabalhista", descricao: "Horas extras e verbas rescisórias de um ex-empregado do comércio.", tipo: "project", modelo: "trabalhista", tom: "green", icone: "calendar", status: "active", prazo: "2027-03-10",
+    nome: "Reclamação trabalhista", descricao: "Horas extras e verbas rescisórias de um ex-empregado do comércio.", tipo: "project", modelo: "trabalhista", tom: "green", icone: "gavel", status: "active", prazo: "2027-03-10",
+    cliente: "Fulano de Tal",
+    processo: { area: "trabalhista", fase: "instrucao", polo: "autor", tribunal: "TRT4", orgao: "Vara do Trabalho", parteContraria: "Comércio Exemplo Ltda", valorCausa: 42000 },
     tarefas: [["Entrevista com o cliente", "done"], ["Cálculo das verbas rescisórias", "done", "Cálculos"], ["Preparar testemunhas", "doing", "Audiência", "high", "2026-12-01"], ["Rol de testemunhas", "todo", "Audiência", "med", "2027-01-15"], ["Juntar holerites e CTPS", "todo", "Documentos"], ["Laudo pericial", "wait", "Perícia", "low", "2027-02-10"]],
   },
   {
-    nome: "Parecer sobre LGPD", descricao: "Parecer sobre o tratamento de dados pessoais de clientes de uma loja virtual.", tipo: "campaign", modelo: "consultivo", tom: "amber", icone: "chart", status: "active", inicio: "2026-11-20", prazo: "2026-12-05",
-    objetivo: "Adequar a empresa à LGPD", canais: ["Parecer"],
+    nome: "Parecer sobre LGPD", descricao: "Parecer sobre o tratamento de dados pessoais de clientes de uma loja virtual.", tipo: "campaign", modelo: "consultivo", tom: "amber", icone: "file", status: "active", inicio: "2026-11-20", prazo: "2026-12-05",
+    objetivo: "Adequar a empresa à LGPD", canais: ["Parecer"], tipoServico: "Parecer", cliente: "Loja Virtual Exemplo Ltda",
     entregas: [["Questionário ao cliente", true], ["Parecer escrito", false], ["Política de privacidade", false], ["Reunião de apresentação", false]],
     tarefas: [["Questionário ao cliente", "done", "Levantamento"], ["Mapa de dados pessoais", "done", "Levantamento"], ["Redigir parecer", "doing", "Parecer", "high", "2026-11-14"], ["Revisar política de privacidade", "todo", "Minuta", "med", "2026-11-20"], ["Respostas do cliente", "wait", "Cliente", "med", "2026-11-17"]],
   },
   {
-    nome: "Aposentadoria por idade", descricao: "Requerimento de aposentadoria por idade no INSS, já concedido.", tipo: "project", modelo: "previdenciario", tom: "green", icone: "check", status: "done",
+    nome: "Aposentadoria por idade", descricao: "Requerimento de aposentadoria por idade no INSS, já concedido.", tipo: "project", modelo: "previdenciario", tom: "green", icone: "scales", status: "done",
+    cliente: "Beltrana de Tal",
+    processo: { area: "previdenciario", fase: "administrativa", polo: "autor", parteContraria: "INSS" },
     tarefas: [["Reunir documentos do cliente", "done"], ["Simular tempo de contribuição", "done"], ["Protocolar requerimento no INSS", "done"], ["Conferir carta de concessão", "done"]],
   },
   {
-    nome: "Notificação extrajudicial", descricao: "Notificação a um inquilino sobre aluguéis em atraso.", tipo: "campaign", modelo: "consultivo", tom: "pink", icone: "gift", status: "done", inicio: "2025-11-01", prazo: "2025-11-30",
-    objetivo: "Cobrar os aluguéis sem precisar de ação judicial", canais: ["Notificação extrajudicial"],
+    nome: "Notificação extrajudicial", descricao: "Notificação a um inquilino sobre aluguéis em atraso.", tipo: "campaign", modelo: "consultivo", tom: "pink", icone: "briefcase", status: "done", inicio: "2025-11-01", prazo: "2025-11-30",
+    objetivo: "Cobrar os aluguéis sem precisar de ação judicial", canais: ["Notificação extrajudicial"], tipoServico: "Notificação extrajudicial", cliente: "Imobiliária Exemplo Ltda",
     entregas: [["Minuta da notificação", true], ["Envio pelo cartório", true], ["Comprovante de entrega", true]],
     tarefas: [["Minuta da notificação", "done", "Minuta"], ["Revisão com o cliente", "done"], ["Envio pelo cartório", "done", "Cartório"], ["Comprovante de entrega", "done"], ["Arquivar a resposta", "done"]],
   },
 ];
 
 export function criarDadosDeExemplo(hoje = new Date()): ArmazenamentoLocal {
-  const dados: ArmazenamentoLocal = { projects: [], campaigns: {}, columns: [], labels: [], tasks: [] };
   const carimbo = hoje.toISOString();
+  const clientes: Cliente[] = CLIENTES.map((c) => ({ id: novoId(), documento: null, ...c, criadoEm: carimbo, atualizadoEm: carimbo }));
+  const idDoCliente = (nome?: string) => clientes.find((c) => c.nome === nome)?.id ?? null;
+  const dados: ArmazenamentoLocal = { projects: [], campaigns: {}, columns: [], labels: [], tasks: [], clientes, processos: {} };
   const mover = (iso: string | undefined) => deslocar(iso, hoje);
 
   PROJETOS.forEach((pe, pi) => {
@@ -123,6 +148,7 @@ export function criarDadosDeExemplo(hoje = new Date()): ArmazenamentoLocal {
       color: pe.tom,
       icon: pe.icone,
       dueOn: campanha ? null : mover(pe.prazo),
+      clienteId: idDoCliente(pe.cliente),
       position: (pi + 1) * 1024,
       archivedAt: null,
       createdAt: carimbo,
@@ -135,7 +161,10 @@ export function criarDadosDeExemplo(hoje = new Date()): ArmazenamentoLocal {
         endsOn: mover(pe.prazo),
         channels: pe.canais ?? [],
         deliverables: (pe.entregas ?? []).map(([title, done]) => ({ id: novoId(), title, done })),
+        tipoServico: pe.tipoServico ?? null,
       };
+    } else if (pe.processo) {
+      dados.processos![id] = { ...detalhesProcessoVazios(), ...pe.processo };
     }
 
     const colunas: Coluna[] = colunasDoModelo(pe.modelo).map((c, i) => ({ id: novoId(), projectId: id, title: c.title, kind: c.kind, position: (i + 1) * 1024 }));
