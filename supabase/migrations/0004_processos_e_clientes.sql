@@ -15,7 +15,8 @@ begin
 end $$;
 
 -- Clientes ---------------------------------------------------------------------
--- documento guarda só os dígitos: 11 para CPF (pf), 14 para CNPJ (pj).
+-- documento guarda só o CPF/CNPJ sem pontuação: 11 dígitos para CPF (pf); 14 caracteres para CNPJ (pj),
+-- os 12 primeiros podendo ter letras maiúsculas (CNPJ alfanumérico, desde julho de 2026) e os 2 últimos dígitos.
 
 create table clientes (
   id            uuid primary key default gen_random_uuid(),
@@ -25,7 +26,7 @@ create table clientes (
   documento     text check (
                   documento is null
                   or (tipo = 'pf' and documento ~ '^[0-9]{11}$')
-                  or (tipo = 'pj' and documento ~ '^[0-9]{14}$')
+                  or (tipo = 'pj' and documento ~ '^[0-9A-Z]{12}[0-9]{2}$')
                 ),
   telefone      text check (char_length(telefone) <= 30),
   email         text check (char_length(email) <= 200),

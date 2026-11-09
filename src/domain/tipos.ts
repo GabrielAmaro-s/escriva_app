@@ -12,7 +12,22 @@ export type PrioridadeTarefa = "low" | "medium" | "high" | "urgent";
 /** Tons do design. Projetos usam os seis primeiros; etiquetas podem usar "gray". */
 export type Tom = "violet" | "blue" | "green" | "amber" | "red" | "pink" | "gray";
 
-export type IconeProjeto = "folder" | "monitor" | "box" | "calendar" | "chart" | "check" | "gift" | "megaphone" | "star" | "target";
+export type IconeProjeto =
+  | "folder"
+  | "monitor"
+  | "box"
+  | "calendar"
+  | "chart"
+  | "check"
+  | "gift"
+  | "megaphone"
+  | "star"
+  | "target"
+  // Ícones jurídicos (etapa 2)
+  | "scales"
+  | "briefcase"
+  | "gavel"
+  | "file";
 
 export interface Entrega {
   id: string;
@@ -20,13 +35,57 @@ export interface Entrega {
   done: boolean;
 }
 
+/**
+ * Detalhes do caso consultivo (campanha no banco). Na tela: objective é "Pedido do cliente",
+ * startsOn é "Recebido em", endsOn é "Prazo de entrega" e tipoServico é "Tipo de serviço".
+ */
 export interface DetalhesCampanha {
   objective: string | null;
   startsOn: string | null; // AAAA-MM-DD
   endsOn: string | null;
+  /** Não aparece mais na tela; continua guardado. */
   channels: string[];
   deliverables: Entrega[];
+  /** Opcional na entrada: sem ele, vale o primeiro de channels (ver validarDadosProjeto). */
+  tipoServico?: string | null;
 }
+
+// Processos e clientes (etapa 2) ---------------------------------------------------
+
+export type AreaProcesso = "civel" | "consumidor" | "trabalhista" | "previdenciario" | "familia" | "criminal" | "tributario" | "administrativo" | "outra";
+export type FaseProcesso = "administrativa" | "inicial" | "instrucao" | "sentenca" | "recurso" | "execucao";
+export type PoloProcesso = "autor" | "reu" | "terceiro";
+
+export interface DetalhesProcesso {
+  /** Só os 20 dígitos. */
+  numeroCnj: string | null;
+  tribunal: string | null;
+  orgao: string | null;
+  area: AreaProcesso | null;
+  fase: FaseProcesso | null;
+  polo: PoloProcesso | null;
+  parteContraria: string | null;
+  valorCausa: number | null;
+  segredoJustica: boolean;
+  linkAutos: string | null;
+}
+
+export type TipoCliente = "pf" | "pj";
+
+export interface Cliente {
+  id: string;
+  nome: string;
+  tipo: TipoCliente;
+  /** CPF ou CNPJ, só os dígitos. */
+  documento: string | null;
+  telefone: string | null;
+  email: string | null;
+  observacoes: string | null;
+  criadoEm: string;
+  atualizadoEm: string;
+}
+
+export type DadosCliente = Pick<Cliente, "nome" | "tipo" | "documento" | "telefone" | "email" | "observacoes">;
 
 export interface Projeto {
   id: string;
@@ -43,6 +102,10 @@ export interface Projeto {
   createdAt: string;
   updatedAt: string;
   campaign: DetalhesCampanha | null;
+  /** Cliente do processo ou do caso consultivo. */
+  clienteId: string | null;
+  /** Só em processos (kind = project); null quando ainda não há detalhes. */
+  processo: DetalhesProcesso | null;
   taskCount: number;
   doneCount: number;
 }
@@ -56,6 +119,10 @@ export interface DadosProjeto {
   icon: IconeProjeto;
   dueOn: string | null;
   campaign: DetalhesCampanha | null;
+  /** Ausente: não mexe (na atualização) ou sem cliente (na criação). */
+  clienteId?: string | null;
+  /** Ausente: não mexe (na atualização) ou sem detalhes (na criação). */
+  processo?: DetalhesProcesso | null;
 }
 
 export interface Coluna {

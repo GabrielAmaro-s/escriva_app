@@ -49,7 +49,8 @@ O modelo é dividido por etapa. A etapa 2 traz a migração 0004_processos_e_cli
 
 Etapa 2 (0004_processos_e_clientes.sql):
 
-clientes            id, user_id, nome, tipo (pf|pj), documento (só dígitos: 11 para CPF, 14 para CNPJ),
+clientes            id, user_id, nome, tipo (pf|pj), documento (sem pontuação: 11 dígitos para CPF, 14 caracteres
+                    para CNPJ, que pode ser alfanumérico),
                     telefone, email, observacoes, criado_em, atualizado_em
                     documento único por conta
 projects (nova coluna)
