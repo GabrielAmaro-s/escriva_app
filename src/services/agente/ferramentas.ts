@@ -442,7 +442,7 @@ export function criarFerramentas(config: { limiteItens: number }): Ferramenta[] 
       nome: "criar_projeto",
       titulo: "Criar projeto",
       descricao:
-        'Cria um projeto (processo) ou uma campanha (caso consultivo). As colunas vêm do modelo de quadro: "civel" (A fazer, Em andamento, Aguardando decisão, Concluído), "trabalhista" (A fazer, Em andamento, Aguardando audiência, Concluído), "previdenciario" (Documentos do cliente, Requerimento INSS, Aguardando INSS/Justiça, Concluído), "familia" (A fazer, Em andamento, Aguardando, Concluído) ou "consultivo" (A fazer, Redigindo, Aguardando cliente, Entregue). Sem modelo, usa "civel" para projeto e "consultivo" para campanha.',
+        'Cria um projeto (processo) ou uma campanha (caso consultivo). As colunas vêm do modelo de quadro: "civel" (A fazer, Em andamento, Aguardando decisão, Concluído), "trabalhista" (A fazer, Em andamento, Aguardando audiência, Concluído), "previdenciario" (Documentos do cliente, Requerimento INSS, Aguardando INSS/Justiça, Concluído), "familia" (A fazer, Em andamento, Aguardando, Concluído) ou "consultivo" (A fazer, Redigindo, Aguardando cliente, Entregue). "consultivo" serve só para campanha; os outros quatro, só para projeto. Sem modelo, usa "civel" para projeto e "consultivo" para campanha.',
       escrita: true,
       confirmacao: false,
       entrada: z.object({

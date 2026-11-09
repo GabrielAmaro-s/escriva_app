@@ -211,6 +211,15 @@ describe("escrita", () => {
     expect(colunas.map((c) => c.papel)).toEqual(["a_fazer", "em_andamento", "aguardando", "concluido"]);
   });
 
+  it("criar_projeto recusa modelo que não combina com o tipo", async () => {
+    const r = await chamar("criar_projeto", { nome: "Parecer novo", tipo: "campanha", modelo: "civel" });
+    expect(r.erro).toBe(true);
+    expect(r.corpo.erro).toBe("Caso consultivo usa o modelo Consultivo.");
+    const p = await chamar("criar_projeto", { nome: "Ação nova", modelo: "consultivo" });
+    expect(p.erro).toBe(true);
+    expect((await repo.listarProjetos()).some((x) => x.name === "Parecer novo" || x.name === "Ação nova")).toBe(false);
+  });
+
   it("criar_projeto recusa modelo que não existe", async () => {
     const r = await chamar("criar_projeto", { nome: "Inventário", modelo: "tributario" });
     expect(r.erro).toBe(true);
