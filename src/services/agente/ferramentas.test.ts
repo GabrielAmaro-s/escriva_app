@@ -191,11 +191,11 @@ describe("escrita", () => {
     expect(r.erro).toBe(true);
   });
 
-  it("criar_projeto cria com as 4 colunas padrão", async () => {
+  it("criar_projeto usa Cível/JEC como modelo padrão de processo", async () => {
     const r = await chamar("criar_projeto", { nome: "Mudança de escritório", prazo: "2026-12-15" });
     expect(r.corpo.mensagem).toBe("Criei o projeto Mudança de escritório.");
     const quadro = await chamar("ver_quadro", { projeto: "Mudança de escritório" });
-    expect((quadro.corpo.colunas as { titulo: string }[]).map((c) => c.titulo)).toEqual(["A fazer", "Em andamento", "Aguardando", "Concluído"]);
+    expect((quadro.corpo.colunas as { titulo: string }[]).map((c) => c.titulo)).toEqual(["A fazer", "Em andamento", "Aguardando decisão", "Concluído"]);
     const campanha = await chamar("criar_projeto", { nome: "Natal", tipo: "campanha", inicio: "2026-12-01", prazo: "2026-12-25", canais: ["Instagram"] });
     expect(campanha.corpo.mensagem).toBe("Criei a campanha Natal.");
   });

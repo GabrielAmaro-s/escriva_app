@@ -1,4 +1,4 @@
-import { COLUNAS_PADRAO } from "@/domain/quadro";
+import { type ModeloQuadro, colunasDoModelo, modeloPadrao } from "@/domain/quadro";
 import { validarDadosProjeto } from "@/domain/projeto";
 import type { DadosProjeto, Projeto, StatusProjeto } from "@/domain/tipos";
 import type { Repositorio } from "@/data/repositorio";
@@ -6,10 +6,11 @@ import type { Repositorio } from "@/data/repositorio";
 // Casos de uso de projetos. A interface chama estas funções, nunca o repositório direto.
 // O agente chama as mesmas funções.
 
-export async function criarProjeto(repo: Repositorio, dados: DadosProjeto): Promise<Projeto> {
+/** Cria o projeto com as colunas do modelo escolhido (padrão: Cível/JEC para processo, Consultivo para campanha). */
+export async function criarProjeto(repo: Repositorio, dados: DadosProjeto, modelo?: ModeloQuadro): Promise<Projeto> {
   const resultado = validarDadosProjeto(dados);
   if (!resultado.ok) throw new Error(resultado.erro);
-  return repo.criarProjeto(resultado.valor, COLUNAS_PADRAO);
+  return repo.criarProjeto(resultado.valor, colunasDoModelo(modelo ?? modeloPadrao(resultado.valor.kind)));
 }
 
 export async function atualizarProjeto(repo: Repositorio, id: string, dados: DadosProjeto): Promise<Projeto> {

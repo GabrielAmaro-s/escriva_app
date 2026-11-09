@@ -1,4 +1,4 @@
-import { COLUNAS_PADRAO, novoId } from "@/domain/quadro";
+import { colunasDoModelo, modeloPadrao, novoId } from "@/domain/quadro";
 import type { Coluna, Etiqueta, IconeProjeto, PrioridadeTarefa, StatusProjeto, Tarefa, TipoColuna, Tom } from "@/domain/tipos";
 import type { ArmazenamentoLocal } from "./repositorio-local";
 
@@ -132,7 +132,7 @@ export function criarDadosDeExemplo(hoje = new Date()): ArmazenamentoLocal {
       };
     }
 
-    const colunas: Coluna[] = COLUNAS_PADRAO.map((c, i) => ({ id: novoId(), projectId: id, title: c.title, kind: c.kind, position: (i + 1) * 1024 }));
+    const colunas: Coluna[] = colunasDoModelo(modeloPadrao(pe.tipo)).map((c, i) => ({ id: novoId(), projectId: id, title: c.title, kind: c.kind, position: (i + 1) * 1024 }));
     dados.columns.push(...colunas);
 
     const etiquetas = new Map<string, Etiqueta>();

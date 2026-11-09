@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { obterRepositorio } from "@/data";
+import type { ModeloQuadro } from "@/domain/quadro";
 import type { DadosProjeto, Projeto, StatusProjeto } from "@/domain/tipos";
 import * as servico from "@/services/projetos";
 import { useAviso } from "@/components/ui/aviso";
@@ -10,7 +11,8 @@ interface EstadoProjetos {
   projetos: Projeto[];
   carregando: boolean;
   erro: string | null;
-  criar(dados: DadosProjeto): Promise<Projeto | null>;
+  /** Sem modelo, usa o padrão do tipo (Cível/JEC ou Consultivo). */
+  criar(dados: DadosProjeto, modelo?: ModeloQuadro): Promise<Projeto | null>;
   atualizar(id: string, dados: DadosProjeto, opcoes?: { silencioso?: boolean }): Promise<Projeto | null>;
   definirStatus(id: string, status: StatusProjeto): void;
   arquivar(id: string): void;
@@ -99,9 +101,9 @@ export function ProvedorProjetos({ children }: { children: ReactNode }) {
       carregando,
       erro,
       recarregar,
-      async criar(dados) {
+      async criar(dados, modelo) {
         try {
-          const p = await servico.criarProjeto(repo, dados);
+          const p = await servico.criarProjeto(repo, dados, modelo);
           setProjetos((lista) => [p, ...lista]);
           avisar({ texto: dados.kind === "campaign" ? "Campanha criada" : "Projeto criado", tom: "info" });
           return p;
