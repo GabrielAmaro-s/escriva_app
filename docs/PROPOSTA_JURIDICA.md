@@ -43,13 +43,31 @@ RLS por user_id	Mantido. Para o autônomo basta um dono por conta
 
 Nada da arquitetura em camadas muda. As regras jurídicas entram em domain/, os casos de uso em services/, e as mesmas funções servem à interface, à API e ao agente.
 
-5. Modelo de dados (migração 0004_juridico.sql)
-clientes            id, user_id, nome, tipo (pf|pj), documento (CPF/CNPJ), telefone,
-                    email, observacoes, criado_em
-processo_detalhes   project_id (1:1), user_id, cliente_id, numero_cnj, tribunal,
-                    orgao (vara/turma), area, polo (autor|reu|terceiro),
-                    parte_contraria, valor_causa, segredo_justica boolean,
-                    ultima_consulta_em
+5. Modelo de dados
+
+O modelo é dividido por etapa. A etapa 2 traz a migração 0004_processos_e_clientes.sql, e a etapa 3 traz uma migração 0005, com prazos, feriados e histórico. A etapa 5 acrescenta ultima_consulta_em em processo_detalhes, para o DataJud.
+
+Etapa 2 (0004_processos_e_clientes.sql):
+
+clientes            id, user_id, nome, tipo (pf|pj), documento (só dígitos: 11 para CPF, 14 para CNPJ),
+                    telefone, email, observacoes, criado_em, atualizado_em
+                    documento único por conta
+projects (nova coluna)
+                    cliente_id (nulo permitido), vale para processo e consultivo
+processo_detalhes   project_id (1:1), user_id, numero_cnj (só os 20 dígitos, único por conta),
+                    tribunal, orgao (vara/turma),
+                    area (civel|consumidor|trabalhista|previdenciario|familia|criminal|
+                          tributario|administrativo|outra),
+                    fase (administrativa|inicial|instrucao|sentenca|recurso|execucao),
+                    polo (autor|reu|terceiro), parte_contraria, valor_causa,
+                    segredo_justica boolean, link_autos
+campaign_details (nova coluna)
+                    tipo_servico (texto único). A migração copia o primeiro valor de channels
+                    quando tipo_servico está vazio. channels continua no banco, com os dados,
+                    mas a tela deixa de usá-lo.
+
+Etapa 3 (0005):
+
 tasks (novas colunas)
                     tipo (prazo|providencia|audiencia) default 'providencia',
                     prazo_fatal date,          -- dueOn passa a ser o prazo interno
@@ -63,6 +81,10 @@ registro_alteracoes id, user_id, entidade, entidade_id, campo, antes, depois,
 Escolhas:
 
 processo_detalhes segue o padrão de campaign_details. O conversor, o repositório e o formulário já sabem lidar com "projeto com detalhes 1:1".
+Cliente em projects, não em processo_detalhes. Um caso consultivo também tem cliente, e assim os dois tipos usam o mesmo campo.
+Área é campo próprio do processo, independente do modelo de quadro. No formulário, escolher o modelo sugere a área e vice-versa, mas os dois podem ser alterados. O modelo continua sem ser gravado.
+Consultivo sem tabela nova. Ele usa campaign_details: objective aparece como "Pedido do cliente", starts_on como "Recebido em", ends_on como "Prazo de entrega" e tipo_servico como "Tipo de serviço".
+Mesmo dono garantido no banco. As chaves estrangeiras novas são compostas com user_id, então um processo não aponta para cliente de outra conta, mesmo pelo cliente admin do agente.
 dueOn continua sendo o campo usado pelo quadro, listas e resumos. Para prazos, ele guarda o prazo interno e prazo_fatal guarda a data limite. Assim as telas atuais funcionam sem mudança e só ganham um selo de "fatal".
 contagem guarda a memória do cálculo. O advogado vê "15 dias úteis a partir de 10/11, excluídos 15/11 e 20/11, vence 02/12".
 Feriados em tabela própria, alimentada por quem administra o sistema e revisada a cada ano. Feriados municipais e suspensões de expediente pontuais podem ser cadastrados pelo próprio advogado.
@@ -159,3 +181,7 @@ Validação com advogados autônomos (dores, preço, uso do WhatsApp para trabal
 Revisão das regras de prazo por alguém da área antes de qualquer uso real.
 Ícones jurídicos (etapa 2). Na etapa 1 o Consultivo ficou com o megafone, na tela e no agente, e os ícones do menu não mudaram.
 Vocabulário das mensagens do agente (etapa 4). Na etapa 1 só a ferramenta criar_projeto mudou, com o parâmetro modelo.
+
+13. Ideias futuras
+Trocar o modelo de quadro de um processo que já existe. Exigiria renomear colunas que já têm tarefas, então fica fora do roteiro por enquanto.
+Litisconsórcio: mais de um cliente no mesmo processo. Hoje cada processo tem no máximo um cliente (projects.cliente_id). Uma tabela de ligação resolveria, sem desfazer o campo atual.
