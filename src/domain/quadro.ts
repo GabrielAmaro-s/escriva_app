@@ -66,6 +66,15 @@ export function modeloPadrao(tipo: TipoProjeto): ModeloQuadro {
   return tipo === "campaign" ? "consultivo" : "civel";
 }
 
+/** Consultivo só para caso consultivo (campanha); os outros quatro só para processo. */
+export function modelosDoTipo(tipo: TipoProjeto): ModeloQuadro[] {
+  return tipo === "campaign" ? ["consultivo"] : MODELOS.filter((m) => m !== "consultivo");
+}
+
+export function modeloPermitido(tipo: TipoProjeto, modelo: ModeloQuadro): boolean {
+  return modelosDoTipo(tipo).includes(modelo);
+}
+
 export function colunasDoModelo(modelo: ModeloQuadro): { title: string; kind: TipoColuna }[] {
   return MODELOS_DE_QUADRO[modelo].colunas.map((c) => ({ ...c }));
 }

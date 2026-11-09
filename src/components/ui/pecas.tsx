@@ -1,16 +1,20 @@
 "use client";
 
 import {
+  BriefcaseIcon,
   CalendarBlankIcon,
   ChartBarIcon,
   CheckCircleIcon,
   CheckIcon,
+  FileTextIcon,
   FolderIcon,
+  GavelIcon,
   GiftIcon,
   MagnifyingGlassIcon,
   MegaphoneIcon,
   MonitorIcon,
   PackageIcon,
+  ScalesIcon,
   StarIcon,
   TargetIcon,
   type Icon,
@@ -33,6 +37,10 @@ export const ICONE_PROJETO: Record<IconeProjeto, Icon> = {
   megaphone: MegaphoneIcon,
   star: StarIcon,
   target: TargetIcon,
+  scales: ScalesIcon,
+  briefcase: BriefcaseIcon,
+  gavel: GavelIcon,
+  file: FileTextIcon,
 };
 
 /** Quadradinho colorido com o ícone do projeto. */

@@ -1,8 +1,14 @@
+import { MENSAGEM_CLIENTE_DUPLICADO } from "@/domain/cliente";
+import { ErroDeConflito } from "@/domain/erros";
+import { MENSAGEM_PROCESSO_DUPLICADO } from "@/domain/processo";
 import { novoId, posicaoEntre } from "@/domain/quadro";
 import type {
   AlteracaoLembrete,
   AlteracaoTarefa,
+  Cliente,
   Coluna,
+  DadosCliente,
+  DetalhesProcesso,
   DadosNovoLembrete,
   DadosNovoRegistro,
   DadosNovoToken,
@@ -30,7 +36,8 @@ import { criarDadosDeExemplo } from "./exemplo";
 
 const CHAVE = "myplan:v2";
 
-export type ProjetoGuardado = Omit<Projeto, "campaign" | "taskCount" | "doneCount">;
+/** clienteId é opcional porque dados salvos antes da etapa 2 não têm o campo. */
+export type ProjetoGuardado = Omit<Projeto, "campaign" | "processo" | "clienteId" | "taskCount" | "doneCount"> & { clienteId?: string | null };
 
 /** Formato salvo no navegador. As chaves continuam as mesmas para não perder dados já salvos. */
 export interface ArmazenamentoLocal {
@@ -44,6 +51,8 @@ export interface ArmazenamentoLocal {
   tokens?: (TokenAgente & { hash: string })[];
   registro?: RegistroAgente[];
   heartbeat?: string | null;
+  clientes?: Cliente[];
+  processos?: Record<string, DetalhesProcesso>;
 }
 
 export function armazenamentoVazio(): ArmazenamentoLocal {
@@ -75,10 +84,18 @@ function hidratar(dados: ArmazenamentoLocal, p: ProjetoGuardado): Projeto {
   const tarefas = dados.tasks.filter((t) => t.projectId === p.id);
   return {
     ...p,
-    campaign: p.kind === "campaign" ? (dados.campaigns[p.id] ?? null) : null,
+    campaign: p.kind === "campaign" ? hidratarCampanha(dados.campaigns[p.id]) : null,
+    clienteId: p.clienteId ?? null,
+    processo: p.kind === "project" ? (dados.processos?.[p.id] ?? null) : null,
     taskCount: tarefas.length,
     doneCount: tarefas.filter((t) => t.completed).length,
   };
+}
+
+/** Campanhas salvas antes da etapa 2 não têm tipoServico: vale o primeiro canal, como na migração 0004. */
+function hidratarCampanha(c: DetalhesCampanha | undefined): DetalhesCampanha | null {
+  if (!c) return null;
+  return { ...c, tipoServico: c.tipoServico ?? (c.channels[0]?.trim() || null) };
 }
 
 const agora = () => new Date().toISOString();
@@ -124,6 +141,20 @@ export function criarRepositorioLocal(opcoes: OpcoesRepositorioLocal = {}): Repo
     if (persistir) salvar(banco());
   };
 
+  // As mesmas garantias do banco (índices únicos e chave do cliente), para o modo local se comportar igual.
+  const conferirCliente = (s: ArmazenamentoLocal, clienteId: string | null | undefined) => {
+    if (clienteId && !(s.clientes ?? []).some((c) => c.id === clienteId)) throw new Error("Cliente não encontrado.");
+  };
+  const conferirNumero = (s: ArmazenamentoLocal, projetoId: string, processo: DetalhesProcesso | null | undefined) => {
+    const numero = processo?.numeroCnj;
+    if (!numero) return;
+    const repetido = Object.entries(s.processos ?? {}).some(([id, d]) => id !== projetoId && d.numeroCnj === numero && s.projects.some((p) => p.id === id));
+    if (repetido) throw new ErroDeConflito(MENSAGEM_PROCESSO_DUPLICADO);
+  };
+  const conferirDocumento = (s: ArmazenamentoLocal, clienteId: string | null, documento: string | null | undefined) => {
+    if (documento && (s.clientes ?? []).some((c) => c.id !== clienteId && c.documento === documento)) throw new ErroDeConflito(MENSAGEM_CLIENTE_DUPLICADO);
+  };
+
   return {
     modo: "local",
 
@@ -135,6 +166,8 @@ export function criarRepositorioLocal(opcoes: OpcoesRepositorioLocal = {}): Repo
     async criarProjeto(entrada: DadosProjeto, colunas: DadosNovaColuna[]) {
       const s = banco();
       const id = novoId();
+      conferirCliente(s, entrada.clienteId);
+      if (entrada.kind === "project") conferirNumero(s, id, entrada.processo);
       const primeira = Math.min(0, ...s.projects.map((p) => p.position));
       const projeto: ProjetoGuardado = {
         id,
@@ -145,6 +178,7 @@ export function criarRepositorioLocal(opcoes: OpcoesRepositorioLocal = {}): Repo
         color: entrada.color,
         icon: entrada.icon,
         dueOn: entrada.dueOn,
+        clienteId: entrada.clienteId ?? null,
         position: posicaoEntre(null, s.projects.length ? primeira : null),
         archivedAt: null,
         createdAt: agora(),
@@ -152,6 +186,7 @@ export function criarRepositorioLocal(opcoes: OpcoesRepositorioLocal = {}): Repo
       };
       s.projects.push(projeto);
       if (entrada.kind === "campaign" && entrada.campaign) s.campaigns[id] = structuredClone(entrada.campaign);
+      if (entrada.kind === "project" && entrada.processo) (s.processos ??= {})[id] = structuredClone(entrada.processo);
       colunas.forEach((c, i) =>
         s.columns.push({ id: novoId(), projectId: id, title: c.title, kind: c.kind, position: c.position ?? (i + 1) * 1024 }),
       );
@@ -163,8 +198,15 @@ export function criarRepositorioLocal(opcoes: OpcoesRepositorioLocal = {}): Repo
       const s = banco();
       const p = s.projects.find((x) => x.id === id);
       if (!p) throw new Error("Projeto não encontrado.");
-      const { campaign, ...resto } = entrada;
+      const { campaign, processo, ...resto } = entrada;
+      conferirCliente(s, resto.clienteId);
+      if ((resto.kind ?? p.kind) === "project") conferirNumero(s, id, processo);
       Object.assign(p, resto, { updatedAt: agora() });
+      if (processo !== undefined) {
+        if (processo && p.kind === "project") (s.processos ??= {})[id] = structuredClone(processo);
+        else delete s.processos?.[id];
+      }
+      if (p.kind !== "project") delete s.processos?.[id];
       if (campaign !== undefined) {
         if (campaign && p.kind === "campaign") s.campaigns[id] = structuredClone(campaign);
         else delete s.campaigns[id];
@@ -182,6 +224,7 @@ export function criarRepositorioLocal(opcoes: OpcoesRepositorioLocal = {}): Repo
       s.tasks = s.tasks.filter((t) => t.projectId !== id);
       s.lembretes = (s.lembretes ?? []).filter((l) => l.projetoId !== id);
       delete s.campaigns[id];
+      delete s.processos?.[id];
       gravar();
     },
 
@@ -256,6 +299,37 @@ export function criarRepositorioLocal(opcoes: OpcoesRepositorioLocal = {}): Repo
       const s = banco();
       s.labels = s.labels.filter((l) => l.id !== id);
       s.tasks.forEach((t) => (t.labelIds = t.labelIds.filter((l) => l !== id)));
+      gravar();
+    },
+
+    async listarClientes() {
+      return structuredClone([...(banco().clientes ?? [])].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")));
+    },
+
+    async criarCliente(dados: DadosCliente) {
+      const s = banco();
+      conferirDocumento(s, null, dados.documento);
+      const cliente: Cliente = { id: novoId(), ...structuredClone(dados), criadoEm: agora(), atualizadoEm: agora() };
+      (s.clientes ??= []).push(cliente);
+      gravar();
+      return structuredClone(cliente);
+    },
+
+    async atualizarCliente(id, dados) {
+      const s = banco();
+      const c = (s.clientes ?? []).find((x) => x.id === id);
+      if (!c) throw new Error("Cliente não encontrado.");
+      if (dados.documento !== undefined) conferirDocumento(s, id, dados.documento);
+      Object.assign(c, structuredClone(dados), { atualizadoEm: agora() });
+      gravar();
+      return structuredClone(c);
+    },
+
+    async excluirCliente(id) {
+      const s = banco();
+      s.clientes = (s.clientes ?? []).filter((c) => c.id !== id);
+      // Como no banco (on delete set null): os processos ficam, sem cliente.
+      for (const p of s.projects) if (p.clienteId === id) p.clienteId = null;
       gravar();
     },
 

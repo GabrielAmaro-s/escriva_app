@@ -1,5 +1,20 @@
 import { ehIconeProjeto, ehTom } from "@/domain/projeto";
-import type { AlteracaoLembrete, AlteracaoTarefa, Coluna, DadosProjeto, DetalhesCampanha, Etiqueta, Lembrete, Projeto, RegistroAgente, Tarefa, TokenAgente } from "@/domain/tipos";
+import type {
+  AlteracaoLembrete,
+  AlteracaoTarefa,
+  Cliente,
+  Coluna,
+  DadosCliente,
+  DadosProjeto,
+  DetalhesCampanha,
+  DetalhesProcesso,
+  Etiqueta,
+  Lembrete,
+  Projeto,
+  RegistroAgente,
+  Tarefa,
+  TokenAgente,
+} from "@/domain/tipos";
 
 // Conversão entre linhas do banco (snake_case) e objetos de domínio.
 
@@ -16,7 +31,9 @@ export type LinhaProjeto = {
   archived_at: string | null;
   created_at: string;
   updated_at: string;
+  cliente_id?: string | null;
   campaign_details: LinhaCampanha | LinhaCampanha[] | null;
+  processo_detalhes?: LinhaProcesso | LinhaProcesso[] | null;
 };
 
 export type LinhaCampanha = {
@@ -25,6 +42,21 @@ export type LinhaCampanha = {
   ends_on: string | null;
   channels: string[];
   deliverables: DetalhesCampanha["deliverables"];
+  tipo_servico?: string | null;
+};
+
+export type LinhaProcesso = {
+  numero_cnj: string | null;
+  tribunal: string | null;
+  orgao: string | null;
+  area: DetalhesProcesso["area"];
+  fase: DetalhesProcesso["fase"];
+  polo: DetalhesProcesso["polo"];
+  parte_contraria: string | null;
+  /** O PostgREST devolve numeric como número ou texto, conforme a configuração. */
+  valor_causa: number | string | null;
+  segredo_justica: boolean;
+  link_autos: string | null;
 };
 
 export type LinhaContagem = { project_id: string; task_count: number; done_count: number };
@@ -50,8 +82,42 @@ export type LinhaTarefa = {
   updated_at: string;
 };
 
+const umaSo = <T>(v: T | T[] | null | undefined): T | null => (Array.isArray(v) ? (v[0] ?? null) : (v ?? null));
+
+export function paraProcesso(l: LinhaProcesso): DetalhesProcesso {
+  return {
+    numeroCnj: l.numero_cnj,
+    tribunal: l.tribunal,
+    orgao: l.orgao,
+    area: l.area,
+    fase: l.fase,
+    polo: l.polo,
+    parteContraria: l.parte_contraria,
+    valorCausa: l.valor_causa === null || l.valor_causa === undefined ? null : Number(l.valor_causa),
+    segredoJustica: Boolean(l.segredo_justica),
+    linkAutos: l.link_autos,
+  };
+}
+
+export function deProcesso(projetoId: string, d: DetalhesProcesso) {
+  return {
+    project_id: projetoId,
+    numero_cnj: d.numeroCnj,
+    tribunal: d.tribunal,
+    orgao: d.orgao,
+    area: d.area,
+    fase: d.fase,
+    polo: d.polo,
+    parte_contraria: d.parteContraria,
+    valor_causa: d.valorCausa,
+    segredo_justica: d.segredoJustica,
+    link_autos: d.linkAutos,
+  };
+}
+
 export function paraProjeto(linha: LinhaProjeto, contagem?: LinhaContagem): Projeto {
-  const c = Array.isArray(linha.campaign_details) ? linha.campaign_details[0] : linha.campaign_details;
+  const c = umaSo(linha.campaign_details);
+  const processo = umaSo(linha.processo_detalhes);
   return {
     id: linha.id,
     name: linha.name,
@@ -73,8 +139,11 @@ export function paraProjeto(linha: LinhaProjeto, contagem?: LinhaContagem): Proj
             endsOn: c.ends_on,
             channels: c.channels ?? [],
             deliverables: c.deliverables ?? [],
+            tipoServico: c.tipo_servico ?? null,
           }
         : null,
+    clienteId: linha.cliente_id ?? null,
+    processo: linha.kind === "project" && processo ? paraProcesso(processo) : null,
     taskCount: contagem?.task_count ?? 0,
     doneCount: contagem?.done_count ?? 0,
   };
@@ -89,6 +158,7 @@ export function deDadosProjeto(dados: Partial<DadosProjeto> & { archivedAt?: str
   if (dados.color !== undefined) linha.color = dados.color;
   if (dados.icon !== undefined) linha.icon = dados.icon;
   if (dados.dueOn !== undefined) linha.due_on = dados.dueOn;
+  if (dados.clienteId !== undefined) linha.cliente_id = dados.clienteId;
   if (dados.archivedAt !== undefined) linha.archived_at = dados.archivedAt;
   return linha;
 }
@@ -101,7 +171,45 @@ export function deCampanha(projetoId: string, c: DetalhesCampanha) {
     ends_on: c.endsOn,
     channels: c.channels,
     deliverables: c.deliverables,
+    tipo_servico: c.tipoServico ?? null,
   };
+}
+
+// Clientes ---------------------------------------------------------------------
+
+export type LinhaCliente = {
+  id: string;
+  nome: string;
+  tipo: Cliente["tipo"];
+  documento: string | null;
+  telefone: string | null;
+  email: string | null;
+  observacoes: string | null;
+  criado_em: string;
+  atualizado_em: string;
+};
+
+export const paraCliente = (l: LinhaCliente): Cliente => ({
+  id: l.id,
+  nome: l.nome,
+  tipo: l.tipo,
+  documento: l.documento,
+  telefone: l.telefone,
+  email: l.email,
+  observacoes: l.observacoes,
+  criadoEm: l.criado_em,
+  atualizadoEm: l.atualizado_em,
+});
+
+export function deDadosCliente(d: Partial<DadosCliente>) {
+  const linha: Record<string, unknown> = {};
+  if (d.nome !== undefined) linha.nome = d.nome;
+  if (d.tipo !== undefined) linha.tipo = d.tipo;
+  if (d.documento !== undefined) linha.documento = d.documento;
+  if (d.telefone !== undefined) linha.telefone = d.telefone;
+  if (d.email !== undefined) linha.email = d.email;
+  if (d.observacoes !== undefined) linha.observacoes = d.observacoes;
+  return linha;
 }
 
 export const paraColuna = (l: LinhaColuna): Coluna => ({

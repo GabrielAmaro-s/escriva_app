@@ -1,4 +1,4 @@
-import type { EspacoDeTrabalho, Etiqueta, Lembrete, Projeto, Quadro, RegistroAgente, Tarefa, TokenAgente } from "@/domain/tipos";
+import type { Cliente, EspacoDeTrabalho, Etiqueta, Lembrete, Projeto, Quadro, RegistroAgente, Tarefa, TokenAgente } from "@/domain/tipos";
 import { chamarApi } from "@/lib/chamar-api";
 import type { Repositorio } from "../repositorio";
 
@@ -34,6 +34,11 @@ export function criarRepositorioHttp(): Repositorio {
 
     criarEtiqueta: (projetoId, nome, cor) => chamarApi<Etiqueta>("/api/etiquetas", { metodo: "POST", corpo: { projetoId, nome, cor } }),
     excluirEtiqueta: (id) => chamarApi<void>(`/api/etiquetas/${id}`, { metodo: "DELETE" }),
+
+    listarClientes: () => chamarApi<Cliente[]>("/api/clientes"),
+    criarCliente: (dados) => chamarApi<Cliente>("/api/clientes", { metodo: "POST", corpo: dados }),
+    atualizarCliente: (id, dados) => chamarApi<Cliente>(`/api/clientes/${id}`, { metodo: "PATCH", corpo: dados }),
+    excluirCliente: (id) => chamarApi<void>(`/api/clientes/${id}`, { metodo: "DELETE" }),
 
     listarLembretes(filtro = {}) {
       const parametros = new URLSearchParams();

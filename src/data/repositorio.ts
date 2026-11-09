@@ -1,6 +1,8 @@
 import type {
   AlteracaoLembrete,
   AlteracaoTarefa,
+  Cliente,
+  DadosCliente,
   DadosNovaColuna,
   DadosNovaTarefa,
   DadosNovoLembrete,
@@ -27,6 +29,7 @@ import type {
 export interface Repositorio {
   readonly modo: "supabase" | "local" | "http";
 
+  /** Os detalhes do processo e o cliente vão junto com o projeto (como os da campanha). */
   listarProjetos(): Promise<Projeto[]>;
   criarProjeto(dados: DadosProjeto, colunas: DadosNovaColuna[]): Promise<Projeto>;
   atualizarProjeto(id: string, dados: Partial<DadosProjeto> & { archivedAt?: string | null }): Promise<Projeto>;
@@ -42,6 +45,12 @@ export interface Repositorio {
 
   criarEtiqueta(projetoId: string, nome: string, cor: Tom): Promise<Etiqueta>;
   excluirEtiqueta(id: string): Promise<void>;
+
+  // Clientes. CPF/CNPJ repetido na conta lança ErroDeConflito; excluir deixa os processos sem cliente.
+  listarClientes(): Promise<Cliente[]>;
+  criarCliente(dados: DadosCliente): Promise<Cliente>;
+  atualizarCliente(id: string, dados: Partial<DadosCliente>): Promise<Cliente>;
+  excluirCliente(id: string): Promise<void>;
 
   // Lembretes
   listarLembretes(filtro?: FiltroLembretes): Promise<Lembrete[]>;

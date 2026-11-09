@@ -1,4 +1,5 @@
-import type { DadosProjeto, DetalhesCampanha, IconeProjeto, Projeto, StatusProjeto, Tom } from "./tipos";
+import { detalhesProcessoVazios, normalizarNumeroCnj, validarDetalhesProcesso } from "./processo";
+import type { AreaProcesso, DadosProjeto, DetalhesCampanha, DetalhesProcesso, IconeProjeto, Projeto, StatusProjeto, Tom } from "./tipos";
 
 export const ROTULO_STATUS: Record<StatusProjeto, string> = {
   active: "Ativo",
@@ -26,10 +27,10 @@ export const NOME_DO_TOM: Record<Tom, string> = {
   gray: "Cinza",
 };
 
-export const ICONES_PROJETO: IconeProjeto[] = ["folder", "monitor", "box", "calendar", "chart", "check", "gift", "megaphone", "star", "target"];
+export const ICONES_PROJETO: IconeProjeto[] = ["folder", "monitor", "box", "calendar", "chart", "check", "gift", "megaphone", "star", "target", "scales", "briefcase", "gavel", "file"];
 
-/** Sugestões para o campo channels, que na tela do Consultivo aparece como "Tipo de serviço". */
-export const SUGESTOES_DE_CANAIS = ["Contrato", "Parecer", "Notificação extrajudicial", "Inventário extrajudicial"];
+/** Sugestões para o "Tipo de serviço" do caso consultivo (campo tipoServico). */
+export const SUGESTOES_DE_SERVICO = ["Contrato", "Parecer", "Notificação extrajudicial", "Inventário extrajudicial"];
 
 export function ehTom(valor: unknown): valor is Tom {
   return typeof valor === "string" && (TODOS_OS_TONS as string[]).includes(valor);
@@ -51,15 +52,31 @@ export function prazoDoProjeto(p: Pick<Projeto, "kind" | "dueOn" | "campaign">):
 
 export type FiltroProjetos = "all" | StatusProjeto | "archived";
 
-export function filtrarProjetos(projetos: Projeto[], filtro: FiltroProjetos, busca = ""): Projeto[] {
+export interface OpcoesBusca {
+  /** Nome do cliente pelo id, para a busca também achar pelo cliente. */
+  nomeDoCliente?: (id: string) => string | undefined;
+  /** Só processos desta área (casos consultivos ficam de fora). */
+  area?: AreaProcesso | null;
+}
+
+/** Busca por nome, descrição, cliente, número do processo (com ou sem pontuação) ou parte contrária. */
+export function filtrarProjetos(projetos: Projeto[], filtro: FiltroProjetos, busca = "", opcoes: OpcoesBusca = {}): Projeto[] {
   const termo = busca.trim().toLowerCase();
-  const combina = (p: Projeto) => !termo || `${p.name} ${p.description ?? ""}`.toLowerCase().includes(termo);
-  if (filtro === "archived") return projetos.filter((p) => p.archivedAt && combina(p));
-  return projetos.filter((p) => !p.archivedAt && (filtro === "all" || p.status === filtro) && combina(p));
+  const digitos = normalizarNumeroCnj(termo);
+  const combina = (p: Projeto) => {
+    if (!termo) return true;
+    const cliente = p.clienteId ? (opcoes.nomeDoCliente?.(p.clienteId) ?? "") : "";
+    const textos = `${p.name} ${p.description ?? ""} ${cliente} ${p.processo?.parteContraria ?? ""}`.toLowerCase();
+    if (textos.includes(termo)) return true;
+    return digitos.length >= 4 && Boolean(p.processo?.numeroCnj?.includes(digitos));
+  };
+  const naArea = (p: Projeto) => !opcoes.area || p.processo?.area === opcoes.area;
+  if (filtro === "archived") return projetos.filter((p) => p.archivedAt && combina(p) && naArea(p));
+  return projetos.filter((p) => !p.archivedAt && (filtro === "all" || p.status === filtro) && combina(p) && naArea(p));
 }
 
 export function campanhaVazia(): DetalhesCampanha {
-  return { objective: null, startsOn: null, endsOn: null, channels: [], deliverables: [] };
+  return { objective: null, startsOn: null, endsOn: null, channels: [], deliverables: [], tipoServico: null };
 }
 
 export function dadosProjetoVazios(tipo: Projeto["kind"] = "project"): DadosProjeto {
@@ -69,9 +86,12 @@ export function dadosProjetoVazios(tipo: Projeto["kind"] = "project"): DadosProj
     kind: tipo,
     status: "active",
     color: tipo === "campaign" ? "red" : "violet",
-    icon: tipo === "campaign" ? "megaphone" : "folder",
+    icon: tipo === "campaign" ? "briefcase" : "scales",
     dueOn: null,
     campaign: tipo === "campaign" ? campanhaVazia() : null,
+    clienteId: null,
+    // A área inicial acompanha o modelo padrão de processo (Cível/JEC).
+    processo: tipo === "campaign" ? null : detalhesProcessoVazios("civel"),
   };
 }
 
@@ -85,6 +105,8 @@ export function paraDadosProjeto(p: Projeto): DadosProjeto {
     icon: p.icon,
     dueOn: p.dueOn,
     campaign: p.campaign,
+    clienteId: p.clienteId,
+    processo: p.kind === "project" ? (p.processo ?? detalhesProcessoVazios()) : null,
   };
 }
 
@@ -98,25 +120,40 @@ export function validarDadosProjeto(dados: DadosProjeto): { ok: true; valor: Dad
   if (dados.kind === "campaign") {
     const c = dados.campaign ?? campanhaVazia();
     if (c.startsOn && c.endsOn && c.endsOn < c.startsOn) {
-      return { ok: false, erro: "A data de fim precisa ser depois do início." };
+      return { ok: false, erro: "O prazo de entrega precisa ser depois da data de recebimento." };
     }
+    const channels = c.channels.map((canal) => canal.trim()).filter(Boolean);
+    // Sem tipo de serviço, vale o primeiro canal (a mesma regra da migração 0004).
+    const tipoServico = c.tipoServico?.trim() || channels[0] || null;
+    if (tipoServico && tipoServico.length > 80) return { ok: false, erro: "O tipo de serviço pode ter até 80 caracteres." };
     campanha = {
       objective: c.objective?.trim() || null,
       startsOn: c.startsOn || null,
       endsOn: c.endsOn || null,
-      channels: c.channels.map((canal) => canal.trim()).filter(Boolean),
+      channels,
       deliverables: c.deliverables.filter((e) => e.title.trim()),
+      tipoServico,
     };
   }
 
-  return {
-    ok: true,
-    valor: {
-      ...dados,
-      name: nome,
-      description: dados.description?.trim() || null,
-      dueOn: dados.kind === "campaign" ? null : dados.dueOn || null,
-      campaign: campanha,
-    },
+  // Detalhes do processo: ausentes ficam ausentes (não mexe); caso consultivo nunca tem.
+  let processo: DetalhesProcesso | null | undefined = dados.processo;
+  if (dados.kind === "campaign") processo = dados.processo === undefined ? undefined : null;
+  else if (dados.processo) {
+    const r = validarDetalhesProcesso(dados.processo);
+    if (!r.ok) return r;
+    processo = r.valor;
+  }
+
+  const valor: DadosProjeto = {
+    ...dados,
+    name: nome,
+    description: dados.description?.trim() || null,
+    dueOn: dados.kind === "campaign" ? null : dados.dueOn || null,
+    campaign: campanha,
   };
+  if (processo !== undefined) valor.processo = processo;
+  else delete valor.processo;
+  if (dados.clienteId !== undefined) valor.clienteId = dados.clienteId || null;
+  return { ok: true, valor };
 }

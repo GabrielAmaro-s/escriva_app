@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { Botao, BotaoIcone } from "@/components/ui/botao";
 import { AreaTexto, CampoTexto, RotuloCampo } from "@/components/ui/campo";
 import { Janela } from "@/components/ui/janela";
-import { NOME_DO_TOM, SUGESTOES_DE_CANAIS, TONS_PROJETO, campanhaVazia, dadosProjetoVazios, validarDadosProjeto } from "@/domain/projeto";
+import { NOME_DO_TOM, SUGESTOES_DE_SERVICO, TONS_PROJETO, campanhaVazia, dadosProjetoVazios, validarDadosProjeto } from "@/domain/projeto";
 import { MODELOS, MODELOS_DE_QUADRO, type ModeloQuadro, modeloPadrao } from "@/domain/quadro";
 import type { DadosProjeto, TipoProjeto } from "@/domain/tipos";
 import { classes } from "@/lib/classes";
@@ -64,7 +64,7 @@ export function FormularioProjeto({
     }));
   };
 
-  const canais = [...SUGESTOES_DE_CANAIS, ...campanha.channels.filter((c) => !SUGESTOES_DE_CANAIS.includes(c))];
+  const canais = [...SUGESTOES_DE_SERVICO, ...campanha.channels.filter((c) => !SUGESTOES_DE_SERVICO.includes(c))];
   const alternarCanal = (c: string) =>
     alterarCampanha({ channels: campanha.channels.includes(c) ? campanha.channels.filter((x) => x !== c) : [...campanha.channels, c] });
 

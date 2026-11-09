@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { detalhesProcessoVazios } from "@/domain/processo";
+import type { DadosProjeto } from "@/domain/tipos";
 import type { Repositorio } from "../repositorio";
 import { criarRepositorioDoAgente } from "./contexto-agente";
 import { criarRepositorioSupabase } from "./repositorio-supabase";
@@ -30,7 +32,9 @@ function criarClienteFalso() {
     texto: "Lembrete",
     quando: "2026-11-07T18:00:00.000Z",
     origem: "app",
-    nome: "token",
+    nome: tabela === "clientes" ? "Cliente" : "token",
+    tipo: "pf",
+    atualizado_em: "2026-11-04T00:00:00.000Z",
     escopo: "escrita",
     expira_em: "2027-01-01T00:00:00.000Z",
     ferramenta: "x",
@@ -91,6 +95,10 @@ const CHAMADAS: Record<keyof Omit<Repositorio, "modo">, (r: Repositorio) => Prom
   excluirTarefa: (r) => r.excluirTarefa("t1"),
   criarEtiqueta: (r) => r.criarEtiqueta("p1", "E", "gray"),
   excluirEtiqueta: (r) => r.excluirEtiqueta("e1"),
+  listarClientes: (r) => r.listarClientes(),
+  criarCliente: (r) => r.criarCliente({ nome: "C", tipo: "pf", documento: null, telefone: null, email: null, observacoes: null }),
+  atualizarCliente: (r) => r.atualizarCliente("k1", { nome: "D" }),
+  excluirCliente: (r) => r.excluirCliente("k1"),
   listarLembretes: (r) => r.listarLembretes({ status: ["pendente"], tarefaId: "t1", ate: "2026-12-01T00:00:00Z" }),
   criarLembrete: (r) => r.criarLembrete({ texto: "L", quando: "2026-11-07T18:00:00.000Z" }),
   atualizarLembrete: (r) => r.atualizarLembrete("l1", { status: "agendado" }),
@@ -139,6 +147,42 @@ describe("repositório do agente", () => {
     const update = consultas.find((c) => c.operacao === "update")!;
     expect(update.valores).not.toHaveProperty("user_id");
     expect(update.filtros).toContainEqual(["eq", "user_id", USUARIO]);
+  });
+
+  it("inserções em clientes e processo_detalhes sempre levam user_id explícito (no agente auth.uid() é nulo)", async () => {
+    const processo: DadosProjeto = {
+      name: "P",
+      description: null,
+      kind: "project",
+      status: "active",
+      color: "violet",
+      icon: "scales",
+      dueOn: null,
+      campaign: null,
+      clienteId: "k1",
+      processo: { ...detalhesProcessoVazios("civel"), numeroCnj: "00012344720268210001" },
+    };
+    const chamadas = (r: Repositorio) => [
+      r.criarCliente({ nome: "C", tipo: "pj", documento: "11222333000181", telefone: null, email: null, observacoes: null }),
+      r.criarProjeto(processo, [{ title: "A fazer", kind: "todo" }]),
+      r.atualizarProjeto("p1", { kind: "project", processo: processo.processo }),
+    ];
+    const gravacoes = (consultas: { tabela: string; operacao: string; valores?: unknown }[]) =>
+      consultas
+        .filter((c) => ["clientes", "processo_detalhes"].includes(c.tabela) && ["insert", "upsert"].includes(c.operacao))
+        .flatMap((c) => (Array.isArray(c.valores) ? c.valores : [c.valores]).map((v) => ({ tabela: c.tabela, linha: v as Record<string, unknown> })));
+
+    const { cliente, consultas } = criarClienteFalso();
+    for (const p of chamadas(criarRepositorioDoAgente(USUARIO, cliente))) await p.catch(() => undefined);
+    const linhas = gravacoes(consultas);
+    expect(new Set(linhas.map((l) => l.tabela))).toEqual(new Set(["clientes", "processo_detalhes"]));
+    expect(linhas.filter((l) => !("user_id" in l.linha))).toEqual([]);
+    expect(linhas.every((l) => l.linha.user_id === USUARIO)).toBe(true);
+
+    // Controle: o repositório cru não manda user_id (dependeria do default auth.uid(), nulo no agente).
+    const cru = criarClienteFalso();
+    for (const p of chamadas(criarRepositorioSupabase(cru.cliente))) await p.catch(() => undefined);
+    expect(gravacoes(cru.consultas).some((l) => !("user_id" in l.linha))).toBe(true);
   });
 
   it("controle: sem o embrulho, as mesmas chamadas saem sem filtro (o teste enxerga a falha)", async () => {
