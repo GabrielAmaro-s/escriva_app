@@ -90,7 +90,7 @@ export function BarraProgresso({ valor, tom, concluido, altura = 4 }: { valor: n
     >
       <div
         data-tone={tom}
-        className={classes("h-full rounded transition-[width] duration-400 ease-out", concluido ? "bg-s-green" : tom ? "bg-tone" : "bg-primary")}
+        className={classes("h-full rounded transition-[width] duration-400 ease-out", concluido ? "bg-no-prazo" : tom ? "bg-tone" : "bg-primary")}
         style={{ width: `${valor}%` }}
       />
     </div>
@@ -121,7 +121,7 @@ export function OpcoesFiltro<T extends string>({
             onClick={() => aoMudar(o.valor)}
             className={classes(
               "h-[30px] rounded-full border px-[13px] text-[12.5px] font-medium transition-[background,border-color,color] duration-150",
-              ativa ? "border-primary-line bg-primary-soft text-primary" : "border-line bg-surface text-ink2 hover:text-ink",
+              ativa ? "border-primary-line bg-primary-soft text-primary" : "border-line bg-surface-raised text-ink-muted hover:text-ink",
             )}
           >
             {o.rotulo}
@@ -135,7 +135,7 @@ export function OpcoesFiltro<T extends string>({
 export function CampoBusca({ valor, aoMudar, placeholder }: { valor: string; aoMudar: (v: string) => void; placeholder: string }) {
   return (
     <label className="relative block min-w-[200px] flex-[0_1_280px]">
-      <span className="pointer-events-none absolute inset-y-0 left-3 grid place-items-center text-ink3">
+      <span className="pointer-events-none absolute inset-y-0 left-3 grid place-items-center text-ink-muted">
         <MagnifyingGlassIcon size={16} />
       </span>
       <input
@@ -144,7 +144,7 @@ export function CampoBusca({ valor, aoMudar, placeholder }: { valor: string; aoM
         onChange={(e) => aoMudar(e.target.value)}
         placeholder={placeholder}
         aria-label={placeholder.replace("…", "")}
-        className="h-[38px] w-full rounded-[10px] border border-line2 bg-surface pl-9 pr-3 text-[13.5px] text-ink outline-none transition-[border-color,box-shadow] placeholder:text-ink3 focus:border-primary focus:shadow-focus"
+        className="h-[38px] w-full rounded-[10px] border border-line-forte bg-surface-raised pl-9 pr-3 text-[13.5px] text-ink outline-none transition-[border-color,box-shadow] placeholder:text-ink-muted focus:border-primary focus:shadow-focus"
       />
     </label>
   );
@@ -169,7 +169,7 @@ export function Marcador({
       className={classes(
         "grid shrink-0 place-items-center border-[1.5px] text-on-primary transition-colors",
         formato === "redondo" ? "rounded-full" : "rounded-[5px]",
-        marcado ? (cor === "green" ? "border-s-green bg-s-green" : "border-primary bg-primary") : "border-line2 bg-transparent",
+        marcado ? (cor === "green" ? "border-no-prazo bg-no-prazo" : "border-primary bg-primary") : "border-line-forte bg-transparent",
       )}
     >
       <CheckIcon size={tamanho === 18 ? 10 : 11} weight="bold" className={marcado ? "opacity-100" : "opacity-0"} />
@@ -182,7 +182,7 @@ export function CabecalhoPagina({ titulo, descricao, acao }: { titulo: string; d
     <div className="flex flex-wrap items-start justify-between gap-4">
       <div>
         <h1 className="m-0 text-[28px] font-bold leading-[1.15] tracking-[-0.025em]">{titulo}</h1>
-        <p className="mt-1.5 text-sm text-ink2">{descricao}</p>
+        <p className="mt-1.5 text-sm text-ink-muted">{descricao}</p>
       </div>
       {acao}
     </div>
@@ -191,12 +191,12 @@ export function CabecalhoPagina({ titulo, descricao, acao }: { titulo: string; d
 
 export function EstadoVazio({ icone: Glifo, titulo, texto, children }: { icone: Icon; titulo: string; texto: string; children?: ReactNode }) {
   return (
-    <div className="flex flex-col items-center gap-1.5 rounded-2xl border border-dashed border-line2 px-5 py-[72px] text-center">
-      <span className="grid size-11 place-items-center rounded-xl bg-hover text-ink3">
+    <div className="flex flex-col items-center gap-1.5 rounded-2xl border border-dashed border-line-forte px-5 py-[72px] text-center">
+      <span className="grid size-11 place-items-center rounded-xl bg-hover text-ink-muted">
         <Glifo size={20} />
       </span>
       <p className="mt-2 text-[15px] font-semibold">{titulo}</p>
-      <p className="max-w-[320px] text-[13px] text-ink2">{texto}</p>
+      <p className="max-w-[320px] text-[13px] text-ink-muted">{texto}</p>
       {children && <div className="mt-3 flex gap-2">{children}</div>}
     </div>
   );

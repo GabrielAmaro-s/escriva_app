@@ -21,7 +21,7 @@ export function ListaTarefas({
   carregando?: boolean;
 }) {
   return (
-    <ul className="flex flex-col overflow-hidden rounded-[14px] border border-line bg-surface">
+    <ul className="flex flex-col overflow-hidden rounded-[14px] border border-line bg-surface-raised">
       {carregando
         ? Array.from({ length: 5 }, (_, i) => (
             <li key={i} className="flex h-14 items-center border-b border-line px-4 last:border-b-0">
@@ -51,22 +51,22 @@ export function ListaTarefas({
                   <Marcador marcado={t.completed} formato="redondo" cor="green" tamanho={18} />
                 </button>
                 <div className="min-w-0 flex-1">
-                  <p className={classes("truncate text-[13.5px] font-medium", t.completed && "text-ink3 line-through")}>{t.title}</p>
+                  <p className={classes("truncate text-[13.5px] font-medium", t.completed && "text-ink-muted line-through")}>{t.title}</p>
                   {projeto && (
-                    <p data-tone={projeto.color} className="mt-0.5 flex items-center gap-1.5 text-xs text-ink3">
+                    <p data-tone={projeto.color} className="mt-0.5 flex items-center gap-1.5 text-xs text-ink-muted">
                       <span className="size-[7px] rounded-full bg-tone" aria-hidden />
                       {projeto.name}
                     </p>
                   )}
                 </div>
-                {t.tipo === "audiencia" && <GavelIcon size={13} className="shrink-0 text-ink3" aria-label="Audiência" />}
+                {t.tipo === "audiencia" && <GavelIcon size={13} className="shrink-0 text-ink-muted" aria-label="Audiência" />}
                 {t.dueOn && (
                   <span className="whitespace-nowrap text-xs" style={{ color: corDoPrazo(t.dueOn, t.completed) }} title={t.prazoFatal ? "Prazo interno" : undefined}>
                     {formatarData(t.dueOn)}
                   </span>
                 )}
                 {t.tipo === "prazo" && t.prazoFatal && (
-                  <span className={classes("whitespace-nowrap text-xs font-semibold", t.completed ? "text-ink3" : "text-s-red")} title="Prazo fatal">
+                  <span className={classes("whitespace-nowrap text-xs font-semibold", t.completed ? "text-ink-muted" : "text-fatal")} title="Prazo fatal">
                     Fatal {formatarData(t.prazoFatal)}
                   </span>
                 )}
@@ -81,7 +81,7 @@ export function ListaTarefas({
             );
           })}
       {!carregando && tarefas.length === 0 && (
-        <li className="px-5 py-11 text-center text-[13.5px] text-ink2">
+        <li className="px-5 py-11 text-center text-[13.5px] text-ink-muted">
           <p className="mb-1 font-semibold text-ink">Tudo em dia</p>
           Nenhuma tarefa aqui por enquanto.
         </li>

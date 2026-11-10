@@ -2,38 +2,66 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* Tokens do design myPlan ------------------------------------------------------
-   --primary é a cor de destaque escolhida em Configurações (salva no navegador). */
+/* Tokens da marca Tempestivo ------------------------------------------------------
+   Fonte da verdade: docs/marca/tokens.json (mesmos nomes de variável). O teste
+   src/lib/contraste.test.ts confere que os valores daqui são os do tokens.json.
+   --primary é a cor de destaque de Configurações: petróleo por padrão; as outras opções
+   chegam por --destaque-claro e --destaque-escuro (src/lib/aparencia.ts). */
 
 :root {
-  --bg: #fafafc;
-  --surface: #ffffff;
-  --line: #e8e7ef;
-  --line2: #d6d4e2;
-  --ink: #1b1a2e;
-  --ink2: #5b5970;
-  --ink3: #8e8ca2;
-  --hover: #f4f3f8;
-  --shadow: rgba(27, 26, 46, 0.08);
-  --shadow-lg: rgba(27, 26, 46, 0.18);
-  --scrim: rgba(20, 18, 40, 0.38);
-  --on-primary: #ffffff;
-  --primary: #6c47e8;
-  --primary-soft: color-mix(in srgb, var(--primary) 10%, var(--surface));
-  --primary-line: color-mix(in srgb, var(--primary) 32%, var(--surface));
+  /* tokens.json, tema claro */
+  --surface: #F5F6F3;
+  --surface-raised: #FFFFFF;
+  --line: #D5DAD6;
+  --ink: #14201E;
+  --ink-muted: #51605C;
+  --petroleo: #0E4A4F;
+  --on-petroleo: #FFFFFF;
+  --marca-texto: #F2C94C;
+  --on-marca-texto: #14201E;
+  --balao-advogado: #DCEFE8;
+  --fatal: #B42318;
+  --fatal-soft: #FDE7E4;
+  --interno: #8A5A00;
+  --interno-soft: #FBF0D2;
+  --no-prazo: #1F5FA8;
+  --no-prazo-soft: #E3EDF9;
+  --foco: #0E4A4F;
+  --shadow-janela: 0 8px 24px rgba(20, 32, 30, 0.12);
 
-  --c-todo: #f3f2f7;
-  --c-doing: #f1eefc;
-  --c-waiting: #fff7e3;
-  --c-done: #e9f6ee;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --radius-pill: 999px;
 
-  --t-violet-bg: #f0ecfd; --t-violet-fg: #5a3bd0; --s-violet: #6c47e8;
-  --t-green-bg: #e2f5e9;  --t-green-fg: #1d7a44;  --s-green: #2eb06a;
-  --t-amber-bg: #fff0c9;  --t-amber-fg: #8a5700;  --s-amber: #e9a21b;
-  --t-red-bg: #fde7e7;    --t-red-fg: #b3272d;    --s-red: #e5484d;
-  --t-blue-bg: #e3eefd;   --t-blue-fg: #2257b5;   --s-blue: #3b7bea;
-  --t-pink-bg: #fce6f1;   --t-pink-fg: #a3215c;   --s-pink: #d6479a;
-  --t-gray-bg: #eeeef3;   --t-gray-fg: #5a586c;   --s-gray: #8e8ca2;
+  /* Derivadas (não estão no tokens.json): bordas de campo, hover e fundo das janelas */
+  --line-forte: color-mix(in srgb, var(--ink) 16%, var(--line));
+  --hover: color-mix(in srgb, var(--ink) 5%, var(--surface-raised));
+  --scrim: rgba(20, 32, 30, 0.38);
+
+  --primary: var(--destaque-claro, var(--petroleo));
+  --on-primary: var(--on-destaque-claro, var(--on-petroleo));
+  --primary-soft: color-mix(in srgb, var(--primary) 10%, var(--surface-raised));
+  --primary-line: color-mix(in srgb, var(--primary) 32%, var(--surface-raised));
+
+  /* Fundo das colunas do quadro, pelo papel da coluna */
+  --c-todo: color-mix(in srgb, var(--ink) 4%, var(--surface));
+  --c-doing: color-mix(in srgb, var(--petroleo) 6%, var(--surface));
+  --c-waiting: color-mix(in srgb, var(--interno-soft) 60%, var(--surface));
+  --c-done: color-mix(in srgb, var(--no-prazo-soft) 60%, var(--surface));
+
+  /* Tons dos processos (projects.color, gravado no banco) */
+  --t-violet-bg: #EEEAF8; --t-violet-fg: #4B3A8F; --s-violet: #6A55C2;
+  --t-green-bg: #E2F1EA;  --t-green-fg: #1D6B47;  --s-green: #2E8F62;
+  --t-amber-bg: #FBF0D2;  --t-amber-fg: #7A5000;  --s-amber: #C98A12;
+  --t-red-bg: #FBE6EA;    --t-red-fg: #9C2A45;    --s-red: #C24461;
+  --t-blue-bg: #E3EDF9;   --t-blue-fg: #1F5FA8;   --s-blue: #3B78C4;
+  --t-pink-bg: #F8E6F1;   --t-pink-fg: #8F2862;   --s-pink: #C24C8F;
+  --t-gray-bg: #ECEFED;   --t-gray-fg: #4A5754;   --s-gray: #7A8784;
 
   --tone-bg: var(--t-violet-bg);
   --tone-fg: var(--t-violet-fg);
@@ -42,30 +70,37 @@
 }
 
 .dark {
-  --bg: #121117;
-  --surface: #1a1920;
-  --line: #2a2933;
-  --line2: #3a3946;
-  --ink: #eeedf6;
-  --ink2: #a9a7bd;
-  --ink3: #7a788e;
-  --hover: #23222c;
-  --shadow: rgba(0, 0, 0, 0.4);
-  --shadow-lg: rgba(0, 0, 0, 0.6);
+  /* tokens.json, tema escuro */
+  --surface: #0E1514;
+  --surface-raised: #16201F;
+  --line: #2A3735;
+  --ink: #EEF2F0;
+  --ink-muted: #A7B3B0;
+  --petroleo: #5FB3B3;
+  --on-petroleo: #0E1514;
+  --marca-texto: #E8B93A;
+  --on-marca-texto: #14201E;
+  --balao-advogado: #1E3A36;
+  --fatal: #FF8A7A;
+  --fatal-soft: #3A1714;
+  --interno: #E8B93A;
+  --interno-soft: #33280C;
+  --no-prazo: #8DB8F0;
+  --no-prazo-soft: #14253A;
+  --foco: #F2C94C;
+  --shadow-janela: 0 8px 24px rgba(0, 0, 0, 0.5);
+
   --scrim: rgba(0, 0, 0, 0.6);
+  --primary: var(--destaque-escuro, var(--petroleo));
+  --on-primary: var(--on-destaque-escuro, var(--on-petroleo));
 
-  --c-todo: #1d1c24;
-  --c-doing: #221e36;
-  --c-waiting: #2a2415;
-  --c-done: #16261c;
-
-  --t-violet-bg: #2a2347; --t-violet-fg: #bda9ff;
-  --t-green-bg: #17301f;  --t-green-fg: #7bd9a0;
-  --t-amber-bg: #3a2d10;  --t-amber-fg: #f0c25e;
-  --t-red-bg: #3c1c1f;    --t-red-fg: #ff9a9e;
-  --t-blue-bg: #1b2a47;   --t-blue-fg: #8db8ff;
-  --t-pink-bg: #3c1d2d;   --t-pink-fg: #ff9cc9;
-  --t-gray-bg: #2a2933;   --t-gray-fg: #b0aec4;
+  --t-violet-bg: #272238; --t-violet-fg: #C2B6F2;
+  --t-green-bg: #15281F;  --t-green-fg: #86D3AE;
+  --t-amber-bg: #33280C;  --t-amber-fg: #E8B93A;
+  --t-red-bg: #351820;    --t-red-fg: #F5A3B6;
+  --t-blue-bg: #14253A;   --t-blue-fg: #8DB8F0;
+  --t-pink-bg: #33192A;   --t-pink-fg: #F0A6D0;
+  --t-gray-bg: #222C2B;   --t-gray-fg: #B9C4C1;
   color-scheme: dark;
 }
 
@@ -79,18 +114,35 @@
 [data-tone="gray"]   { --tone-bg: var(--t-gray-bg);   --tone-fg: var(--t-gray-fg);   --tone-s: var(--s-gray); }
 
 @theme inline {
-  --font-sans: "Inter Variable", Inter, system-ui, sans-serif;
+  --font-display: var(--fonte-display), "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-sans: var(--fonte-sans), "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: var(--fonte-mono), "IBM Plex Mono", ui-monospace, Menlo, monospace;
   --breakpoint-nav: 820px;
 
-  --color-bg: var(--bg);
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 14px;
+
   --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
   --color-line: var(--line);
-  --color-line2: var(--line2);
+  --color-line-forte: var(--line-forte);
   --color-ink: var(--ink);
-  --color-ink2: var(--ink2);
-  --color-ink3: var(--ink3);
+  --color-ink-muted: var(--ink-muted);
   --color-hover: var(--hover);
   --color-scrim: var(--scrim);
+  --color-petroleo: var(--petroleo);
+  --color-on-petroleo: var(--on-petroleo);
+  --color-marca-texto: var(--marca-texto);
+  --color-on-marca-texto: var(--on-marca-texto);
+  --color-balao-advogado: var(--balao-advogado);
+  --color-fatal: var(--fatal);
+  --color-fatal-soft: var(--fatal-soft);
+  --color-interno: var(--interno);
+  --color-interno-soft: var(--interno-soft);
+  --color-no-prazo: var(--no-prazo);
+  --color-no-prazo-soft: var(--no-prazo-soft);
+  --color-foco: var(--foco);
   --color-primary: var(--primary);
   --color-primary-soft: var(--primary-soft);
   --color-primary-line: var(--primary-line);
@@ -105,19 +157,10 @@
   --color-tone-fg: var(--tone-fg);
   --color-tone: var(--tone-s);
 
-  --color-s-green: var(--s-green);
-  --color-s-amber: var(--s-amber);
-  --color-s-red: var(--s-red);
-  --color-s-blue: var(--s-blue);
-  --color-s-gray: var(--s-gray);
-  --color-s-violet: var(--s-violet);
-  --color-t-red-bg: var(--t-red-bg);
-
-  --shadow-card: 0 6px 18px var(--shadow);
-  --shadow-soft: 0 4px 12px var(--shadow);
-  --shadow-pop: 0 12px 32px var(--shadow-lg);
-  --shadow-modal: 0 24px 60px var(--shadow-lg);
-  --shadow-focus: 0 0 0 3px var(--primary-soft);
+  /* Sombra só em janelas e menus que flutuam; cartões usam a borda line. */
+  --shadow-flutuante: var(--shadow-janela);
+  /* Foco de campo: 2px de foco com 2px de afastamento, como o anel do teclado. */
+  --shadow-focus: 0 0 0 2px var(--surface-raised), 0 0 0 4px var(--foco);
 
   --animate-in: mp-in 0.26s ease backwards;
   --animate-pop: mp-pop 0.2s ease backwards;
@@ -143,17 +186,23 @@ html { -webkit-font-smoothing: antialiased; }
 
 body {
   margin: 0;
-  background: var(--bg);
+  background: var(--surface);
   color: var(--ink);
   font-family: var(--font-sans);
   font-size: 14px;
 }
 
+/* Títulos em Bricolage Grotesque; texto em IBM Plex Sans. */
+h1, h2, h3 { font-family: var(--font-display); }
+
+/* Dados que se conferem dígito a dígito: número CNJ, vencimentos, valores e memória. */
+.dado { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
 button, input, select, textarea { font-family: inherit; }
 button:not(:disabled) { cursor: pointer; }
 
 :focus-visible {
-  outline: 2px solid var(--primary);
+  outline: 2px solid var(--foco);
   outline-offset: 2px;
 }
 
@@ -161,7 +210,7 @@ button:not(:disabled) { cursor: pointer; }
 
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-thumb {
-  background: var(--line2);
+  background: var(--line-forte);
   border-radius: 10px;
   border: 2px solid transparent;
   background-clip: content-box;

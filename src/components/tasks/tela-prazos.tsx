@@ -66,7 +66,7 @@ export function TelaPrazos() {
           ]}
         />
       </div>
-      <p className="mb-2.5 mt-[18px] text-xs font-semibold text-ink3">
+      <p className="mb-2.5 mt-[18px] text-xs font-semibold text-ink-muted">
         {filtro === "abertas" ? `Abertas · ${linhas.length} · ordenadas por prazo` : `Concluídas · ${linhas.length}`}
       </p>
       <ListaTarefas tarefas={linhas} projetos={projetosPorId} aoAbrir={setTarefaAberta} aoAlternar={api.alternarConclusao} carregando={carregando} />

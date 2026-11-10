@@ -29,9 +29,9 @@ export function ProvedorAvisos({ children }: { children: ReactNode }) {
           key={aviso.id}
           role="status"
           aria-live="polite"
-          className="fixed bottom-6 left-1/2 z-[90] flex max-w-[calc(100vw-32px)] -translate-x-1/2 animate-pop items-center gap-3.5 rounded-[11px] bg-ink py-2.5 pl-4 pr-3.5 text-[13px] text-surface shadow-modal"
+          className="fixed bottom-6 left-1/2 z-[90] flex max-w-[calc(100vw-32px)] -translate-x-1/2 animate-pop items-center gap-3.5 rounded-[11px] bg-ink py-2.5 pl-4 pr-3.5 text-[13px] text-surface-raised shadow-flutuante"
         >
-          {aviso.tom === "erro" && <span className="size-1.5 shrink-0 rounded-full bg-s-red" aria-hidden />}
+          {aviso.tom === "erro" && <span className="size-1.5 shrink-0 rounded-full bg-fatal" aria-hidden />}
           {aviso.texto}
           {aviso.acao && (
             <button

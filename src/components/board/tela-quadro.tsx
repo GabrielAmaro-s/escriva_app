@@ -51,7 +51,7 @@ export function TelaQuadro({ projetoId }: { projetoId: string }) {
     return (
       <div className="mx-auto flex w-full max-w-[1400px] flex-col items-start gap-2 px-4 py-10 nav:px-10">
         <h1 className="text-xl font-bold">{api.status === "erro" ? "Não foi possível abrir o quadro" : "Este processo não existe mais"}</h1>
-        <p className="text-sm text-ink2">{api.status === "erro" ? "Verifique sua conexão e recarregue a página." : "Ele pode ter sido excluído."}</p>
+        <p className="text-sm text-ink-muted">{api.status === "erro" ? "Verifique sua conexão e recarregue a página." : "Ele pode ter sido excluído."}</p>
         <Link href="/" className="mt-2 text-sm font-medium text-primary">
           Voltar para Processos
         </Link>
@@ -77,7 +77,7 @@ export function TelaQuadro({ projetoId }: { projetoId: string }) {
               <h1 className="m-0 text-[26px] font-bold leading-[1.2] tracking-[-0.025em]">{projeto.name}</h1>
               <SeloStatus status={projeto.status} arquivado={Boolean(projeto.archivedAt)} className="px-2.5" />
             </div>
-            {projeto.description && <p className="mt-[5px] text-[13.5px] text-ink2">{projeto.description}</p>}
+            {projeto.description && <p className="mt-[5px] text-[13.5px] text-ink-muted">{projeto.description}</p>}
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -85,7 +85,7 @@ export function TelaQuadro({ projetoId }: { projetoId: string }) {
             rotulo="Mais opções"
             variante="secundaria"
             tamanho="icone"
-            className="text-ink2"
+            className="text-ink-muted"
             onClick={(e) => abrirMenu(e, acoesDe(projeto, { noQuadro: true }))}
           >
             <DotsThreeIcon size={16} weight="bold" />
@@ -112,7 +112,7 @@ export function TelaQuadro({ projetoId }: { projetoId: string }) {
             onClick={() => definirAba(id)}
             className={classes(
               "inline-flex h-8 items-center gap-[7px] rounded-lg border-0 px-3 text-[13px] font-medium transition-[background] duration-150",
-              aba === id ? "bg-primary-soft text-primary" : "bg-transparent text-ink2 hover:bg-hover",
+              aba === id ? "bg-primary-soft text-primary" : "bg-transparent text-ink-muted hover:bg-hover",
             )}
           >
             <Glifo size={15} />

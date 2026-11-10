@@ -57,7 +57,7 @@ export function MenuLateral({ aoNavegar }: { aoNavegar?: () => void }) {
               aria-current={ativo ? "page" : undefined}
               className={classes(
                 "flex h-9 items-center gap-[11px] rounded-[9px] px-2.5 text-[13.5px] no-underline transition-[background,color] duration-150",
-                ativo ? "bg-primary-soft font-semibold text-primary" : "font-medium text-ink2 hover:bg-hover",
+                ativo ? "bg-primary-soft font-semibold text-primary" : "font-medium text-ink-muted hover:bg-hover",
               )}
             >
               <Glifo size={17} />
@@ -71,7 +71,7 @@ export function MenuLateral({ aoNavegar }: { aoNavegar?: () => void }) {
         <span className="grid size-[30px] place-items-center rounded-full bg-primary-soft text-[12.5px] font-semibold text-primary">{usuario.inicial}</span>
         <span className="flex flex-col leading-tight">
           <span className="text-[13px] font-semibold">{usuario.nome}</span>
-          <span className="text-[11.5px] text-ink3">{usuario.plano}</span>
+          <span className="text-[11.5px] text-ink-muted">{usuario.plano}</span>
         </span>
       </div>
     </nav>

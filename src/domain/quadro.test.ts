@@ -201,11 +201,11 @@ describe("datas", () => {
     expect(formatarPeriodo("2025-11-01", null, "2026-11-04")).toBe("Desde 1 nov 2025");
   });
 
-  it("corDoPrazo: atrasada, hoje, futura e concluída", () => {
-    expect(corDoPrazo("2026-11-03", false, "2026-11-04")).toBe("var(--s-red)");
-    expect(corDoPrazo("2026-11-04", false, "2026-11-04")).toBe("var(--s-amber)");
-    expect(corDoPrazo("2026-11-05", false, "2026-11-04")).toBe("var(--ink3)");
-    expect(corDoPrazo("2026-11-01", true, "2026-11-04")).toBe("var(--ink3)");
+  it("corDoPrazo: atrasada, hoje, futura e concluída, com as cores da marca", () => {
+    expect(corDoPrazo("2026-11-03", false, "2026-11-04")).toBe("var(--fatal)");
+    expect(corDoPrazo("2026-11-04", false, "2026-11-04")).toBe("var(--interno)");
+    expect(corDoPrazo("2026-11-05", false, "2026-11-04")).toBe("var(--ink-muted)");
+    expect(corDoPrazo("2026-11-01", true, "2026-11-04")).toBe("var(--ink-muted)");
   });
 });
 

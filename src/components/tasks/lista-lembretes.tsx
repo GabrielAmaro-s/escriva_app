@@ -19,7 +19,7 @@ export function ListaLembretes({
 }) {
   const agora = new Date();
   return (
-    <ul className="flex flex-col overflow-hidden rounded-[14px] border border-line bg-surface">
+    <ul className="flex flex-col overflow-hidden rounded-[14px] border border-line bg-surface-raised">
       {carregando
         ? Array.from({ length: 2 }, (_, i) => (
             <li key={i} className="flex h-14 items-center border-b border-line px-4 last:border-b-0">
@@ -38,25 +38,25 @@ export function ListaLembretes({
                 onKeyDown={(e) => abrir && e.key === "Enter" && e.target === e.currentTarget && abrir()}
                 className={classes("flex items-center gap-3 border-b border-line px-4 py-[11px] last:border-b-0", abrir && "cursor-pointer hover:bg-hover")}
               >
-                <span className="grid size-[18px] shrink-0 place-items-center text-ink3" aria-hidden>
+                <span className="grid size-[18px] shrink-0 place-items-center text-ink-muted" aria-hidden>
                   <BellIcon size={15} />
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[13.5px] font-medium">{l.texto}</p>
                   {projeto && (
-                    <p data-tone={projeto.color} className="mt-0.5 flex items-center gap-1.5 text-xs text-ink3">
+                    <p data-tone={projeto.color} className="mt-0.5 flex items-center gap-1.5 text-xs text-ink-muted">
                       <span className="size-[7px] rounded-full bg-tone" aria-hidden />
                       {projeto.name}
                     </p>
                   )}
                 </div>
-                <span className="whitespace-nowrap text-xs" style={{ color: atrasado ? "var(--s-amber)" : "var(--ink3)" }}>
+                <span className="whitespace-nowrap text-xs" style={{ color: atrasado ? "var(--interno)" : "var(--ink-muted)" }}>
                   {formatarDataHora(l.quando, undefined, agora)}
                 </span>
               </li>
             );
           })}
-      {!carregando && lembretes.length === 0 && <li className="px-5 py-6 text-center text-[13px] text-ink2">Nenhum lembrete marcado.</li>}
+      {!carregando && lembretes.length === 0 && <li className="px-5 py-6 text-center text-[13px] text-ink-muted">Nenhum lembrete marcado.</li>}
     </ul>
   );
 }

@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { CabecalhoPagina, Pagina } from "@/components/ui/pecas";
 import { Botao } from "@/components/ui/botao";
 import { obterSupabaseNavegador, supabaseConfigurado } from "@/data/supabase/cliente";
-import { CORES_DESTAQUE, aplicarCorDestaque, lerCorDestaque } from "@/lib/aparencia";
+import { CORES_DESTAQUE, type CorDestaque, aplicarCorDestaque, lerCorDestaque } from "@/lib/aparencia";
 import { classes } from "@/lib/classes";
 import { LinhaConfiguracao } from "./linha-configuracao";
 import { SecaoAgente } from "./secao-agente";
@@ -15,12 +15,12 @@ import { SecaoPrazos } from "./secao-prazos";
 
 export function TelaConfiguracoes() {
   const { resolvedTheme, setTheme } = useTheme();
-  const [destaque, setDestaque] = useState<string | null>(null);
+  const [destaque, setDestaque] = useState<CorDestaque["id"] | null>(null);
   const [montado, setMontado] = useState(false);
 
   useEffect(() => {
     setMontado(true);
-    setDestaque(lerCorDestaque().toLowerCase());
+    setDestaque(lerCorDestaque());
   }, []);
 
   const escuro = montado && resolvedTheme === "dark";
@@ -28,7 +28,7 @@ export function TelaConfiguracoes() {
   return (
     <Pagina largura={680}>
       <CabecalhoPagina titulo="Configurações" descricao="Ajuste a aparência, os prazos, seus dados e o agente do myPlan." />
-      <div className="mt-6 rounded-[14px] border border-line bg-surface px-[18px]">
+      <div className="mt-6 rounded-[14px] border border-line bg-surface-raised px-[18px]">
         <LinhaConfiguracao titulo="Modo escuro" dica="Reduz o brilho da interface.">
           <button
             type="button"
@@ -38,30 +38,31 @@ export function TelaConfiguracoes() {
             onClick={() => setTheme(escuro ? "light" : "dark")}
             className={classes(
               "flex h-[23px] w-10 shrink-0 rounded-full border-0 p-0.5 transition-colors duration-200",
-              escuro ? "justify-end bg-primary" : "justify-start bg-line2",
+              escuro ? "justify-end bg-primary" : "justify-start bg-line-forte",
             )}
           >
-            <span className="size-[19px] rounded-full bg-on-primary shadow-[0_1px_2px_var(--shadow-lg)]" />
+            <span className="size-[19px] rounded-full bg-on-primary" />
           </button>
         </LinhaConfiguracao>
-        <LinhaConfiguracao titulo="Cor de destaque" dica="Botões, seleções e progresso.">
+        <LinhaConfiguracao titulo="Cor de destaque" dica="Botões, seleções e progresso. Petróleo é a cor da marca.">
           <div role="radiogroup" aria-label="Cor de destaque" className="flex gap-2.5">
             {CORES_DESTAQUE.map((c) => {
-              const ativa = destaque === c.valor.toLowerCase();
+              const ativa = destaque === c.id;
               return (
                 <button
-                  key={c.valor}
+                  key={c.id}
                   type="button"
                   role="radio"
                   aria-checked={ativa}
                   aria-label={c.nome}
                   title={c.nome}
                   onClick={() => {
-                    aplicarCorDestaque(c.valor);
-                    setDestaque(c.valor.toLowerCase());
+                    aplicarCorDestaque(c.id);
+                    setDestaque(c.id);
                   }}
-                  style={{ background: c.valor }}
-                  className={classes("size-6 rounded-full border-2 border-surface p-0", ativa ? "shadow-[0_0_0_2px_var(--ink)]" : "shadow-none")}
+                  // A amostra mostra a cor do tema em uso.
+                  style={{ background: escuro ? c.escuro.cor : c.claro.cor }}
+                  className={classes("size-6 rounded-full border-2 border-surface-raised p-0", ativa ? "shadow-[0_0_0_2px_var(--ink)]" : "shadow-none")}
                 />
               );
             })}
@@ -86,7 +87,7 @@ export function TelaConfiguracoes() {
       <SecaoDados />
       <SecaoAgente />
       {!supabaseConfigurado && (
-        <p className="mt-4 text-[12.5px] text-ink3">
+        <p className="mt-4 text-[12.5px] text-ink-muted">
           Modo local: seus dados ficam salvos só neste navegador. Conecte o Supabase para sincronizar entre dispositivos.
         </p>
       )}

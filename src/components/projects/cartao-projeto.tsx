@@ -33,7 +33,7 @@ export function CartaoProjeto({ projeto }: { projeto: Projeto }) {
         if (e.key === "Enter" && e.target === e.currentTarget) abrir();
       }}
       onContextMenu={menu}
-      className="flex cursor-pointer flex-col rounded-[14px] border border-line bg-surface p-4 transition-[border-color,box-shadow] duration-150 hover:border-line2 hover:shadow-card"
+      className="flex cursor-pointer flex-col rounded-[14px] border border-line bg-surface-raised p-4 transition-[border-color,box-shadow] duration-150 hover:border-line-forte"
     >
       <div className="flex items-start justify-between">
         <BlocoTom tom={projeto.color} icone={projeto.icon} />
@@ -43,7 +43,7 @@ export function CartaoProjeto({ projeto }: { projeto: Projeto }) {
             type="button"
             aria-label="Mais opções"
             onClick={menu}
-            className="grid size-[26px] place-items-center rounded-[7px] border-0 bg-transparent text-ink3 hover:bg-hover hover:text-ink"
+            className="grid size-[26px] place-items-center rounded-[7px] border-0 bg-transparent text-ink-muted hover:bg-hover hover:text-ink"
           >
             <DotsThreeIcon size={16} weight="bold" />
           </button>
@@ -51,7 +51,7 @@ export function CartaoProjeto({ projeto }: { projeto: Projeto }) {
       </div>
       <h3 className="mt-3.5 text-[15px] font-semibold tracking-[-0.01em]">{projeto.name}</h3>
       {(cliente || d?.numeroCnj || d?.area || d?.segredoJustica) && (
-        <div className="mt-1 flex flex-col gap-0.5 text-xs text-ink2">
+        <div className="mt-1 flex flex-col gap-0.5 text-xs text-ink-muted">
           {cliente && (
             <span className="flex items-center gap-1.5">
               <UserIcon size={13} className="shrink-0" />
@@ -59,7 +59,7 @@ export function CartaoProjeto({ projeto }: { projeto: Projeto }) {
             </span>
           )}
           {(d?.numeroCnj || d?.area || d?.segredoJustica) && (
-            <span className="flex flex-wrap items-center gap-x-2 text-ink3">
+            <span className="flex flex-wrap items-center gap-x-2 text-ink-muted">
               {d?.numeroCnj && <span className="tabular-nums">{formatarNumeroCnj(d.numeroCnj)}</span>}
               {d?.area && <span>{ROTULO_AREA[d.area]}</span>}
               {d?.segredoJustica && (
@@ -72,8 +72,8 @@ export function CartaoProjeto({ projeto }: { projeto: Projeto }) {
           )}
         </div>
       )}
-      <p className="mt-1 line-clamp-2 min-h-[38px] text-[12.5px] leading-normal text-ink2">{projeto.description}</p>
-      <div className="mt-auto flex justify-between pt-3.5 text-xs text-ink2">
+      <p className="mt-1 line-clamp-2 min-h-[38px] text-[12.5px] leading-normal text-ink-muted">{projeto.description}</p>
+      <div className="mt-auto flex justify-between pt-3.5 text-xs text-ink-muted">
         <span>
           {projeto.doneCount} de {projeto.taskCount} tarefas
         </span>
@@ -83,7 +83,7 @@ export function CartaoProjeto({ projeto }: { projeto: Projeto }) {
         <BarraProgresso valor={pct} tom={projeto.color} concluido={projeto.status === "done"} />
       </div>
       {mostrarPrazo && (
-        <p className="mt-3.5 flex items-center gap-[7px] text-xs text-ink2">
+        <p className="mt-3.5 flex items-center gap-[7px] text-xs text-ink-muted">
           <CalendarBlankIcon size={14} />
           Até {formatarData(prazo)}
         </p>

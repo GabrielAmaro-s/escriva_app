@@ -25,14 +25,14 @@ const TIPOS: TipoTarefa[] = ["providencia", "prazo", "audiencia"];
 const classeData = classes(classeControle, "h-9 rounded-[9px] px-2.5 text-[13px]");
 
 function Rotulo({ children }: { children: ReactNode }) {
-  return <span className="mb-1 block text-[11.5px] font-medium text-ink2">{children}</span>;
+  return <span className="mb-1 block text-[11.5px] font-medium text-ink-muted">{children}</span>;
 }
 
 /** Aviso de que a contagem ainda está em validação (some quando a constante vira null). */
 export function AvisoValidacao() {
   if (!AVISO_CONTAGEM_EM_VALIDACAO) return null;
   return (
-    <p role="note" className="flex items-start gap-1.5 text-[11.5px] leading-snug text-s-amber">
+    <p role="note" className="flex items-start gap-1.5 text-[11.5px] leading-snug text-interno">
       <WarningIcon size={13} weight="fill" className="mt-px shrink-0" />
       {AVISO_CONTAGEM_EM_VALIDACAO}
     </p>
@@ -81,7 +81,7 @@ export function CamposDoTipo({ tarefa, alterar }: { tarefa: Tarefa; alterar: (a:
               aria-label="Prazo fatal"
               value={tarefa.prazoFatal ?? ""}
               onChange={(e) => alterar({ prazoFatal: e.target.value || null })}
-              className={classes(classeData, "font-semibold text-s-red")}
+              className={classes(classeData, "font-semibold text-fatal")}
             />
           </label>
           <label className="block">
@@ -127,7 +127,7 @@ export function CamposDoTipo({ tarefa, alterar }: { tarefa: Tarefa; alterar: (a:
       )}
 
       {tarefa.tipo !== "providencia" && (
-        <p className="text-[11.5px] leading-snug text-ink3">
+        <p className="text-[11.5px] leading-snug text-ink-muted">
           Lembretes automáticos 3 e 1 dia útil antes e no dia{tarefa.tipo === "audiencia" ? " (2 h antes do horário)" : " do prazo fatal"}.
         </p>
       )}
@@ -188,12 +188,12 @@ export function ContagemDoPrazo({
       </div>
 
       {salva && !aberta && (
-        <div className="flex flex-col gap-1.5 rounded-[10px] border border-line bg-bg px-3 py-2.5">
+        <div className="flex flex-col gap-1.5 rounded-[10px] border border-line bg-surface px-3 py-2.5">
           <p className="text-[13px] leading-normal text-ink">{salva.memoria}</p>
           <AvisoValidacao />
         </div>
       )}
-      {!salva && !aberta && <p className="text-[12.5px] text-ink3">Prazo fatal informado à mão, sem memória de cálculo.</p>}
+      {!salva && !aberta && <p className="text-[12.5px] text-ink-muted">Prazo fatal informado à mão, sem memória de cálculo.</p>}
 
       {aberta && (
         <div className="flex flex-col gap-3 rounded-[10px] border border-line px-3 py-3">
@@ -231,7 +231,7 @@ export function ContagemDoPrazo({
               <input type="number" min={0} max={30} aria-label="Margem do prazo interno" value={margem} onChange={(e) => setMargem(e.target.value)} className={classeData} />
             </label>
           </div>
-          <div className="flex flex-col gap-1.5 text-[12.5px] text-ink2">
+          <div className="flex flex-col gap-1.5 text-[12.5px] text-ink-muted">
             <label className="flex items-center gap-2">
               <input type="checkbox" checked={emDobro} onChange={(e) => setEmDobro(e.target.checked)} />
               Prazo em dobro (Fazenda Pública, Defensoria)
@@ -248,18 +248,18 @@ export function ContagemDoPrazo({
               </label>
             )}
           </div>
-          <p className="text-[11.5px] text-ink3">
+          <p className="text-[11.5px] text-ink-muted">
             {tribunal
               ? `Feriados nacionais, do ${tribunal} e os seus feriados locais.`
               : "Tribunal não identificado: preencha o número ou o tribunal no processo para incluir os feriados dele."}
           </p>
 
           {calculo ? (
-            <div className="flex flex-col gap-2 rounded-[10px] bg-bg px-3 py-2.5">
+            <div className="flex flex-col gap-2 rounded-[10px] bg-surface px-3 py-2.5">
               <p className="text-[13.5px] font-semibold text-ink">
                 Vence em {formatarData(calculo.contagem.vencimento)} · prazo interno {formatarData(calculo.prazoInterno)}
               </p>
-              <p className="text-[12.5px] leading-normal text-ink2">{calculo.contagem.memoria}</p>
+              <p className="text-[12.5px] leading-normal text-ink-muted">{calculo.contagem.memoria}</p>
               <AvisoValidacao />
               <div>
                 <Botao
@@ -276,7 +276,7 @@ export function ContagemDoPrazo({
               </div>
             </div>
           ) : (
-            <p className="text-[12.5px] text-ink3">Informe a data e a quantidade de dias para ver o vencimento.</p>
+            <p className="text-[12.5px] text-ink-muted">Informe a data e a quantidade de dias para ver o vencimento.</p>
           )}
         </div>
       )}
@@ -307,14 +307,14 @@ export function HistoricoDoPrazo({ carregar }: { carregar: () => Promise<Alterac
       </Botao>
     );
   }
-  if (!lista.length) return <p className="text-[12.5px] text-ink3">Nenhuma mudança de prazo registrada.</p>;
+  if (!lista.length) return <p className="text-[12.5px] text-ink-muted">Nenhuma mudança de prazo registrada.</p>;
   return (
-    <ul className="flex flex-col gap-1 text-[12.5px] text-ink2">
+    <ul className="flex flex-col gap-1 text-[12.5px] text-ink-muted">
       {lista.map((a) => (
         <li key={a.id}>
-          <span className="text-ink3">{formatarDataHora(a.criadoEm)}</span> · {ROTULO_CAMPO[a.campo]}: {a.antes ? formatarData(a.antes) : "vazio"} →{" "}
+          <span className="text-ink-muted">{formatarDataHora(a.criadoEm)}</span> · {ROTULO_CAMPO[a.campo]}: {a.antes ? formatarData(a.antes) : "vazio"} →{" "}
           {a.depois ? formatarData(a.depois) : "vazio"}
-          {a.origem === "agente" && <span className="text-ink3"> (pelo agente)</span>}
+          {a.origem === "agente" && <span className="text-ink-muted"> (pelo agente)</span>}
         </li>
       ))}
     </ul>

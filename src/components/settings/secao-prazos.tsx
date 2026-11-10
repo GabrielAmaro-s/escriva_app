@@ -49,8 +49,8 @@ export function SecaoPrazos() {
 
   return (
     <>
-      <p className="mb-2.5 mt-7 text-xs font-semibold text-ink3">Prazos</p>
-      <div className="rounded-[14px] border border-line bg-surface px-[18px]">
+      <p className="mb-2.5 mt-7 text-xs font-semibold text-ink-muted">Prazos</p>
+      <div className="rounded-[14px] border border-line bg-surface-raised px-[18px]">
         <LinhaConfiguracao titulo="Margem do prazo interno" dica="Dias úteis antes do prazo fatal. Dá para mudar em cada prazo.">
           <input
             type="number"
@@ -67,7 +67,7 @@ export function SecaoPrazos() {
 
         <div className="border-b border-line py-4 last:border-b-0">
           <p className="text-sm font-semibold">Feriados locais</p>
-          <p className="mt-0.5 text-[12.5px] text-ink2">
+          <p className="mt-0.5 text-[12.5px] text-ink-muted">
             Feriados nacionais já entram na conta{tribunaisDaCarga ? `, e também os do ${tribunaisDaCarga}` : ""}. Cadastre aqui os municipais, as suspensões e os
             dias em que o sistema do tribunal ficou fora do ar. Na dúvida, não cadastre: um feriado a mais empurra o vencimento para depois.
           </p>
@@ -76,19 +76,19 @@ export function SecaoPrazos() {
             <ul className="mt-3 flex flex-col overflow-hidden rounded-[10px] border border-line">
               {locais.map((f) => (
                 <li key={f.id} className="flex items-center gap-2.5 border-b border-line py-2 pl-3 pr-1.5 text-[13px] last:border-b-0">
-                  <span className="whitespace-nowrap tabular-nums text-ink2">
+                  <span className="whitespace-nowrap tabular-nums text-ink-muted">
                     {formatarData(f.data)}
                     {f.ate ? ` a ${formatarData(f.ate)}` : ""}
                   </span>
                   <span className="min-w-0 flex-1 truncate">
                     {f.descricao}
-                    <span className="text-ink3">
+                    <span className="text-ink-muted">
                       {" "}
                       · {ROTULO_TIPO_FERIADO[f.tipo]}
                       {f.tribunal ? ` · só ${f.tribunal}` : ""}
                     </span>
                   </span>
-                  <BotaoIcone rotulo={`Excluir ${f.descricao}`} className="size-7 rounded-md text-ink3" onClick={() => prazos.excluirFeriado(f.id)}>
+                  <BotaoIcone rotulo={`Excluir ${f.descricao}`} className="size-7 rounded-md text-ink-muted" onClick={() => prazos.excluirFeriado(f.id)}>
                     <TrashIcon size={14} />
                   </BotaoIcone>
                 </li>

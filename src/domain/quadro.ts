@@ -90,18 +90,18 @@ export const PRIORIDADES: PrioridadeTarefa[] = ["low", "medium", "high", "urgent
 
 /** Cor da bandeira de prioridade (variável CSS). */
 export const COR_PRIORIDADE: Record<PrioridadeTarefa, string> = {
-  low: "var(--ink3)",
-  medium: "var(--s-blue)",
-  high: "var(--s-amber)",
-  urgent: "var(--s-red)",
+  low: "var(--ink-muted)",
+  medium: "var(--no-prazo)",
+  high: "var(--interno)",
+  urgent: "var(--fatal)",
 };
 
 /** Cor do marcador de cada coluna. */
 export const COR_MARCADOR_COLUNA: Record<TipoColuna, string> = {
-  todo: "var(--s-gray)",
-  doing: "var(--s-violet)",
-  waiting: "var(--s-amber)",
-  done: "var(--s-green)",
+  todo: "var(--ink-muted)",
+  doing: "var(--primary)",
+  waiting: "var(--interno)",
+  done: "var(--no-prazo)",
 };
 
 const INTERVALO = 1024;
@@ -182,10 +182,10 @@ export function documentosPendentes(tarefas: Pick<Tarefa, "id" | "projectId" | "
 
 /** Cor da data de entrega: vermelho se atrasada, âmbar se é hoje. */
 export function corDoPrazo(prazo: string, concluida: boolean, hoje = hojeIso()): string {
-  if (concluida) return "var(--ink3)";
-  if (prazo < hoje) return "var(--s-red)";
-  if (prazo === hoje) return "var(--s-amber)";
-  return "var(--ink3)";
+  if (concluida) return "var(--ink-muted)";
+  if (prazo < hoje) return "var(--fatal)";
+  if (prazo === hoje) return "var(--interno)";
+  return "var(--ink-muted)";
 }
 
 const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];

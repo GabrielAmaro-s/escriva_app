@@ -94,13 +94,13 @@ export function ColunaQuadro({
     >
       <div className="flex items-center gap-2 px-1">
         <h2 className="text-[13.5px] font-semibold">{coluna.title}</h2>
-        <span className="text-xs font-medium text-ink2">{tarefas.length}</span>
+        <span className="text-xs font-medium text-ink-muted">{tarefas.length}</span>
       </div>
 
       <button
         type="button"
         onClick={aoComecarAAdicionar}
-        className="flex h-8 items-center gap-2 rounded-lg border-0 bg-transparent px-1.5 text-left text-[12.5px] text-ink2 hover:bg-surface hover:text-ink"
+        className="flex h-8 items-center gap-2 rounded-lg border-0 bg-transparent px-1.5 text-left text-[12.5px] text-ink-muted hover:bg-surface-raised hover:text-ink"
       >
         <PlusIcon size={14} weight="bold" />
         Adicionar tarefa
@@ -124,7 +124,7 @@ export function ColunaQuadro({
       </SortableContext>
 
       {tarefas.length === 0 && !adicionando && (
-        <div className="mt-0.5 rounded-[10px] border border-dashed border-line2 px-3 py-[22px] text-center text-xs leading-normal text-ink3">
+        <div className="mt-0.5 rounded-[10px] border border-dashed border-line-forte px-3 py-[22px] text-center text-xs leading-normal text-ink-muted">
           {coluna.kind === "done" ? "Conclua tarefas para vê-las aqui" : "Solte uma tarefa aqui"}
         </div>
       )}
@@ -144,7 +144,7 @@ function CriacaoRapida({ aoAdicionar, aoFechar }: { aoAdicionar: (titulo: string
   };
 
   return (
-    <div className="animate-pop rounded-[10px] border border-primary bg-surface p-2 shadow-focus">
+    <div className="animate-pop rounded-[10px] border border-primary bg-surface-raised p-2 shadow-focus">
       <input
         autoFocus
         value={valor}
@@ -161,10 +161,10 @@ function CriacaoRapida({ aoAdicionar, aoFechar }: { aoAdicionar: (titulo: string
         onBlur={() => !valor.trim() && aoFechar()}
         placeholder="Título da tarefa…"
         aria-label="Título da nova tarefa"
-        className="h-[26px] w-full border-0 bg-transparent text-[13.5px] text-ink outline-none placeholder:text-ink3"
+        className="h-[26px] w-full border-0 bg-transparent text-[13.5px] text-ink outline-none placeholder:text-ink-muted"
       />
       <div className="mt-1.5 flex items-center justify-between">
-        <span className="text-[11px] text-ink3">Enter adiciona, Esc cancela</span>
+        <span className="text-[11px] text-ink-muted">Enter adiciona, Esc cancela</span>
         <button
           type="button"
           onMouseDown={(e) => e.preventDefault()}

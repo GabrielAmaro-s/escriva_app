@@ -62,7 +62,7 @@ export function TelaConsultivo() {
       ) : (
         <div className="flex flex-col gap-3">
           {estado.carregando
-            ? Array.from({ length: 3 }, (_, i) => <div key={i} className="h-[98px] animate-pulse rounded-[14px] border border-line bg-surface" />)
+            ? Array.from({ length: 3 }, (_, i) => <div key={i} className="h-[98px] animate-pulse rounded-[14px] border border-line bg-surface-raised" />)
             : linhas.map((p) => <LinhaConsultivo key={p.id} projeto={p} />)}
         </div>
       )}
@@ -89,7 +89,7 @@ function LinhaConsultivo({ projeto }: { projeto: Projeto }) {
       onClick={abrir}
       onKeyDown={(e) => e.key === "Enter" && e.target === e.currentTarget && abrir()}
       onContextMenu={menu}
-      className="relative flex cursor-pointer flex-wrap items-center gap-x-6 gap-y-4 rounded-[14px] border border-line bg-surface py-4 pl-[18px] pr-[52px] transition-[border-color,box-shadow] duration-150 hover:border-line2 hover:shadow-card"
+      className="relative flex cursor-pointer flex-wrap items-center gap-x-6 gap-y-4 rounded-[14px] border border-line bg-surface-raised py-4 pl-[18px] pr-[52px] transition-[border-color,box-shadow] duration-150 hover:border-line-forte"
     >
       <BlocoTom tom={projeto.color} icone={projeto.icon} tamanho={40} />
       <div className="min-w-0 flex-[1_1_300px]">
@@ -97,8 +97,8 @@ function LinhaConsultivo({ projeto }: { projeto: Projeto }) {
           <h3 className="text-[15px] font-semibold tracking-[-0.01em]">{projeto.name}</h3>
           <SeloStatus status={projeto.status} className="py-0.5" />
         </div>
-        {projeto.description && <p className="mt-[3px] text-[12.5px] text-ink2">{projeto.description}</p>}
-        <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-xs text-ink2">
+        {projeto.description && <p className="mt-[3px] text-[12.5px] text-ink-muted">{projeto.description}</p>}
+        <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-xs text-ink-muted">
           <span className="inline-flex items-center gap-1.5">
             <UserIcon size={14} />
             {cliente ?? "Sem cliente"}
@@ -122,7 +122,7 @@ function LinhaConsultivo({ projeto }: { projeto: Projeto }) {
         </div>
       </div>
       <div className="flex flex-[0_0_150px] flex-col gap-[7px]">
-        <div className="flex justify-between text-xs text-ink2">
+        <div className="flex justify-between text-xs text-ink-muted">
           <span>Progresso</span>
           <span className="font-semibold text-ink">{pct}%</span>
         </div>
@@ -132,7 +132,7 @@ function LinhaConsultivo({ projeto }: { projeto: Projeto }) {
         type="button"
         aria-label="Mais opções"
         onClick={menu}
-        className="absolute right-3 top-3 grid size-7 place-items-center rounded-[7px] border-0 bg-transparent text-ink3 hover:bg-hover hover:text-ink"
+        className="absolute right-3 top-3 grid size-7 place-items-center rounded-[7px] border-0 bg-transparent text-ink-muted hover:bg-hover hover:text-ink"
       >
         <DotsThreeIcon size={16} weight="bold" />
       </button>

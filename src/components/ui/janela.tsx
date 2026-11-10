@@ -77,7 +77,7 @@ export function Janela({
         aria-modal="true"
         aria-label={rotulo}
         tabIndex={-1}
-        className={classes("w-full animate-pop rounded-[18px] border border-line bg-surface shadow-modal outline-none", className)}
+        className={classes("w-full animate-pop rounded-[18px] border border-line bg-surface-raised shadow-flutuante outline-none", className)}
       >
         {children}
       </div>

@@ -86,7 +86,7 @@ export function ProvedorMenuDeContexto({ children }: { children: ReactNode }) {
             role="menu"
             onClick={(e) => e.stopPropagation()}
             style={{ left: menu.x, top: menu.y }}
-            className="fixed w-[196px] animate-pop rounded-xl border border-line bg-surface p-[5px] shadow-pop"
+            className="fixed w-[196px] animate-pop rounded-xl border border-line bg-surface-raised p-[5px] shadow-flutuante"
           >
             {menu.itens.map(({ rotulo, icone: Icone, aoSelecionar, perigo }) => (
               <button
@@ -99,7 +99,7 @@ export function ProvedorMenuDeContexto({ children }: { children: ReactNode }) {
                 }}
                 className={classes(
                   "flex min-h-[34px] w-full items-center gap-2.5 rounded-lg border-0 bg-transparent px-2.5 py-1.5 text-left text-[13px] focus-visible:outline-none",
-                  perigo ? "text-s-red hover:bg-t-red-bg focus-visible:bg-t-red-bg" : "text-ink hover:bg-hover focus-visible:bg-hover",
+                  perigo ? "text-fatal hover:bg-fatal-soft focus-visible:bg-fatal-soft" : "text-ink hover:bg-hover focus-visible:bg-hover",
                 )}
               >
                 <Icone size={15} className="shrink-0" />

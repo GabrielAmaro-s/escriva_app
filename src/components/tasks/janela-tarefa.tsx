@@ -175,7 +175,7 @@ export function JanelaTarefa({
           <Marcador marcado={tarefa.completed} cor="green" tamanho={18} />
         </button>
         {projeto && (
-          <span data-tone={projeto.color} className="flex items-center gap-[7px] text-[12.5px] text-ink2">
+          <span data-tone={projeto.color} className="flex items-center gap-[7px] text-[12.5px] text-ink-muted">
             <span className="size-2 rounded-full bg-tone" aria-hidden />
             {projeto.name}
           </span>
@@ -199,8 +199,8 @@ export function JanelaTarefa({
           placeholder="Título da tarefa"
           aria-label="Título da tarefa"
           className={classes(
-            "-mx-2 w-[calc(100%+16px)] rounded-[9px] border border-transparent bg-transparent px-2 py-1.5 text-[22px] font-bold tracking-[-0.02em] text-ink outline-none hover:bg-hover focus:border-primary focus:bg-surface",
-            tarefa.completed && "text-ink3",
+            "-mx-2 w-[calc(100%+16px)] rounded-[9px] border border-transparent bg-transparent px-2 py-1.5 text-[22px] font-bold tracking-[-0.02em] text-ink outline-none hover:bg-hover focus:border-primary focus:bg-surface-raised",
+            tarefa.completed && "text-ink-muted",
           )}
         />
       </div>
@@ -259,12 +259,12 @@ export function JanelaTarefa({
                       api.atualizarTarefa(tarefa.id, { checklist: tarefa.checklist.map((i) => (i.id === item.id ? { ...i, text: e.target.value } : i)) })
                     }
                     onBlur={(e) => !e.target.value.trim() && api.atualizarTarefa(tarefa.id, { checklist: tarefa.checklist.filter((i) => i.id !== item.id) })}
-                    className={classes("h-[30px] min-w-0 flex-1 border-0 bg-transparent text-[13.5px] outline-none", item.done ? "text-ink3 line-through" : "text-ink")}
+                    className={classes("h-[30px] min-w-0 flex-1 border-0 bg-transparent text-[13.5px] outline-none", item.done ? "text-ink-muted line-through" : "text-ink")}
                   />
                   <BotaoIcone
                     rotulo={item.doCliente ? "Não é documento do cliente" : "Marcar como documento do cliente"}
                     aria-pressed={Boolean(item.doCliente)}
-                    className={classes("size-[22px] rounded-md", item.doCliente ? "text-primary" : "text-ink3")}
+                    className={classes("size-[22px] rounded-md", item.doCliente ? "text-primary" : "text-ink-muted")}
                     onClick={() =>
                       api.atualizarTarefa(tarefa.id, { checklist: tarefa.checklist.map((i) => (i.id === item.id ? { ...i, doCliente: !i.doCliente } : i)) })
                     }
@@ -273,7 +273,7 @@ export function JanelaTarefa({
                   </BotaoIcone>
                   <BotaoIcone
                     rotulo="Remover"
-                    className="size-[22px] rounded-md text-ink3"
+                    className="size-[22px] rounded-md text-ink-muted"
                     onClick={() => api.atualizarTarefa(tarefa.id, { checklist: tarefa.checklist.filter((i) => i.id !== item.id) })}
                   >
                     <XIcon size={13} weight="bold" />
@@ -282,7 +282,7 @@ export function JanelaTarefa({
               ))}
             </ul>
             <div className="mt-0.5 flex items-center gap-2.5 px-1">
-              <PlusIcon size={14} weight="bold" className="shrink-0 text-ink3" />
+              <PlusIcon size={14} weight="bold" className="shrink-0 text-ink-muted" />
               <input
                 value={novoItem}
                 onChange={(e) => setNovoItem(e.target.value)}
@@ -290,7 +290,7 @@ export function JanelaTarefa({
                 onBlur={adicionarItem}
                 placeholder="Adicionar subtarefa…"
                 aria-label="Adicionar subtarefa"
-                className="h-8 flex-1 border-0 bg-transparent text-[13.5px] text-ink outline-none placeholder:text-ink3"
+                className="h-8 flex-1 border-0 bg-transparent text-[13.5px] text-ink outline-none placeholder:text-ink-muted"
               />
             </div>
           </Secao>
@@ -300,7 +300,7 @@ export function JanelaTarefa({
               <ul className="flex flex-col overflow-hidden rounded-[10px] border border-line">
                 {tarefa.links.map((l) => (
                   <li key={l.id} className="flex h-[38px] items-center gap-2.5 border-b border-line pl-3 pr-1.5 text-[13px] last:border-b-0">
-                    <LinkIcon size={14} className="shrink-0 text-ink3" />
+                    <LinkIcon size={14} className="shrink-0 text-ink-muted" />
                     {l.url ? (
                       <a
                         href={l.url}
@@ -314,13 +314,13 @@ export function JanelaTarefa({
                       <span className="min-w-0 flex-1 truncate">{textoDoLink(l)}</span>
                     )}
                     {l.url && (
-                      <a href={l.url} target="_blank" rel="noreferrer noopener" aria-label="Abrir link" className="flex text-ink3 hover:text-ink">
+                      <a href={l.url} target="_blank" rel="noreferrer noopener" aria-label="Abrir link" className="flex text-ink-muted hover:text-ink">
                         <ArrowSquareOutIcon size={13} />
                       </a>
                     )}
                     <BotaoIcone
                       rotulo="Remover link"
-                      className="size-6 rounded-md text-ink3"
+                      className="size-6 rounded-md text-ink-muted"
                       onClick={() => api.atualizarTarefa(tarefa.id, { links: tarefa.links.filter((x) => x.id !== l.id) })}
                     >
                       <XIcon size={13} weight="bold" />
@@ -337,7 +337,7 @@ export function JanelaTarefa({
                 onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), adicionarLink())}
                 placeholder="Adicionar link (título ou URL)…"
                 aria-label="Adicionar link"
-                className="h-8 flex-1 border-0 bg-transparent text-[13.5px] text-ink outline-none placeholder:text-ink3"
+                className="h-8 flex-1 border-0 bg-transparent text-[13.5px] text-ink outline-none placeholder:text-ink-muted"
               />
             </div>
           </Secao>
@@ -445,7 +445,7 @@ export function JanelaTarefa({
                   maxLength={40}
                   placeholder="Nome da etiqueta"
                   aria-label="Nome da nova etiqueta"
-                  className="h-6 w-32 rounded-full border border-primary bg-surface px-2.5 text-xs text-ink outline-none"
+                  className="h-6 w-32 rounded-full border border-primary bg-surface-raised px-2.5 text-xs text-ink outline-none"
                 />
               ) : (
                 <select
@@ -456,7 +456,7 @@ export function JanelaTarefa({
                     if (v === NOVA_ETIQUETA) return setCriandoEtiqueta(true);
                     if (v) api.atualizarTarefa(tarefa.id, { labelIds: [...tarefa.labelIds, v] });
                   }}
-                  className="h-6 w-[92px] cursor-pointer rounded-full border border-dashed border-line2 bg-transparent px-1.5 text-xs text-ink2 outline-none"
+                  className="h-6 w-[92px] cursor-pointer rounded-full border border-dashed border-line-forte bg-transparent px-1.5 text-xs text-ink-muted outline-none"
                 >
                   <option value="">+ Etiqueta</option>
                   {disponiveis.map((l) => (
@@ -477,7 +477,7 @@ export function JanelaTarefa({
           )}
 
           <Secao titulo="Responsável">
-            <div className="flex h-9 items-center gap-[9px] rounded-[9px] border border-line2 px-2.5 text-[13px]">
+            <div className="flex h-9 items-center gap-[9px] rounded-[9px] border border-line-forte px-2.5 text-[13px]">
               <span className="grid size-[22px] place-items-center rounded-full bg-primary-soft text-[11px] font-semibold text-primary">{usuario.inicial}</span>
               {usuario.nome}
             </div>
