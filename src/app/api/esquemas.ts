@@ -153,3 +153,38 @@ export const esquemaNovoFeriado = z.object({
 });
 
 export const esquemaPreferencias = z.object({ margemPrazoInterno: z.number().int().min(0).max(30) });
+
+// Captura do DJEN (rotas /api/djen/*, chamadas pela VPS com o token) -------------------
+
+const dataObrigatoria = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { error: "Use datas no formato AAAA-MM-DD." });
+const janelaDjen = z.object({ inicio: dataObrigatoria, fim: dataObrigatoria });
+const textoDjen = (max: number) => z.string().max(max).nullable();
+
+export const esquemaComunicacoesDjen = z.object({
+  itens: z
+    .array(
+      z.object({
+        djenId: z.number().int().positive(),
+        hash: textoDjen(200),
+        numeroProcesso: z.string().max(40),
+        dataDisponibilizacao: z.string().max(10),
+        tribunal: textoDjen(100),
+        orgao: textoDjen(1000),
+        classe: textoDjen(1000),
+        tipoComunicacao: textoDjen(500),
+        tipoDocumento: textoDjen(500),
+        link: textoDjen(4000),
+        destinatarioSigilo: z.boolean(),
+        ativa: z.boolean(),
+        // A VPS corta o teor em 60 mil caracteres e avisa em textoTruncado.
+        texto: z.string().max(60_000),
+        textoTruncado: z.boolean(),
+      }),
+    )
+    .max(20, { error: "Envie até 20 comunicações por vez." }),
+});
+
+export const esquemaConclusaoDjen = z.object({
+  resultado: z.enum(["ok", "falhou", "limite"]),
+  janela: janelaDjen,
+});

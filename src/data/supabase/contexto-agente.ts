@@ -1,6 +1,8 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Repositorio } from "../repositorio";
+import type { RepositorioDjen } from "../repositorio-djen";
+import { criarRepositorioDjenSupabase } from "./repositorio-djen";
 import type { TokenGuardado } from "@/services/tokens";
 import { obterSupabaseAdmin } from "./admin";
 import { paraToken, type LinhaToken } from "./conversores";
@@ -47,6 +49,11 @@ export function criarClienteDoUsuario(admin: Pick<SupabaseClient, "from">, userI
 /** Repositório que o agente usa: dados só da pessoa dona do token. */
 export function criarRepositorioDoAgente(userId: string, admin: Pick<SupabaseClient, "from"> = obterSupabaseAdmin()): Repositorio {
   return criarRepositorioSupabase(criarClienteDoUsuario(admin, userId));
+}
+
+/** Repositório da captura do DJEN que a VPS usa pelo token: dados só da pessoa dona do token. */
+export function criarRepositorioDjenDoAgente(userId: string, admin: Pick<SupabaseClient, "from"> = obterSupabaseAdmin()): RepositorioDjen {
+  return criarRepositorioDjenSupabase(criarClienteDoUsuario(admin, userId));
 }
 
 /**

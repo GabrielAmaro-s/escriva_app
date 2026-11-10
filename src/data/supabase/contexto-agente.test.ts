@@ -2,14 +2,16 @@ import { describe, expect, it } from "vitest";
 import { detalhesProcessoVazios } from "@/domain/processo";
 import type { DadosProjeto } from "@/domain/tipos";
 import type { Repositorio } from "../repositorio";
-import { criarRepositorioDoAgente } from "./contexto-agente";
+import type { RepositorioDjen } from "../repositorio-djen";
+import { criarRepositorioDjenDoAgente, criarRepositorioDoAgente } from "./contexto-agente";
+import { criarRepositorioDjenSupabase } from "./repositorio-djen";
 import { criarRepositorioSupabase } from "./repositorio-supabase";
 
 /**
  * Cliente falso do Supabase: grava cada consulta (tabela, operação, valores, filtros)
  * e responde com linhas plausíveis, para os métodos do repositório irem até o fim.
  */
-type Consulta = { tabela: string; operacao: string; valores?: unknown; filtros: [string, string, unknown][] };
+type Consulta = { tabela: string; operacao: string; valores?: unknown; opcoes?: unknown; filtros: [string, string, unknown][] };
 
 function criarClienteFalso() {
   const consultas: Consulta[] = [];
@@ -49,8 +51,8 @@ function criarClienteFalso() {
   const from = (tabela: string) => {
     let consulta: Consulta | null = null;
     let modo: "lista" | "uma" | "talvez" = "lista";
-    const iniciar = (operacao: string, valores?: unknown) => {
-      consulta = { tabela, operacao, valores, filtros: [] };
+    const iniciar = (operacao: string, valores?: unknown, opcoes?: unknown) => {
+      consulta = { tabela, operacao, valores, opcoes, filtros: [] };
       consultas.push(consulta);
       return construtor;
     };
@@ -61,11 +63,12 @@ function criarClienteFalso() {
     const construtor: Record<string, unknown> = {
       select: (..._a: unknown[]) => (consulta ? construtor : iniciar("select")),
       insert: (v: unknown) => iniciar("insert", v),
-      upsert: (v: unknown) => iniciar("upsert", v),
+      upsert: (v: unknown, o?: unknown) => iniciar("upsert", v, o),
       update: (v: unknown) => iniciar("update", v),
       delete: () => iniciar("delete"),
       eq: filtro("eq"),
       in: filtro("in"),
+      is: filtro("is"),
       or: (expressao: string) => {
         consulta!.filtros.push(["or", "", expressao]);
         return construtor;
@@ -223,5 +226,51 @@ describe("repositório do agente", () => {
       ["delete", [`eq user_id ${USUARIO}`, "eq id f1"]],
     ]);
     expect(consultas[1].valores).toMatchObject({ user_id: USUARIO });
+  });
+});
+
+/** Uma chamada de exemplo para cada método do repositório da captura do DJEN. */
+const CHAMADAS_DJEN: Record<keyof RepositorioDjen, (r: RepositorioDjen) => Promise<unknown>> = {
+  obterCaptura: (r) => r.obterCaptura(),
+  salvarCaptura: (r) => r.salvarCaptura({ ligada: true, numeroOab: "9999991", ufOab: "RS", avisoAceitoEm: "2099-01-01T00:00:00Z" }),
+  registrarEstadoDaConsulta: (r) => r.registrarEstadoDaConsulta({ ultimoResultado: "ok", ultimaConsultaOk: "2099-01-01", tentativasNoDia: 1, ultimaTentativaEm: "2099-01-01T10:00:00Z" }),
+  inserirSugestoes: (r) =>
+    r.inserirSugestoes([
+      {
+        djenId: 990000001, hash: null, numeroProcesso: "50000010020998210001", dataDisponibilizacao: "2099-03-09", sigiloso: true, tribunal: null, orgao: null,
+        classe: null, tipoComunicacao: null, tipoDocumento: null, link: null, trecho: null, diasSituacao: null, dias: null, unidadeDias: null, trechoDias: null, resumoTeor: null,
+      },
+    ]),
+  marcarCanceladas: (r) => r.marcarCanceladas([990000001], "2099-03-10T00:00:00Z"),
+  listarSugestoes: (r) => r.listarSugestoes({ status: ["pendente"] }),
+  apagarSugestoesPendentes: (r) => r.apagarSugestoesPendentes(),
+};
+
+describe("repositório da captura do DJEN no agente", () => {
+  it("tem um caso de teste para cada método", () => {
+    const { cliente } = criarClienteFalso();
+    expect(Object.keys(criarRepositorioDjenDoAgente(USUARIO, cliente)).sort()).toEqual(Object.keys(CHAMADAS_DJEN).sort());
+  });
+
+  for (const [nome, chamar] of Object.entries(CHAMADAS_DJEN)) {
+    it(`${nome}: nenhuma consulta sai sem o filtro do usuário`, async () => {
+      const { cliente, consultas } = criarClienteFalso();
+      await chamar(criarRepositorioDjenDoAgente(USUARIO, cliente)).catch(() => undefined);
+      expect(consultas.length).toBeGreaterThan(0);
+      expect(consultas.filter(semFiltroDoUsuario)).toEqual([]);
+    });
+  }
+
+  it("controle: sem o embrulho, as mesmas chamadas saem sem filtro", async () => {
+    const { cliente, consultas } = criarClienteFalso();
+    const cru = criarRepositorioDjenSupabase(cliente);
+    for (const chamar of Object.values(CHAMADAS_DJEN)) await chamar(cru).catch(() => undefined);
+    expect(consultas.filter(semFiltroDoUsuario).length).toBeGreaterThanOrEqual(7);
+  });
+
+  it("inserção sem duplicar: on conflict (user_id, djen_id) do nothing", async () => {
+    const { cliente, consultas } = criarClienteFalso();
+    await CHAMADAS_DJEN.inserirSugestoes(criarRepositorioDjenDoAgente(USUARIO, cliente));
+    expect(consultas[0]).toMatchObject({ tabela: "comunicacoes_djen", operacao: "upsert", opcoes: { onConflict: "user_id,djen_id", ignoreDuplicates: true } });
   });
 });
