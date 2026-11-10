@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  regraSeguraDoProcesso,
   calcularPrazo,
   calcularPrazoDaIntimacao,
   criarCalendario,
@@ -276,5 +277,30 @@ describe("validação", () => {
     expect(validarDadosPrazo({ ...base, dias: 0 })).toMatchObject({ ok: false });
     expect(validarDadosPrazo({ ...base, dias: 1.5 })).toMatchObject({ ok: false });
     expect(validarDadosPrazo({ ...base, margem: 31 })).toMatchObject({ ok: false });
+  });
+});
+
+describe("regra segura do processo (agente)", () => {
+  it("criminal e trabalhista não dependem do órgão", () => {
+    expect(regraSeguraDoProcesso({ area: "criminal", orgao: "Juizado Especial Criminal" })).toBe("penal");
+    expect(regraSeguraDoProcesso({ area: "trabalhista", orgao: null })).toBe("trabalhista");
+  });
+
+  it("órgão com Juizado (com ou sem acento e maiúscula) usa a regra do juizado", () => {
+    expect(regraSeguraDoProcesso({ area: "civel", orgao: "Juizado Especial Cível" })).toBe("juizado");
+    expect(regraSeguraDoProcesso({ area: "previdenciario", orgao: "2º JUIZADO Especial Federal" })).toBe("juizado");
+    expect(regraSeguraDoProcesso({ area: null, orgao: "juizado da fazenda pública" })).toBe("juizado");
+  });
+
+  it("cível sem a pista, sem área ou sem detalhes não assume (pergunta vara comum ou juizado)", () => {
+    expect(regraSeguraDoProcesso({ area: "civel", orgao: "Vara Cível" })).toBeNull();
+    expect(regraSeguraDoProcesso({ area: "civel", orgao: null })).toBeNull();
+    expect(regraSeguraDoProcesso({ area: null, orgao: null })).toBeNull();
+    expect(regraSeguraDoProcesso({ area: "consumidor", orgao: null })).toBeNull();
+    expect(regraSeguraDoProcesso(null)).toBeNull();
+  });
+
+  it("família vai sempre para vara: regra cível", () => {
+    expect(regraSeguraDoProcesso({ area: "familia", orgao: "Vara de Família" })).toBe("civel");
   });
 });

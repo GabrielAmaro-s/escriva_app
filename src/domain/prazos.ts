@@ -67,6 +67,23 @@ export function regraDaArea(area: AreaProcesso | null | undefined): RegraPrazo {
   return "civel";
 }
 
+/**
+ * Regra que dá para afirmar só pelo processo, sem perguntar (usada pelo agente).
+ * Cível em vara comum e em juizado contam diferente no recesso: aplicar a cível num JEC
+ * empurraria o vencimento para depois do real. Por isso, sem a palavra "Juizado" no órgão,
+ * áreas que podem estar em vara ou em juizado (cível, consumidor, previdenciário, tributário,
+ * administrativo, outra ou sem área) devolvem null: a pergunta é "vara comum ou juizado?".
+ */
+export function regraSeguraDoProcesso(processo: Pick<DetalhesProcesso, "area" | "orgao"> | null | undefined): RegraPrazo | null {
+  const area = processo?.area ?? null;
+  if (area === "criminal") return "penal";
+  if (area === "trabalhista") return "trabalhista";
+  const orgao = (processo?.orgao ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  if (orgao.includes("juizado")) return "juizado";
+  if (area === "familia") return "civel";
+  return null;
+}
+
 // Datas ------------------------------------------------------------------------------
 
 /** "02/12/2026". */
