@@ -183,7 +183,10 @@ Na janela da tarefa: escolha do tipo; para prazo, campos "data de início" e "qu
 Renomear e reorganizar (rápido). Rotas e textos da interface, modelos de colunas. Critério de pronto: um advogado consegue cadastrar seus processos sem estranhar o vocabulário. O campo de área passou para a etapa 2, porque precisa de coluna nova no banco.
 Processo e clientes. Migração com clientes e processo_detalhes (incluindo o campo de área), formulário, tela de clientes, cartão do processo com cliente e número. Ícones jurídicos para processos e casos consultivos.
 Motor de prazos. domain/prazos.ts com testes, tabela de feriados, tipos de tarefa, lembretes automáticos D-3/D-1/dia, histórico de alterações de prazo.
-Agente jurídico. Ferramentas da seção 8, SOUL.md ajustado, resumos novos. Mensagens do agente com o vocabulário jurídico (hoje ele ainda responde "Criei o projeto X" e "Criei a campanha X").
+Agente jurídico (versão enxuta para o piloto com 2 ou 3 advogados). Feito: registrar_intimacao, criar_processo, prazos_proximos e audiencias_proximas; mensagens no vocabulário jurídico; SOUL.md com os resumos de prazos e audiências; uma instância do nanobot por advogado na mesma VPS. Ficou para depois: documentos_pendentes, andamento_para_cliente, consultar_processo (DataJud) e um agente que atende vários números.
+Depois do piloto, nesta ordem:
+1. Campo "rito" (comum|juizado) em processo_detalhes, preenchido uma vez por processo, para o agente parar de perguntar "vara comum ou juizado?". Exige migração. Até lá, a palavra "Vara" no órgão não conta como pista, por causa dos juizados adjuntos em comarcas pequenas e das varas federais com JEF.
+2. documentos_pendentes no agente. Os documentos pendentes não entram no resumo das 8h.
 DataJud. Consulta por número CNJ e aviso de movimentação nova (sem substituir a leitura das intimações).
 Andamento para o cliente. Texto em linguagem simples, depois um link de acompanhamento só de leitura, se fizer sentido.
 
@@ -201,8 +204,10 @@ Revisão das regras de prazo por alguém da área antes de qualquer uso real (ca
 Feriados forenses do TJRS além da Data Magna: carregar só depois de conferir o ato do tribunal (etapa 3 deixou só o 20/09).
 Dia do Servidor de 2027 no TRF4 (e no TRT4, se houver): carregar quando o tribunal fixar a data.
 Quarta-feira de Cinzas: só entra como expediente reduzido com ato do tribunal; até lá, o advogado pode cadastrá-la como feriado local.
-Ícones jurídicos (etapa 2). Na etapa 1 o Consultivo ficou com o megafone, na tela e no agente, e os ícones do menu não mudaram.
-Vocabulário das mensagens do agente (etapa 4). Na etapa 1 só a ferramenta criar_projeto mudou, com o parâmetro modelo.
+Ícones jurídicos: feitos na etapa 2 (tela) e na etapa 4 (o agente cria processo com a balança e caso consultivo com a maleta).
+Vocabulário das mensagens do agente: feito na etapa 4.
+Ferramentas do agente que ficaram fora da etapa 4: documentos_pendentes, andamento_para_cliente e consultar_processo (DataJud, etapa 5).
+Agente único para vários números: fora do piloto. No piloto, cada advogado tem a própria instância do nanobot.
 
 13. Ideias futuras
 Trocar o modelo de quadro de um processo que já existe. Exigiria renomear colunas que já têm tarefas, então fica fora do roteiro por enquanto.

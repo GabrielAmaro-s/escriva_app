@@ -18,6 +18,7 @@ Este repositório é o myPlan, em adaptação para advogados autônomos. O traba
 - Antes de qualquer migração, mostrar o SQL completo (tabelas, colunas, índices, RLS e grants) para revisão.
 - Nenhuma migração é aplicada em banco nenhum sem confirmação.
 - Se uma mudança fora do combinado parecer exigir migração, parar e perguntar.
+- O `.env.local` aponta para o Supabase local. As credenciais de produção ficam só no `.env.producao`, que os scripts `db:*` leem apenas com `-- --producao`. Não criar `.env`, porque o Next o lê sozinho.
 
 ## Código
 

@@ -1,0 +1,38 @@
+# Uma instância do gateway por advogado (piloto), na mesma VPS.
+# O nome depois do @ é o apelido da instância: "nanobot-gateway@ana" roda como o usuário
+# "nanobot-ana", com a pasta /home/nanobot-ana/.nanobot (config, workspace e sessão do WhatsApp).
+# Instale em /etc/systemd/system/nanobot-gateway@.service e ative com:
+#   sudo systemctl enable --now nanobot-gateway@ana
+# Cada instância precisa de um gateway.port diferente no próprio config.json (18790, 18791...).
+
+[Unit]
+Description=nanobot gateway do myPlan (instância %i)
+Wants=network-online.target
+After=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=nanobot-%i
+Group=nanobot-%i
+WorkingDirectory=/home/nanobot-%i
+# Variáveis lidas pelo config.json via ${NOME}: token, número permitido e LLM desta instância
+EnvironmentFile=/home/nanobot-%i/.nanobot/.env
+Environment=PATH=/home/nanobot-%i/.local/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/home/nanobot-%i/.local/bin/nanobot gateway --foreground
+Restart=always
+RestartSec=10
+
+# Endurecimento: sem privilégios novos, só escreve na própria pasta e não enxerga as outras casas
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=tmpfs
+BindReadOnlyPaths=/home/nanobot-%i
+ReadWritePaths=/home/nanobot-%i/.nanobot /home/nanobot-%i/.cache
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+
+[Install]
+WantedBy=multi-user.target

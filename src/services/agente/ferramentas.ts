@@ -2,11 +2,13 @@ import { z } from "zod";
 import { interpretarDataHora } from "@/domain/datas";
 import { ordenarPorQuando } from "@/domain/lembrete";
 import { MODELOS, alteracaoAoMudarColuna, ordenarPorPosicao, proximaPosicaoNaColuna } from "@/domain/quadro";
-import type { AlteracaoTarefa, Desfazer, PrioridadeTarefa, Tarefa } from "@/domain/tipos";
+import type { AlteracaoTarefa, PrioridadeTarefa, Tarefa } from "@/domain/tipos";
 import { criarLembrete, lembretesProximos, marcarLembrete } from "../lembretes";
+import { dadosProjetoVazios } from "@/domain/projeto";
 import { criarProjeto } from "../projetos";
 import {
   COLUNA_PT,
+  TIPOS_ACEITOS,
   type ContextoAgente,
   ErroFerramenta,
   PRIORIDADE_DO_PT,
@@ -14,12 +16,14 @@ import {
   carregarEspaco,
   colunasDoProjeto,
   diaFalado,
+  ehConsultivo,
   hojeNoFuso,
   horarioFalado,
   idsDasEtiquetas,
   instanteNoFuso,
   linkDaTarefa,
   linkDoProjeto,
+  nomeDoCaso,
   normalizar,
   plural,
   resolverColuna,
@@ -28,76 +32,58 @@ import {
   resumoDaTarefa,
   resumoDoProjeto,
 } from "./auxiliares";
+import { PEDIR_SIM, confirmado, data, definir, type Ferramenta } from "./definicao";
+import { ferramentasJuridicas } from "./ferramentas-juridicas";
 
-// As 15 ferramentas do servidor MCP do myPlan.
+// As ferramentas do servidor MCP do myPlan.
 // As descrições são fixas: nenhum texto vindo de tarefas, links ou mensagens entra nelas.
 
-export interface ResultadoFerramenta {
-  /** Frase curta, pronta para o WhatsApp. */
-  mensagem: string;
-  /** Dados estruturados para o agente (listas, ids, links). */
-  dados?: Record<string, unknown>;
-  /** Como reverter (vai para registro_agente.desfazer). */
-  desfazer?: Desfazer | null;
-}
+export type { Ferramenta, ResultadoFerramenta } from "./definicao";
 
-export interface Ferramenta<E extends z.ZodObject = z.ZodObject> {
-  nome: string;
-  titulo: string;
-  descricao: string;
-  /** Altera dados? Tokens de leitura não enxergam estas. */
-  escrita: boolean;
-  /** Exige `confirmado: true` para aplicar. */
-  confirmacao: boolean;
-  entrada: E;
-  executar(ctx: ContextoAgente, args: z.infer<E>): Promise<ResultadoFerramenta>;
-}
-
-const definir = <E extends z.ZodObject>(f: Ferramenta<E>) => f as unknown as Ferramenta;
-
-const data = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { error: "Use a data no formato AAAA-MM-DD." });
 const prioridade = z.enum(["baixa", "media", "alta", "urgente"]);
-const coluna = z.string().describe('Papel da coluna ("a_fazer", "em_andamento", "aguardando", "concluido") ou o título dela.');
-const refProjeto = z.string().min(1).describe("Id do projeto ou parte do nome (ex.: \"novo site\").");
+const coluna = z.string().describe('Papel da coluna ("a_fazer", "em_andamento", "aguardando", "concluido") ou o título dela (ex.: "Aguardando decisão").');
+const refProjeto = z.string().min(1).describe('Id do processo ou caso consultivo, ou parte do nome (ex.: "cobrança de aluguéis").');
 const refTarefa = z.string().min(1).describe("Id da tarefa (de buscar_tarefas ou ver_quadro) ou o título exato.");
-const confirmado = z.boolean().default(false).describe("false (padrão) só mostra a prévia. Use true depois que a pessoa disser sim.");
 
-const PEDIR_SIM = 'Responda "sim" para confirmar.';
 
 export function criarFerramentas(config: { limiteItens: number }): Ferramenta[] {
   const limite = config.limiteItens;
+  const juridicas = ferramentasJuridicas();
 
   return [
     // Leitura -------------------------------------------------------------------------
     definir({
       nome: "listar_projetos",
-      titulo: "Listar projetos",
-      descricao: "Lista os projetos e campanhas com status, progresso (%), tarefas concluídas e prazo.",
+      titulo: "Listar processos e casos consultivos",
+      descricao: "Lista os processos e casos consultivos com status, número, área, progresso (%), tarefas concluídas e prazo.",
       escrita: false,
       confirmacao: false,
       entrada: z.object({
-        tipo: z.enum(["projeto", "campanha", "todos"]).default("todos"),
+        tipo: z.enum([...TIPOS_ACEITOS, "todos"]).default("todos").describe('"processo", "consultivo" ou "todos".'),
         incluir_arquivados: z.boolean().default(false),
       }),
       async executar(ctx, args) {
         const projetos = (await ctx.repo.listarProjetos()).filter(
-          (p) => (args.incluir_arquivados || !p.archivedAt) && (args.tipo === "todos" || (args.tipo === "campanha") === (p.kind === "campaign")),
+          (p) => (args.incluir_arquivados || !p.archivedAt) && (args.tipo === "todos" || ehConsultivo(args.tipo) === (p.kind === "campaign")),
         );
-        return { mensagem: `${plural(projetos.length, "projeto", "projetos")}.`, dados: { projetos: projetos.map((p) => resumoDoProjeto(ctx, p)) } };
+        const processos = projetos.filter((p) => p.kind === "project").length;
+        const consultivos = projetos.length - processos;
+        const partes = [processos || !consultivos ? plural(processos, "processo", "processos") : null, consultivos ? plural(consultivos, "caso consultivo", "casos consultivos") : null].filter(Boolean);
+        return { mensagem: `${partes.join(" e ")}.`, dados: { projetos: projetos.map((p) => resumoDoProjeto(ctx, p)) } };
       },
     }),
 
     definir({
       nome: "ver_quadro",
       titulo: "Ver quadro",
-      descricao: "Mostra as colunas, tarefas e etiquetas de um projeto. Aceita o id ou parte do nome do projeto.",
+      descricao: "Mostra as colunas (título e papel), tarefas e etiquetas de um processo ou caso consultivo. Aceita o id ou parte do nome.",
       escrita: false,
       confirmacao: false,
       entrada: z.object({ projeto: refProjeto }),
       async executar(ctx, args) {
         const projeto = await resolverProjeto(ctx, args.projeto, { incluirArquivados: true });
         const quadro = await ctx.repo.obterQuadro(projeto.id);
-        if (!quadro) throw new ErroFerramenta("Projeto não encontrado.");
+        if (!quadro) throw new ErroFerramenta("Processo ou caso consultivo não encontrado.");
         const extras = { colunas: quadro.colunas, etiquetas: quadro.etiquetas };
         return {
           mensagem: `Quadro de ${projeto.name}: ${plural(quadro.tarefas.length, "tarefa", "tarefas")}.`,
@@ -118,7 +104,7 @@ export function criarFerramentas(config: { limiteItens: number }): Ferramenta[] 
     definir({
       nome: "buscar_tarefas",
       titulo: "Buscar tarefas",
-      descricao: "Filtra tarefas por texto, projeto, prioridade, etiqueta e prazo. Por padrão só traz as abertas.",
+      descricao: "Filtra tarefas por texto, processo ou caso consultivo, prioridade, etiqueta e prazo. Por padrão só traz as abertas.",
       escrita: false,
       confirmacao: false,
       entrada: z.object({
@@ -159,8 +145,8 @@ export function criarFerramentas(config: { limiteItens: number }): Ferramenta[] 
 
     definir({
       nome: "resumir_projeto",
-      titulo: "Resumir projeto",
-      descricao: "Resumo de um projeto: progresso, tarefas atrasadas, próximas entregas e o que está na coluna Aguardando.",
+      titulo: "Resumir processo ou caso consultivo",
+      descricao: "Resumo de um processo ou caso consultivo: progresso, tarefas atrasadas, próximas entregas e o que está na coluna de espera (papel aguardando, com o título real dela).",
       escrita: false,
       confirmacao: false,
       entrada: z.object({ projeto: refProjeto }),
@@ -181,7 +167,7 @@ export function criarFerramentas(config: { limiteItens: number }): Ferramenta[] 
         const partes = [`${projeto.name}: ${r.progresso}% (${r.tarefas} tarefas)`];
         if (atrasadas.length) partes.push(plural(atrasadas.length, "atrasada", "atrasadas"));
         if (proximas[0]) partes.push(`próxima entrega ${diaFalado(ctx, proximas[0].dueOn!)}`);
-        if (aguardando.length) partes.push(`${aguardando.length} em Aguardando`);
+        if (aguardando.length) partes.push(`${aguardando.length} em ${colunaAguardando!.title}`);
         return {
           mensagem: `${partes.join(", ")}.`,
           dados: {
@@ -218,11 +204,13 @@ export function criarFerramentas(config: { limiteItens: number }): Ferramenta[] 
       },
     }),
 
+    ...juridicas.leitura,
+
     // Escrita -------------------------------------------------------------------------
     definir({
       nome: "criar_tarefas",
       titulo: "Criar tarefas",
-      descricao: `Cria uma ou várias tarefas (até ${limite} por pedido) em um projeto. Etiquetas que não existem são criadas.`,
+      descricao: `Cria uma ou várias tarefas (providências, até ${limite} por pedido) num processo ou caso consultivo. Etiquetas que não existem são criadas. Para prazo de intimação, use registrar_intimacao.`,
       escrita: true,
       confirmacao: false,
       entrada: z.object({
@@ -440,24 +428,24 @@ export function criarFerramentas(config: { limiteItens: number }): Ferramenta[] 
 
     definir({
       nome: "criar_projeto",
-      titulo: "Criar projeto",
+      titulo: "Criar caso consultivo ou processo",
       descricao:
-        'Cria um projeto (processo) ou uma campanha (caso consultivo). As colunas vêm do modelo de quadro: "civel" (A fazer, Em andamento, Aguardando decisão, Concluído), "trabalhista" (A fazer, Em andamento, Aguardando audiência, Concluído), "previdenciario" (Documentos do cliente, Requerimento INSS, Aguardando INSS/Justiça, Concluído), "familia" (A fazer, Em andamento, Aguardando, Concluído) ou "consultivo" (A fazer, Redigindo, Aguardando cliente, Entregue). "consultivo" serve só para campanha; os outros quatro, só para projeto. Sem modelo, usa "civel" para projeto e "consultivo" para campanha.',
+        'Cria um caso consultivo (tipo "consultivo") ou um processo simples (tipo "processo"). Para processo com número, área e cliente, prefira criar_processo. As colunas vêm do modelo de quadro: "civel" (A fazer, Em andamento, Aguardando decisão, Concluído), "trabalhista" (A fazer, Em andamento, Aguardando audiência, Concluído), "previdenciario" (Documentos do cliente, Requerimento INSS, Aguardando INSS/Justiça, Concluído), "familia" (A fazer, Em andamento, Aguardando, Concluído) ou "consultivo" (A fazer, Redigindo, Aguardando cliente, Entregue). "consultivo" serve só para caso consultivo; os outros quatro, só para processo. Sem modelo, usa "civel" para processo e "consultivo" para caso consultivo.',
       escrita: true,
       confirmacao: false,
       entrada: z.object({
         nome: z.string().trim().min(1).max(120),
-        tipo: z.enum(["projeto", "campanha"]).default("projeto"),
+        tipo: z.enum(TIPOS_ACEITOS).default("processo").describe('"processo" ou "consultivo".'),
         descricao: z.string().max(2000).optional(),
-        prazo: data.optional().describe("Prazo do projeto (ou fim da campanha)."),
-        inicio: data.optional().describe("Só campanhas."),
-        objetivo: z.string().max(200).optional().describe("Só campanhas."),
-        canais: z.array(z.string().max(40)).max(10).optional().describe("Só campanhas."),
+        prazo: data.optional().describe("Prazo do processo (ou prazo de entrega do caso consultivo)."),
+        inicio: data.optional().describe("Só caso consultivo: recebido em."),
+        objetivo: z.string().max(200).optional().describe("Só caso consultivo: pedido do cliente."),
+        canais: z.array(z.string().max(40)).max(10).optional().describe("Só caso consultivo: o primeiro vira o tipo de serviço (ex.: Contrato, Parecer)."),
         cor: z.enum(["violet", "blue", "green", "amber", "red", "pink"]).optional(),
         modelo: z.enum(MODELOS).optional().describe("Modelo de quadro: civel, trabalhista, previdenciario, familia ou consultivo."),
       }),
       async executar(ctx, args) {
-        const campanha = args.tipo === "campanha";
+        const campanha = ehConsultivo(args.tipo);
         try {
           const projeto = await criarProjeto(
             ctx.repo,
@@ -467,29 +455,31 @@ export function criarFerramentas(config: { limiteItens: number }): Ferramenta[] 
               kind: campanha ? "campaign" : "project",
               status: "active",
               color: args.cor ?? (campanha ? "red" : "violet"),
-              icon: campanha ? "megaphone" : "folder",
+              icon: dadosProjetoVazios(campanha ? "campaign" : "project").icon,
               dueOn: campanha ? null : (args.prazo ?? null),
               campaign: campanha ? { objective: args.objetivo ?? null, startsOn: args.inicio ?? null, endsOn: args.prazo ?? null, channels: args.canais ?? [], deliverables: [] } : null,
             },
             args.modelo,
           );
           return {
-            mensagem: `Criei ${campanha ? "a campanha" : "o projeto"} ${projeto.name}.`,
+            mensagem: `Criei ${nomeDoCaso(projeto)}.`,
             dados: { projeto: resumoDoProjeto(ctx, projeto), link: linkDoProjeto(ctx, projeto.id) },
             desfazer: { tipo: "excluir_projeto", id: projeto.id },
           };
         } catch (e) {
-          throw new ErroFerramenta(e instanceof Error ? e.message : "Não foi possível criar o projeto.");
+          throw new ErroFerramenta(e instanceof Error ? e.message : "Não foi possível criar.");
         }
       },
     }),
+
+    ...juridicas.escrita,
 
     // Com confirmação ----------------------------------------------------------------
     definir({
       nome: "sugerir_prioridades",
       titulo: "Sugerir prioridades",
       descricao:
-        "Propõe prioridades e uma nova ordem para as tarefas abertas de um projeto, pelo prazo (atrasada: urgente; até 2 dias: alta; até 7: média). Com confirmado=false devolve só a prévia; com true aplica. Pode receber sugestões próprias em \"sugestoes\".",
+        "Propõe prioridades e uma nova ordem para as tarefas abertas de um processo ou caso consultivo, pelo prazo (atrasada: urgente; até 2 dias: alta; até 7: média). Com confirmado=false devolve só a prévia; com true aplica. Pode receber sugestões próprias em \"sugestoes\".",
       escrita: true,
       confirmacao: true,
       entrada: z.object({
@@ -647,9 +637,10 @@ export function criarFerramentas(config: { limiteItens: number }): Ferramenta[] 
         return { mensagem: `Excluí “${tarefa.title}”.`, dados: { link: linkDoProjeto(ctx, tarefa.projectId) }, desfazer: { tipo: "recriar_tarefa", tarefa } };
       },
     }),
+    ...juridicas.comConfirmacao,
   ];
 }
 
-/** Nomes das 15 ferramentas, na ordem em que aparecem para o agente. */
+/** Nomes das 19 ferramentas, na ordem em que aparecem para o agente. */
 export const NOMES_DAS_FERRAMENTAS = criarFerramentas({ limiteItens: 10 }).map((f) => f.nome);
 
