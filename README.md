@@ -15,27 +15,54 @@ Telas: **Hoje** (`/hoje`), **Processos** (`/`), **Consultivo** (`/consultivo`), 
 
 Quem já usava o modo local antes desta versão continua com os dados que tinha. Para ver o exemplo novo, com clientes, apague a chave `myplan:v2` do localStorage.
 
-## Conectar ao Supabase
+## Dois ambientes: local e produção
 
-1. Crie um projeto em supabase.com.
-2. Copie `.env.example` para `.env.local` e preencha:
+O dia a dia roda contra um **Supabase local**, e as credenciais de produção ficam num arquivo separado que só os scripts `db:*` leem, e só quando você pede:
+
+| Arquivo | Quem lê | Para onde aponta |
+|---|---|---|
+| `.env.local` | `npm run dev`, `npm run build` e os scripts `db:*` sem flag | Supabase local (`npx supabase start`) |
+| `.env.producao` | Só os scripts `db:*` com `-- --producao` | Projeto de produção no supabase.com |
+
+Os dois estão no `.gitignore`. **Não crie um `.env`**: o Next lê o `.env` sozinho, e credenciais de produção nele fariam o `npm run dev` usar a produção.
+
+### Desenvolver com o Supabase local
+
+1. Com o Docker rodando: `npx supabase start` (a primeira vez baixa as imagens).
+2. Copie `.env.example` para `.env.local` e preencha com o que `npx supabase status -o env` mostra:
+   - `NEXT_PUBLIC_SUPABASE_URL` = `API_URL` (`http://127.0.0.1:54321`);
+   - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` = `PUBLISHABLE_KEY`;
+   - `SUPABASE_SECRET_KEY` = `SECRET_KEY`;
+   - `DATABASE_URL` e `DIRECT_URL` = `DB_URL`;
+   - `MCP_SEGREDO_TOKENS`: um segredo só deste ambiente (`openssl rand -base64 48`), diferente do de produção;
+   - `NEXT_PUBLIC_APP_URL=http://localhost:3000`.
+3. Aplique as migrações: `npm run db:migrar` (ou `npx supabase db reset` para começar do zero).
+4. `npm run dev`. O link mágico do login chega no Mailpit local, em http://127.0.0.1:54324 (não suba o Supabase com `-x mailpit` se quiser entrar no app).
+5. Para voltar ao modo local sem banco, com os dados no navegador, tire as duas variáveis `NEXT_PUBLIC_SUPABASE_*` do `.env.local`.
+
+### Produção
+
+1. Crie o projeto em supabase.com.
+2. Copie `.env.example` para `.env.producao` e preencha:
    - `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (Project Settings > API Keys; a chave publicável começa com `sb_publishable_`, ou use a "anon" legada);
    - `SUPABASE_SECRET_KEY` (chave secreta `sb_secret_...` ou a "service_role" legada; só servidor);
    - `SUPABASE_PROJECT_REF`, `DATABASE_URL` e `DIRECT_URL` (Project Settings > Database > Connection string);
    - `MCP_SEGREDO_TOKENS` (gere com `openssl rand -base64 48`).
-3. Vincule o projeto: `npx supabase login` (uma vez por máquina) e depois `npm run db:vincular`.
-4. Aplique as migrações: `npm run db:migrar`.
+3. Vincule o projeto: `npx supabase login` (uma vez por máquina) e depois `npm run db:vincular -- --producao`.
+4. Aplique as migrações: primeiro `npm run db:migrar -- --producao --dry-run`, para ver o que vai entrar, e depois `npm run db:migrar -- --producao`. O script mostra o alvo ("Alvo: PRODUÇÃO (...)") antes de rodar. Se o CLI pedir confirmação, acrescente `--yes`.
 5. Em Authentication > URL Configuration, adicione `http://localhost:3000/auth/callback` (e a URL de produção) em Redirect URLs.
-6. Reinicie o `npm run dev`. O app passa a pedir login por link mágico no e-mail. Confira em http://localhost:3000/api/saude: deve responder `"banco": "ok"`.
+6. As variáveis do `.env.producao` vão para a Vercel (veja "Publicar na Vercel"). O app publicado lê as variáveis da Vercel, não esse arquivo.
 
 Se você já tinha rodado `0001` e `0002` à mão no SQL Editor, marque-as como aplicadas antes do passo 4:
-`npm run db:reparar -- 0001 0002`.
+`npm run db:reparar -- --producao 0001 0002`.
+
+**Scripts do banco.** Sem `--producao`, `db:migrar`, `db:reparar` e `db:tipos` rodam no Supabase local e não leem nenhuma credencial remota. `db:vincular` só existe com `--producao`.
 
 Outros comandos:
 
 | Comando | O que faz |
 |---|---|
-| `npm run db:tipos` | Gera `src/data/supabase/tipos-banco.ts` a partir do banco vinculado |
+| `npm run db:tipos` | Gera `src/data/supabase/tipos-banco.ts` a partir do Supabase local (`-- --producao` para gerar da produção) |
 | `npm test` | Roda os testes (vitest) |
 | `npm run typecheck` | Confere os tipos |
 | `npm run verificar` | Typecheck, testes e build em sequência; para no primeiro erro |
@@ -56,7 +83,7 @@ Os dados do modo local não vão para o Supabase sozinhos: em Configurações, u
 
 ## Publicar na Vercel
 
-1. **Migre o banco antes do primeiro deploy.** Com o `.env.local` apontando para o projeto de produção: `npm run db:vincular` e depois `npm run db:migrar`.
+1. **Migre o banco antes do primeiro deploy.** Com o `.env.producao` preenchido: `npm run db:vincular -- --producao` e depois `npm run db:migrar -- --producao` (veja "Produção").
    A partir da etapa 2 da versão jurídica, o código depende da migração `0004_processos_e_clientes.sql` (clientes e detalhes do processo). Publicar esse código num banco sem a 0004 quebra a lista de processos; aplique a migração antes.
    A partir da etapa 3, depende também da `0005_prazos_e_feriados.sql` (tipo da tarefa, prazo fatal, feriados, histórico, lembretes automáticos e preferências). Sem ela, gravar tarefas e abrir as Configurações falha.
 2. **Importe o repositório** em vercel.com > Add New > Project. O framework (Next.js) é detectado sozinho.
@@ -107,7 +134,7 @@ src/
 ├── domain/       tipos e regras de negócio puras
 └── data/         repositório: Supabase, API ou local
 supabase/         migrações SQL com RLS e config do CLI
-scripts/          atalhos do Supabase CLI que leem o .env.local
+scripts/          atalhos do Supabase CLI (local por padrão; produção só com --producao, lendo o .env.producao)
 agente/           agente no WhatsApp (nanobot): configuração, SOUL.md e o guia do piloto (uma instância por advogado)
 docs/             arquitetura, modelo de dados e etapas
 ```

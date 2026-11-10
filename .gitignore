@@ -2,5 +2,7 @@ node_modules
 .next
 .env*.local
 .env
+# Credenciais de produção: só os scripts db:* leem, com --producao
+.env.producao
 next-env.d.ts
 *.tsbuildinfo
