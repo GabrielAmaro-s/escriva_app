@@ -1,6 +1,6 @@
 # Regras de trabalho
 
-Este repositório é o Tempestivo (antes myPlan), para advogados autônomos. O trabalho segue as etapas da seção 10 de `docs/PROPOSTA_JURIDICA.md`.
+Este repositório é a Escriva (antes Tempestivo e, antes ainda, myPlan), para advogados autônomos. O trabalho segue as etapas da seção 10 de `docs/PROPOSTA_JURIDICA.md`.
 
 ## Antes de começar uma etapa
 
@@ -24,7 +24,8 @@ Este repositório é o Tempestivo (antes myPlan), para advogados autônomos. O t
 
 - Nomes em português. Os campos antigos das entidades (`title`, `dueOn`, `projectId`...) e as tabelas e colunas que já existiam ficam como estão.
 - Camadas respeitadas: regra em `domain/`, caso de uso em `services/`. A interface, a API e o agente chamam as mesmas funções.
-- O produto se chama **Tempestivo** (repositório `GabrielAmaro-s/tempestivoapp`). Em texto, sempre "Tempestivo"; no logotipo, "tempestivo" em minúsculas. A fonte da verdade da marca é `docs/marca/` (`MANUAL_DA_MARCA.md` e `tokens.json`).
+- O produto se chama **Escriva** (repositório `GabrielAmaro-s/tempestivoapp`). Em texto, sempre "Escriva", com artigo feminino ("a Escriva"); no logotipo, "escriva" em minúsculas. A pronúncia é es-CRI-va: nunca escrever "Escrivá" nem "Escreva". O agente fala de si no feminino ("Sou a Escriva"). A fonte da verdade da marca é `docs/marca/` (`MANUAL_DA_MARCA.md` e `tokens.json`).
+- O nome anterior, Tempestivo, fica onde trocar quebraria algo ou apagaria histórico: o prefixo `tempestivo_` dos tokens, as variáveis `TEMPESTIVO_*`, as chaves `tempestivo:v2` e `tempestivo-destaque` do navegador, a chave `tempestivo` do servidor MCP no config do nanobot, o nome do pacote, o projeto e o domínio da Vercel, as migrações e os relatórios antigos.
 - Não renomear migrações antigas, tabelas, o caminho `/projetos/[id]` nem o `project_id` do `supabase/config.toml`; nomes antigos (`myplan_` nos tokens, `MYPLAN_FUSO_HORARIO`, a chave `myplan:v2` do navegador) continuam aceitos por compatibilidade.
 - Não mudar o comportamento do agente além do que a etapa pede.
 

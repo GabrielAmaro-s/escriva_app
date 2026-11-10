@@ -1,10 +1,11 @@
-# Tempestivo
+# Escriva
 
-O assistente no WhatsApp que não deixa o advogado autônomo perder prazo. Ele recebe a intimação, calcula o vencimento mostrando como chegou na data, só grava depois do "sim", lembra antes do vencimento e manda toda manhã o que vence e as audiências do dia. O app serve para ver e organizar processos, casos consultivos, prazos e clientes.
+A assessora no WhatsApp que não deixa o advogado autônomo perder prazo. Ela recebe a intimação, calcula o vencimento mostrando como chegou na data, só grava depois do "sim", lembra antes do vencimento e manda toda manhã o que vence e as audiências do dia. O app serve para ver e organizar processos, casos consultivos, prazos e clientes.
 
 - Proposta e etapas: `docs/PROPOSTA_JURIDICA.md`.
 - Marca (manual, tokens, logotipo): `docs/marca/`.
-- O Tempestivo nasceu do myPlan, um gerenciador de projetos; por isso o código ainda chama processo de "project" e caso consultivo de "campaign".
+- A Escriva nasceu do myPlan, um gerenciador de projetos; por isso o código ainda chama processo de "project" e caso consultivo de "campaign".
+- Até 10/11/2026 o produto se chamou Tempestivo. Esse nome continua no repositório (`tempestivoapp`), nas variáveis `TEMPESTIVO_*`, no prefixo `tempestivo_` dos tokens, nas chaves do navegador e no projeto da Vercel, por compatibilidade.
 
 ## Rodar
 
