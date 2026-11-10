@@ -4,7 +4,7 @@ Branch `juridico/etapa-3`. Referência: seção 10, item 3, de `docs/PROPOSTA_JU
 
 ## Resumo
 
-O advogado passa a registrar prazos com cálculo automático do vencimento, em dias úteis ou corridos, considerando feriados nacionais, feriados do tribunal, feriados locais, o recesso de fim de ano e dias de sistema fora do ar. Cada cálculo mostra a memória e um aviso de que a contagem está em validação. A tarefa ganha tipo (prazo, providência, audiência), prazo fatal separado do prazo interno, lembretes automáticos D-3, D-1 e no dia, histórico das mudanças de prazo e itens de checklist marcados como documento do cliente. A migração 0005 foi testada só no Supabase local e **não foi aplicada em produção**.
+O advogado passa a registrar prazos com cálculo automático do vencimento, em dias úteis ou corridos, considerando feriados nacionais, feriados do tribunal, feriados locais, o recesso de fim de ano e dias de sistema fora do ar. Cada cálculo mostra a memória e um aviso de que a contagem está em validação. A tarefa ganha tipo (prazo, providência, audiência), prazo fatal separado do prazo interno, lembretes automáticos D-3, D-1 e no dia, histórico das mudanças de prazo e itens de checklist marcados como documento do cliente. A migração 0005 foi testada no Supabase local e **aplicada em produção em 09/11/2026**, com a sua autorização (ver "Banco").
 
 ## O que mudou
 
@@ -159,7 +159,7 @@ O advogado passa a registrar prazos com cálculo automático do vencimento, em d
 
 ## Banco
 
-Migração `supabase/migrations/0005_prazos_e_feriados.sql`. Foi **testada no Supabase local e não foi aplicada em produção**.
+Migração `supabase/migrations/0005_prazos_e_feriados.sql`. Foi testada no Supabase local e **aplicada em produção em 09/11/2026** (as duas coisas estão no fim desta seção).
 
 - **`tasks`:**
   - colunas `tipo` (padrão `providencia`), `prazo_fatal`, `contagem jsonb`, `local_audiencia` e `horario_audiencia`;
@@ -224,6 +224,54 @@ O teste rodou com Supabase CLI 3.0.0 e Postgres 17, no banco local (`127.0.0.1`)
      - o repositório do agente lê a carga e os próprios, grava com o `user_id` dele e salva preferências;
      - uma conclusão feita pelo agente faz `lembretesProximos` cancelar os automáticos.
 3. O Supabase local foi desligado no fim (`npx supabase stop`).
+
+### Aplicação em produção (09/11/2026)
+
+A migração foi aplicada com a sua autorização, depois do merge do PR #3 na `main` (`8b1b86d`). Projeto `gmulobmdmdbebmmikhyu`, pela conexão de sessão do pooler (`aws-0-us-east-1.pooler.supabase.com:5432`). As credenciais vieram do `.env.local`, que é uma cópia do `.env`, está fora do git e não foi versionado. O `psql` e o `pg_dump` rodaram no contêiner `ghcr.io/supabase/postgres:17.11.0.018`, porque não estão instalados na máquina.
+
+1. **Backup antes de tudo:**
+   - arquivo `C:\Users\Gabriel\Documents\Projetos\myPlan\backups\producao-antes-0005-2026-11-10.dump`, fora do repositório;
+   - 435.076 bytes, em formato custom;
+   - feito com `pg_dump` 17.11, a mesma versão do servidor;
+   - inclui esquema e dados de `public` (as 11 tabelas), `auth`, `storage`, `realtime`, `vault` e `supabase_migrations`;
+   - para restaurar, use `pg_restore --no-owner`.
+2. **Checagens antes, só de leitura:**
+   - Postgres 17.11;
+   - histórico com 0001 a 0004, então só a 0005 era nova;
+   - `tasks` 0, `lembretes` 0, `projects` 0 e `auth.users` 0 linhas;
+   - nenhum objeto da 0005 existia (3 tabelas, 6 colunas, a função, 2 gatilhos, 2 restrições e 7 índices);
+   - `set_atualizado_em()`, da 0004, já existia.
+   Na primeira rodada, o modo só leitura pedido por `PGOPTIONS` foi ignorado pelo pooler. O script tinha só `select` e `show`. As checagens seguintes rodaram dentro de `begin read only`.
+3. **Ensaio:** `supabase db push --dry-run` listou só `0005_prazos_e_feriados.sql`. A 0005 da `main` é a mesma testada na branch, sem diferença.
+4. **Aplicação:**
+   - `npm run db:migrar` chegou ao banco, mas o CLI, em modo agente, pediu confirmação explícita e não alterou nada. O script não repassa o `--yes`;
+   - rodei então o mesmo comando do script, `supabase db push --remote=<DIRECT_URL do .env.local>`, com `--yes`;
+   - a 0005 foi aplicada sem erro.
+5. **Conferência depois, só de leitura:**
+   - histórico 0001 a 0005;
+   - RLS ligado em `feriados`, `registro_alteracoes` e `preferencias`;
+   - colunas `tasks.tipo` (padrão `providencia`), `prazo_fatal`, `contagem`, `local_audiencia`, `horario_audiencia` e `lembretes.automatico`;
+   - as 6 políticas ("ler", "criar", "alterar" e "excluir feriados", "ler alteracoes" e "own preferencias");
+   - grants: `anon` sem nenhum; `authenticated` com `select, insert, update, delete` em `feriados` e `preferencias` e só `select` em `registro_alteracoes`; `service_role` com tudo;
+   - gatilho `tasks_registrar_prazo` com `registrar_alteracao_de_prazo` (`security definer`, `search_path=public`) e `preferencias_atualizado_em`;
+   - os 2 checks de `tasks` e os 7 índices;
+   - carga com TJRS 2 linhas (só 20/09), TRT4 13 e TRF4 12, de 01/01/2026 a 06/01/2028, e nenhuma Data Magna no TRF4.
+6. **API REST de produção:**
+   - com a chave de serviço, `tasks` (com as colunas novas), `projects` com `campaign_details` e `processo_detalhes`, `lembretes.automatico`, `preferencias` e `registro_alteracoes` responderam 200, vazios;
+   - `feriados` respondeu 200 com 27 linhas;
+   - com a chave pública (anon), `feriados` e `registro_alteracoes` responderam 401 (42501, "permission denied"), como o `revoke` previa.
+   Não houve teste com sessão de usuário, porque a produção não tem nenhum.
+7. **Tipos do banco:**
+   - `npm run db:tipos` falhou, porque usa o projeto vinculado, que exige `supabase login` (token de acesso da sua conta), e o projeto não está vinculado nesta máquina;
+   - gerei os mesmos tipos pela conexão do banco (`supabase gen types typescript --db-url <DIRECT_URL> --schema public`), só lendo o esquema;
+   - o resultado foi gravado em `src/data/supabase/tipos-banco.ts`, com o cabeçalho do script, e tem as 14 tabelas e as colunas novas;
+   - por esse caminho o texto vem sem formatação (o projeto não tem prettier), mas o typecheck passa;
+   - o arquivo não é importado por nenhum código ainda.
+8. **Deploy da Vercel:** o merge na `main` gerou um deploy com sucesso em `https://myplan-ashy.vercel.app`. Conferido depois da migração:
+   - `/api/saude` responde 200, mas com `{"ok":true,"modoLocal":true,"banco":"erro"}`;
+   - a lista de processos (`/`) abre, mostrando os dados de exemplo do modo local;
+   - `/api/projetos` e `/api/feriados` respondem "Modo local: esta rota precisa do Supabase configurado.".
+   Ou seja, **o deploy de produção não tem as variáveis do Supabase** e não usa o banco. Detalhes em "Riscos".
 
 ## Testes
 
@@ -294,7 +342,7 @@ O teste rodou com Supabase CLI 3.0.0 e Postgres 17, no banco local (`127.0.0.1`)
 
 ## Fora do escopo e pendências
 
-- **Produção:** a 0005 não foi aplicada (pedido seu). O código desta branch precisa dela, como explicado em "Riscos".
+- **Produção:** a 0005 foi aplicada em 09/11/2026 (ver "Banco"). O deploy da Vercel ainda roda em modo local (ver "Riscos").
 - **Feriados:**
   - os feriados forenses do TJRS além da Data Magna, até conferir o ato do Órgão Especial;
   - o Dia do Servidor de 2027 (TRF4, e o do TRT4 se houver);
@@ -305,16 +353,25 @@ O teste rodou com Supabase CLI 3.0.0 e Postgres 17, no banco local (`127.0.0.1`)
   - `registrar_intimacao`, `prazos_proximos`, `audiencias_proximas` e `documentos_pendentes` no agente, que já podem usar `calcularPrazoDaTarefa` e a margem de `preferencias`;
   - resumo das 8h com prazos fatais;
   - o agente criar prazos e audiências (hoje ele só cria providências).
-- **Tipos do banco:** `npm run db:tipos` não foi rodado, porque depende de um banco com a 0005.
+- **Tipos do banco:** gerados pela conexão do banco, porque `npm run db:tipos` exige `supabase login` e `npm run db:vincular` (ver "Banco"). Para usar o próprio script, rode antes `npx supabase login` e `npm run db:vincular`. Outra opção é ajustar o script para usar `--db-url`.
+- **Feriados de 2028:** carregar, numa migração nova, até **novembro de 2027**:
+  - a carga de 2028 do TRT4 e do TRF4 (Semana Santa, 11/08, 01/11, 08/12 e o recesso de 20/12/2028 a 06/01/2029);
+  - a Data Magna de 2028 no TJRS e no TRT4.
+  A carga atual termina em 06/01/2028.
 
 ## Riscos e dúvidas para a próxima etapa
 
 **Riscos**
-- **Ordem de publicação.** Sem a 0005, gravar tarefas, abrir as Configurações e listar lembretes falham. É preciso aplicar a migração antes do deploy. Os scripts `db:*` leem o `.env.local`, e o arquivo aqui se chama `.env`.
+- **A produção da Vercel está em modo local.** `https://myplan-ashy.vercel.app/api/saude` responde `"modoLocal": true`. As variáveis `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` não chegaram ao build, e provavelmente também `SUPABASE_SECRET_KEY` e `MCP_SEGREDO_TOKENS`.
+  - O app guarda tudo no navegador de cada pessoa e não usa o banco, onde as 0004 e 0005 já estão aplicadas.
+  - O agente também não funciona.
+  - É preciso cadastrar as variáveis em Settings > Environment Variables (README, "Publicar na Vercel") e fazer um novo deploy.
+  - Também vale cadastrar `NEXT_PUBLIC_APP_URL`, que falta no `.env`.
+- **Ordem de publicação.** Já resolvida: a 0005 está aplicada. Os scripts `db:*` agora encontram o `.env.local` (cópia local do `.env`, fora do git).
 - **Fuso dos lembretes automáticos.** Pelo app, o horário de 9h usa o fuso do aparelho; no desfazer do agente, usa `MYPLAN_FUSO_HORARIO`. Para quem está no Brasil é o mesmo, mas um aparelho em outro fuso gera 9h daquele fuso.
 - **O agente pode deixar o prazo interno depois do prazo fatal** (`atualizar_tarefa` com prazo). O banco não proíbe; a tela limita o campo. Na etapa 4 vale validar no service.
 - **`lembretesProximos` lê todas as tarefas** quando há algum automático na janela. Para um advogado autônomo é pouco, mas cresce com a conta.
-- **Carga anual de feriados.** Ela vai até 06/01/2028. Depois disso, a Semana Santa e o recesso do TRT4 e do TRF4 não entram até haver uma migração nova. A falta deixa o prazo mais cedo, não mais tarde.
+- **Carga anual de feriados.** Ela vai até 06/01/2028. A carga de 2028 precisa entrar até novembro de 2027 (ver "Pendências"). Até lá, a falta deixa o prazo mais cedo, não mais tarde.
 - **Instalação.** O repositório estava sem `node_modules`. Rodei `npm ci`, que não alterou o `package-lock.json`.
 
 **Dúvidas para os advogados** (também em `docs/validacao-prazos.md`)
@@ -339,4 +396,6 @@ O teste rodou com Supabase CLI 3.0.0 e Postgres 17, no banco local (`127.0.0.1`)
 | `90a2405` | Adiciona os 10 casos de validação da contagem de prazos para os advogados |
 | `ab8ecf0` | Atualiza proposta, ARQUITETURA e README para a etapa 3 |
 
-O commit deste relatório entra depois dos listados acima.
+| `9610509` | Adiciona o relatório da etapa 3 |
+
+Depois do merge do PR #3, na branch `juridico/etapa-3-producao`: os tipos do banco e o registro da aplicação em produção (commits no PR dessa branch).

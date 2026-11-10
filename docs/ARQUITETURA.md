@@ -223,6 +223,6 @@ Novo design (feito). Visão geral, Campanhas, Tarefas e Configurações; desfaze
 Polimento. Reordenar projetos na página inicial, busca rápida (Ctrl+K), atalhos de teclado no quadro.
 Dados confiáveis (feito). Testes de domain/, exportar JSON, importar do navegador para a conta.
 Agente (feito). API no servidor, tokens, registro, lembretes, servidor MCP e configuração do nanobot.
-Versão jurídica, etapa 3 (feito, migração 0005 testada só no Supabase local). Motor de prazos, feriados por tribunal e locais, tipos de tarefa, prazo fatal, lembretes automáticos, histórico de prazos e documentos do cliente. A contagem está em validação com advogados (docs/validacao-prazos.md).
+Versão jurídica, etapa 3 (feito, migração 0005 aplicada em 09/11/2026). Motor de prazos, feriados por tribunal e locais, tipos de tarefa, prazo fatal, lembretes automáticos, histórico de prazos e documentos do cliente. A contagem está em validação com advogados (docs/validacao-prazos.md).
 Versão jurídica, etapa 2 (feito, migração 0004 aplicada em 09/11/2026). Clientes, detalhes do processo, consultivo com tipo de serviço, ícones jurídicos.
 Versão jurídica, etapa 1 (feito). Vocabulário jurídico na interface, rotas /hoje, /consultivo e /prazos, modelos de quadro por área e dados de exemplo jurídicos. As próximas etapas estão em PROPOSTA_JURIDICA.md.
