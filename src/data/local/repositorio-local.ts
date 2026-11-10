@@ -40,7 +40,27 @@ import { FERIADOS_DOS_TRIBUNAIS } from "./feriados-tribunais";
  * configurado, para experimentar o app sem backend.
  */
 
-const CHAVE = "myplan:v2";
+/** Chave dos dados no navegador. Antes da marca Tempestivo era "myplan:v2" (ver lerBruto). */
+export const CHAVE = "tempestivo:v2";
+export const CHAVE_ANTIGA = "myplan:v2";
+
+/**
+ * Lê o que está salvo neste navegador. Dados de antes da marca, na chave antiga, passam para a
+ * chave nova na primeira leitura; a antiga só é apagada depois de a cópia ser conferida.
+ */
+function lerBruto(): string | null {
+  const atual = window.localStorage.getItem(CHAVE);
+  if (atual) return atual;
+  const antigo = window.localStorage.getItem(CHAVE_ANTIGA);
+  if (!antigo) return null;
+  try {
+    window.localStorage.setItem(CHAVE, antigo);
+    if (window.localStorage.getItem(CHAVE) === antigo) window.localStorage.removeItem(CHAVE_ANTIGA);
+  } catch {
+    // sem espaço para a cópia: continua lendo da chave antiga, que fica intacta
+  }
+  return antigo;
+}
 
 /** clienteId é opcional porque dados salvos antes da etapa 2 não têm o campo. */
 export type ProjetoGuardado = Omit<Projeto, "campaign" | "processo" | "clienteId" | "taskCount" | "doneCount"> & { clienteId?: string | null };
@@ -88,7 +108,7 @@ export function armazenamentoVazio(): ArmazenamentoLocal {
 function carregar(): ArmazenamentoLocal {
   if (typeof window === "undefined") return armazenamentoVazio();
   try {
-    const bruto = window.localStorage.getItem(CHAVE);
+    const bruto = lerBruto();
     if (bruto) return JSON.parse(bruto) as ArmazenamentoLocal;
   } catch {
     // dados corrompidos: recomeça com o exemplo
@@ -133,7 +153,7 @@ const agora = () => new Date().toISOString();
 export function lerDadosDoNavegador(): ArmazenamentoLocal | null {
   if (typeof window === "undefined") return null;
   try {
-    const bruto = window.localStorage.getItem(CHAVE);
+    const bruto = lerBruto();
     return bruto ? (JSON.parse(bruto) as ArmazenamentoLocal) : null;
   } catch {
     return null;
@@ -143,7 +163,7 @@ export function lerDadosDoNavegador(): ArmazenamentoLocal | null {
 /** Depois de importar para a conta, guarda uma cópia com outro nome e esconde o botão de importar. */
 export function arquivarDadosDoNavegador() {
   try {
-    const bruto = window.localStorage.getItem(CHAVE);
+    const bruto = lerBruto();
     if (!bruto) return;
     window.localStorage.setItem(`${CHAVE}:importado:${new Date().toISOString()}`, bruto);
     window.localStorage.removeItem(CHAVE);

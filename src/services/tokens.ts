@@ -5,7 +5,10 @@ import type { Repositorio } from "@/data/repositorio";
 // Tokens do agente. Só roda no servidor: precisa de MCP_SEGREDO_TOKENS.
 // O token em texto puro só existe na resposta de gerarToken; no banco fica o HMAC-SHA256.
 
-const PREFIXO = "myplan_";
+/** Prefixo dos tokens novos. */
+export const PREFIXO = "tempestivo_";
+/** Tokens gerados antes da marca Tempestivo começam com myplan_ e continuam valendo. */
+const PREFIXOS_ACEITOS = [PREFIXO, "myplan_"];
 
 export interface ConfiguracaoTokens {
   segredo: string;
@@ -48,7 +51,8 @@ export async function validarToken(
   token: string,
   dependencias: { segredo: string; buscarPorHash: (hash: string) => Promise<TokenGuardado | null>; agora?: Date },
 ): Promise<{ ok: true; token: TokenGuardado } | { ok: false; motivo: MotivoTokenInvalido }> {
-  if (!token.startsWith(PREFIXO) || token.length < PREFIXO.length + 40) return { ok: false, motivo: "formato" };
+  const prefixo = PREFIXOS_ACEITOS.find((p) => token.startsWith(p));
+  if (!prefixo || token.length < prefixo.length + 40) return { ok: false, motivo: "formato" };
   const hash = calcularHashDoToken(token, dependencias.segredo);
   const guardado = await dependencias.buscarPorHash(hash);
   if (!guardado || !iguais(guardado.hash, hash)) return { ok: false, motivo: "desconhecido" };

@@ -33,9 +33,10 @@ const ehFusoValido = (fuso: string) => {
 };
 
 const esquemaServidor = z.object({
-  MYPLAN_FUSO_HORARIO: z.preprocess(
+  // Nome novo; MYPLAN_FUSO_HORARIO continua aceito como alternativa (ver lerAmbienteServidor).
+  TEMPESTIVO_FUSO_HORARIO: z.preprocess(
     vazioComoAusente,
-    z.string().refine(ehFusoValido, { error: "MYPLAN_FUSO_HORARIO precisa ser um fuso IANA válido (ex.: America/Sao_Paulo)." }).default("America/Sao_Paulo"),
+    z.string().refine(ehFusoValido, { error: "TEMPESTIVO_FUSO_HORARIO (ou MYPLAN_FUSO_HORARIO) precisa ser um fuso IANA válido (ex.: America/Sao_Paulo)." }).default("America/Sao_Paulo"),
   ),
   SUPABASE_SECRET_KEY: texto(),
   SUPABASE_PROJECT_REF: texto(),
@@ -50,7 +51,9 @@ const esquemaServidor = z.object({
 const SEGREDO_DE_EXEMPLO = "troque-por-um-segredo-longo-e-aleatorio";
 
 function lerAmbienteServidor() {
-  const resultado = esquemaServidor.safeParse(process.env);
+  // TEMPESTIVO_FUSO_HORARIO tem prioridade; sem ele, vale o nome antigo MYPLAN_FUSO_HORARIO.
+  const fuso = process.env.TEMPESTIVO_FUSO_HORARIO?.trim() ? process.env.TEMPESTIVO_FUSO_HORARIO : process.env.MYPLAN_FUSO_HORARIO;
+  const resultado = esquemaServidor.safeParse({ ...process.env, TEMPESTIVO_FUSO_HORARIO: fuso });
   if (!resultado.success) {
     throw new Error(`Configuração inválida no .env.local:\n${descreverErros(resultado.error)}`);
   }
@@ -74,7 +77,7 @@ function lerAmbienteServidor() {
   }
 
   return {
-    fusoHorario: v.MYPLAN_FUSO_HORARIO,
+    fusoHorario: v.TEMPESTIVO_FUSO_HORARIO,
     chaveSecretaSupabase: v.SUPABASE_SECRET_KEY ?? null,
     refProjetoSupabase: v.SUPABASE_PROJECT_REF ?? null,
     urlBanco: v.DATABASE_URL ?? null,
