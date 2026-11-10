@@ -19,21 +19,25 @@ import { LinhaConfiguracao } from "./linha-configuracao";
 const mensagem = (e: unknown) => (e instanceof Error ? e.message : "Algo deu errado. Tente de novo.");
 
 const NOME_DA_FERRAMENTA: Record<string, string> = {
-  listar_projetos: "Consultou os processos",
+  listar_projetos: "Consultou os processos e casos consultivos",
   ver_quadro: "Consultou um quadro",
   buscar_tarefas: "Buscou tarefas",
   resumir_projeto: "Resumiu um processo",
   lembretes_proximos: "Conferiu os lembretes",
+  prazos_proximos: "Consultou os prazos",
+  audiencias_proximas: "Consultou as audiências",
   criar_tarefas: "Criou tarefas",
   atualizar_tarefa: "Atualizou uma tarefa",
   mover_tarefa: "Moveu uma tarefa",
   adicionar_checklist: "Adicionou checklist",
   criar_lembrete: "Criou um lembrete",
   marcar_lembrete: "Marcou um lembrete",
-  criar_projeto: "Criou um processo",
+  criar_projeto: "Criou um caso",
+  criar_processo: "Criou um processo",
   sugerir_prioridades: "Mudou prioridades",
   concluir_em_lote: "Concluiu tarefas",
   excluir_tarefa: "Excluiu um item",
+  registrar_intimacao: "Registrou uma intimação",
 };
 
 /** Conecta o agente pessoal: estado, tokens de acesso e o que ele fez. */
