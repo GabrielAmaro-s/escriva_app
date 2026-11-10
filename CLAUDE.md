@@ -1,6 +1,6 @@
 # Regras de trabalho
 
-Este repositório é o myPlan, em adaptação para advogados autônomos. O trabalho segue as etapas da seção 10 de `docs/PROPOSTA_JURIDICA.md`.
+Este repositório é o Tempestivo (antes myPlan), para advogados autônomos. O trabalho segue as etapas da seção 10 de `docs/PROPOSTA_JURIDICA.md`.
 
 ## Antes de começar uma etapa
 
@@ -24,7 +24,8 @@ Este repositório é o myPlan, em adaptação para advogados autônomos. O traba
 
 - Nomes em português. Os campos antigos das entidades (`title`, `dueOn`, `projectId`...) e as tabelas e colunas que já existiam ficam como estão.
 - Camadas respeitadas: regra em `domain/`, caso de uso em `services/`. A interface, a API e o agente chamam as mesmas funções.
-- O nome do produto ainda não foi definido. Não renomear o projeto, o `package.json` nem textos de marca.
+- O produto se chama **Tempestivo** (repositório `GabrielAmaro-s/tempestivoapp`). Em texto, sempre "Tempestivo"; no logotipo, "tempestivo" em minúsculas. A fonte da verdade da marca é `docs/marca/` (`MANUAL_DA_MARCA.md` e `tokens.json`).
+- Não renomear migrações antigas, tabelas, o caminho `/projetos/[id]` nem o `project_id` do `supabase/config.toml`; nomes antigos (`myplan_` nos tokens, `MYPLAN_FUSO_HORARIO`, a chave `myplan:v2` do navegador) continuam aceitos por compatibilidade.
 - Não mudar o comportamento do agente além do que a etapa pede.
 
 ## Textos

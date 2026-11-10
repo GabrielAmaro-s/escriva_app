@@ -1,0 +1,21 @@
+<!-- @dsCard group="Marca" height=200 subtitle="Símbolo e nome, nos dois fundos" -->
+<!doctype html>
+<html lang="pt-BR">
+<head><meta charset="utf-8"><title>Logotipo</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;600&display=swap">
+<style>
+  body{margin:0;background:var(--surface);font-family:var(--font-sans);}
+  .row{display:grid;grid-template-columns:1fr 1fr;}
+  .cell{display:flex;align-items:center;justify-content:center;gap:var(--space-3);padding:var(--space-12) var(--space-6);}
+  .claro{background:#F5F6F3;}
+  .escuro{background:#0E1514;}
+  .cell img{width:48px;height:48px;display:block;}
+  .nome{font-family:var(--font-display);font-weight:600;font-size:34px;line-height:1;letter-spacing:-0.02em;}
+  .claro .nome{color:#14201E;} .escuro .nome{color:#EEF2F0;}
+</style></head>
+<body>
+<div class="row">
+  <div class="cell claro"><img src="../logos/tempestivo-simbolo.svg" alt=""><span class="nome">tempestivo</span></div>
+  <div class="cell escuro"><img src="../logos/tempestivo-simbolo-escuro.svg" alt=""><span class="nome">tempestivo</span></div>
+</div>
+</body></html>
