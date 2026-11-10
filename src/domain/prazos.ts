@@ -323,7 +323,7 @@ export function calcularPrazo(dados: { comeco: string; dias: number; unidade: Un
   const reduzidoNoComeco = calendario.reduzido(comeco);
   if (reduzidoNoComeco) {
     comecoProrrogado = { de: comeco, motivo: reduzidoNoComeco };
-    anotar(excluidos, comeco, `${reduzidoNoComeco} (expediente reduzido no dia do começo)`);
+    anotar(excluidos, comeco, `expediente reduzido no dia do começo: ${reduzidoNoComeco}`);
     do comeco = somarDias(comeco, 1);
     while (calendario.semExpediente(comeco) || calendario.reduzido(comeco));
   }
@@ -355,7 +355,7 @@ export function calcularPrazo(dados: { comeco: string; dias: number; unidade: Un
 
   let vencimentoProrrogado: ResultadoCalculo["vencimentoProrrogado"] = null;
   for (;;) {
-    const motivo = motivoNaoUtil(d) ?? (calendario.reduzido(d) ? `${calendario.reduzido(d)} (expediente reduzido)` : null);
+    const motivo = motivoNaoUtil(d) ?? (calendario.reduzido(d) ? `expediente reduzido: ${calendario.reduzido(d)}` : null);
     if (!motivo) break;
     vencimentoProrrogado ??= { de: d, motivo };
     anotar(excluidos, d, motivo);

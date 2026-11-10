@@ -148,7 +148,7 @@ describe("expediente reduzido (CPC, art. 224, § 1º)", () => {
   it("no vencimento, passa para o dia útil seguinte", () => {
     const r = calcularPrazo({ comeco: "2026-11-05", dias: 3, unidade: "uteis", calendario: civel("TJRS", [reduzido("2026-11-10")]) });
     expect(r.vencimento).toBe("2026-11-11");
-    expect(r.vencimentoProrrogado).toEqual({ de: "2026-11-10", motivo: "eproc fora do ar (expediente reduzido)" });
+    expect(r.vencimentoProrrogado).toEqual({ de: "2026-11-10", motivo: "expediente reduzido: eproc fora do ar" });
   });
 
   it("no dia do começo, o começo passa para o dia útil seguinte", () => {
