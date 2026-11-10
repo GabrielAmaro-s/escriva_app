@@ -128,6 +128,24 @@ Os dados do modo local não vão para o Supabase sozinhos: em Configurações, u
    - o login por link mágico funciona: peça o link em `/login`, abra o e-mail no mesmo navegador e confirme que caiu em Processos;
    - `https://<domínio>/api/mcp` sem token responde 401.
 
+### Link de acesso gerado pelo admin
+
+O callback (`/auth/callback`) aceita dois formatos:
+
+- `?code=...`, do login pela tela (`/login`). É o fluxo PKCE: o link só funciona no mesmo navegador que pediu.
+- `?token_hash=...&type=magiclink`, que funciona em qualquer navegador. A sessão é conferida no servidor com `verifyOtp` e gravada nos cookies.
+
+Para entrar numa conta sem esperar o e-mail (suporte, primeiro acesso de um advogado do piloto), gere o link com a chave de serviço e use o `hashed_token`, **não** o `action_link`:
+
+```ts
+const { data } = await supabase.auth.admin.generateLink({ type: "magiclink", email });
+const link = `${NEXT_PUBLIC_APP_URL}/auth/callback?token_hash=${data.properties.hashed_token}&type=magiclink`;
+```
+
+O `action_link` não serve aqui: ele volta com a sessão no fragmento da URL (`#access_token=...`), que o servidor não vê, e o app cai no login. O link vale uma vez só e expira em 1 hora. Trate como senha: quem tiver o link entra na conta.
+
+Para o e-mail do login também funcionar em outro navegador, troque o link do template **Magic Link** do Supabase (Authentication > Email Templates) por `{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=magiclink`. Sem a troca, o login pela tela continua funcionando como hoje, no mesmo navegador.
+
 ## Estrutura
 
 ```
