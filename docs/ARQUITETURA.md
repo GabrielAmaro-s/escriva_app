@@ -64,7 +64,7 @@ No Consultivo, a tela usa objective como "Pedido do cliente", starts_on como "Re
 No formulário de processo, o cliente é escolhido pelo nome; um nome que não existe cadastra o cliente ao salvar. Modelo de quadro e área se sugerem um ao outro até a pessoa escolher os dois. Os dados menos usados do processo (tribunal, vara, polo, parte contrária, fase, valor, link dos autos, segredo de justiça) ficam num bloco recolhível.
 Rotas de servidor (src/app/api)
 
-Todas, menos saude e mcp, exigem login (cookies) e respondem 401 sem ele. Entradas validadas com zod (api/esquemas.ts) e erros em JSON { erro }. Dado inválido (ErroDeValidacao) responde 400. CPF/CNPJ ou número de processo repetido na conta (ErroDeConflito) responde 409, com "Já existe um cliente com esse CPF/CNPJ." ou "Já existe um processo com esse número.".
+Todas, menos saude, mcp e djen/*, exigem login (cookies) e respondem 401 sem ele. As rotas djen/* usam o token do agente (Bearer), como o MCP, e só são chamadas pela VPS (src/app/api/djen/rota-com-token.ts). Entradas validadas com zod (api/esquemas.ts) e erros em JSON { erro }. Dado inválido (ErroDeValidacao) responde 400. CPF/CNPJ ou número de processo repetido na conta (ErroDeConflito) responde 409, com "Já existe um cliente com esse CPF/CNPJ." ou "Já existe um processo com esse número.".
 
 Rota	Métodos	Faz
 /api/saude	GET	{ ok, modoLocal, banco: "ok" | "erro" }
@@ -86,6 +86,9 @@ Rota	Métodos	Faz
 /api/agente/registro/[id]/desfazer	POST	reverte uma ação
 /api/agente/estado	GET	ativo ou sem sinal, pelo último heartbeat
 /api/mcp	GET, POST	servidor MCP (ver seção 4)
+/api/djen/consulta/iniciar	POST	a VPS pergunta se deve consultar o DJEN e com que janela; registra a tentativa (token de escrita)
+/api/djen/comunicacoes	POST	até 20 comunicações trazidas pela VPS viram sugestões pendentes, sem duplicar (token de escrita)
+/api/djen/consulta/concluir	POST	resultado do dia (ok, falhou, limite); só ok avança a última consulta boa (token de escrita)
 
 O src/proxy.ts renova a sessão e redireciona as páginas para /login, mas não redireciona /api/*. Também ignora /api/mcp e /api/saude.
 
@@ -107,9 +110,9 @@ Nomes no código
 Funções, hooks, componentes, tipos e variáveis estão em português (criarTarefa, useTarefas, CartaoProjeto, Tarefa). Ficam como estão: nomes exigidos pelo framework (page.tsx, route.ts, GET, proxy), as tabelas e colunas que já existiam e os campos das entidades antigas (title, dueOn, projectId...), que espelham essas colunas e o formato já salvo no navegador. As tabelas novas têm colunas em português (texto, quando, criado_em).
 
 Camada	Arquivos
-domain/	tipos.ts, quadro.ts (modelos de quadro, posições, regra de Concluído, datas), projeto.ts (progresso, busca e filtros, validação), cliente.ts (CPF, CNPJ também alfanumérico, validação), processo.ts (número CNJ, áreas, fases, polos, sugestão entre área e modelo), erros.ts (ErroDeConflito, ErroDeValidacao), lembrete.ts (status ativos, validação, situação do agente), datas.ts (fuso IANA), prazos.ts (feriados nacionais, calendário por tribunal, contagem, memória, prazo interno, lembretes automáticos, ajuste ao tipo da tarefa, AVISO_CONTAGEM_EM_VALIDACAO)
-data/	repositorio.ts, index.ts (obterRepositorio), http/repositorio-http.ts, local/repositorio-local.ts, local/exemplo.ts, local/feriados-tribunais.ts (a mesma carga da 0005, conferida por teste), supabase/repositorio-supabase.ts, supabase/conversores.ts, supabase/erros.ts (23505, 23503 e os checks de tasks em mensagens claras), supabase/cliente.ts, supabase/servidor.ts, supabase/admin.ts, supabase/usuario-servidor.ts, supabase/contexto-agente.ts
-services/	projetos.ts, clientes.ts, tarefas.ts, prazos.ts (calcular, alterarTarefa, lembretes automáticos, feriados locais, preferências), lembretes.ts, tokens.ts, desfazer.ts, importacao.ts, agente/ (ferramentas, executor e auxiliares)
+domain/	tipos.ts, quadro.ts (modelos de quadro, posições, regra de Concluído, datas), projeto.ts (progresso, busca e filtros, validação), cliente.ts (CPF, CNPJ também alfanumérico, validação), processo.ts (número CNJ, áreas, fases, polos, sugestão entre área e modelo), erros.ts (ErroDeConflito, ErroDeValidacao), lembrete.ts (status ativos, validação, situação do agente), datas.ts (fuso IANA), prazos.ts (feriados nacionais, calendário por tribunal, contagem, memória, prazo interno, lembretes automáticos, ajuste ao tipo da tarefa, AVISO_CONTAGEM_EM_VALIDACAO), djen.ts (captura do DJEN: janela, tentativas do dia, OAB, teor em texto, sigilo, extração conservadora dos dias, o que é guardado; sem importações, porque a VPS o carrega direto)
+data/	repositorio-djen.ts (contrato da captura, separado do Repositorio porque só existe com Supabase), supabase/repositorio-djen.ts, djen/cliente-djen.ts (API pública do DJEN), djen/cliente-tempestivo.ts (a VPS chamando o app), djen/repositorio-djen-memoria.ts (testes), djen/exemplos/ (respostas fictícias), repositorio.ts, index.ts (obterRepositorio), http/repositorio-http.ts, local/repositorio-local.ts, local/exemplo.ts, local/feriados-tribunais.ts (a mesma carga da 0005, conferida por teste), supabase/repositorio-supabase.ts, supabase/conversores.ts, supabase/erros.ts (23505, 23503 e os checks de tasks em mensagens claras), supabase/cliente.ts, supabase/servidor.ts, supabase/admin.ts, supabase/usuario-servidor.ts, supabase/contexto-agente.ts
+services/	captura-djen.ts (ligar, desligar, iniciar e concluir a consulta, receber comunicações), consulta-djen.ts (a consulta como roda na VPS: intervalo, limite e novas tentativas), projetos.ts, clientes.ts, tarefas.ts, prazos.ts (calcular, alterarTarefa, lembretes automáticos, feriados locais, preferências), lembretes.ts, tokens.ts, desfazer.ts, importacao.ts, agente/ (ferramentas, executor e auxiliares)
 hooks/	use-projetos.tsx, use-clientes.tsx, use-tarefas.ts, use-lembretes.tsx, use-prazos.ts, use-usuario-atual.ts
 3. Modelo de dados
 
@@ -119,7 +122,8 @@ Migrações em supabase/migrations, aplicadas com npm run db:migrar (Supabase CL
 0002_design_myplan.sql: ícone, prazo do projeto e nova paleta;
 0003_agente_e_lembretes.sql: lembretes e tabelas do agente;
 0004_processos_e_clientes.sql: clientes, detalhes do processo, cliente_id em projects e tipo_servico no consultivo;
-0005_prazos_e_feriados.sql: tipo da tarefa, prazo fatal, contagem e audiência em tasks; feriados; registro_alteracoes; lembretes.automatico; preferencias.
+0005_prazos_e_feriados.sql: tipo da tarefa, prazo fatal, contagem e audiência em tasks; feriados; registro_alteracoes; lembretes.automatico; preferencias;
+0006_captura_djen.sql (escrita, NÃO EXECUTADA em banco nenhum): captura_djen, comunicacoes_djen, a limpeza diária limpar_comunicacoes_djen (pg_cron) e grants por coluna.
 projects            id, user_id, name, description, kind (project|campaign),
                     status (active|paused|done), color, icon, due_on, position, archived_at,
                     cliente_id (nulo permitido)                 único (id, user_id)
@@ -154,6 +158,17 @@ feriados            id, user_id (nulo na carga geral), tribunal, data, ate, tipo
 registro_alteracoes id, user_id, entidade, entidade_id, campo (due_on|prazo_fatal), antes, depois,
                     origem (app|agente), criado_em
 preferencias        user_id (pk), margem_prazo_interno (0 a 30, padrão 2), atualizado_em
+
+captura_djen        user_id (pk), ligada (padrão false), numero_oab, uf_oab, aviso_aceito_em,     (0006, não executada)
+                    ultima_consulta_ok, ultima_tentativa_em, tentativas_no_dia, ultimo_resultado,
+                    atualizado_em; o advogado grava só ligada, OAB, UF e aceite; trocar a OAB zera
+                    ultima_consulta_ok (gatilho)
+comunicacoes_djen   id, user_id, djen_id (único por conta), hash, numero_processo, data_disponibilizacao,
+                    sigiloso, tribunal, orgao, classe, tipo_comunicacao, tipo_documento, link, trecho (600),
+                    dias_situacao (identificados|nao_identificados), dias, unidade_dias, trecho_dias (200),
+                    resumo_teor (SHA-256), status (pendente|registrada|descartada|cancelada),
+                    cancelada_no_djen_em; sigiloso guarda só id, número e data; só o servidor insere;
+                    retenção de 30 dias (1 ano para as registradas)
 
 Escolhas:
 
@@ -210,6 +225,8 @@ Com confirmação, confirmado=false (o padrão) só devolve a prévia e a pergun
 
 O agente (nanobot numa VPS, WhatsApp) está documentado em agente/README.md.
 
+Captura do DJEN (etapa 5): a consulta ao DJEN nunca roda na Vercel. Ela sai do IP fixo da VPS, pelo scripts/captura-djen.ts (Node 22.18 ou mais novo, que roda TypeScript direto). O script é disparado por um timer do systemd às 7h, 12h e 17h e entra numa fila única (flock). Ele chama /api/djen/consulta/iniciar, busca no DJEN e repassa as comunicações a /api/djen/comunicacoes. Depois conclui em /api/djen/consulta/concluir. As regras ficam no app (domain/djen.ts). Por isso os arquivos que a VPS carrega (domain/djen.ts, data/djen/cliente-*.ts, services/consulta-djen.ts) só usam importações relativas com .ts, o que pede o allowImportingTsExtensions no tsconfig.
+
 5. Testes
 
 npm test roda o vitest:
@@ -225,9 +242,10 @@ tokens e lembretes;
 filtro de usuário do repositório do agente;
 integração navegador → API → serviços, inclusive clientes, prazos, feriados e preferências, 409 para repetidos e 400 para inválidos;
 as 19 ferramentas com o repositório em memória, inclusive intimação de processo não cadastrado, número CNJ fora da conta, confirmação negada, prazo que atravessa o recesso, regra pela área e segredo de justiça;
-a rota MCP de verdade (401, escopo e chamada).
+a rota MCP de verdade (401, escopo e chamada);
+captura do DJEN: janela e tentativas do dia, OAB, teor nos três formatos do DJEN, sigilo, extração dos dias (casos seguros e os que viram nao_identificados), o que é guardado, o cliente do DJEN com respostas fictícias gravadas, a política de intervalo, limite (429) e novas tentativas (500) com relógio falso, os serviços com o repositório em memória, as rotas djen/* (401, 403, isolamento por token), o filtro de usuário do repositório da captura no agente e o script da VPS rodando no Node sem bundler.
 
-npm run test:banco-local (opcional, fora do npm test) roda supabase/testes contra o Supabase local: migrações do zero, RLS com dois usuários, chaves compostas com a chave de serviço, exclusão de cliente, feriados (RLS com dois usuários e sem login), histórico gravado só pelo gatilho, lembretes automáticos, preferências e o repositório do app e do agente contra o banco. Precisa de npx supabase start; o script só aceita URL local.
+npm run test:banco-local (opcional, fora do npm test) roda supabase/testes contra o Supabase local: migrações do zero, RLS com dois usuários, chaves compostas com a chave de serviço, exclusão de cliente, feriados (RLS com dois usuários e sem login), histórico gravado só pelo gatilho, lembretes automáticos, preferências e o repositório do app e do agente contra o banco. O djen-banco-local.test.ts (0006) foi escrito na etapa 5, fatia 1, e ainda não rodou. Precisa de npx supabase start; o script só aceita URL local.
 6. Etapas de desenvolvimento
 Base (feito). Next.js, Tailwind 4, tema claro/escuro, camada de dados com Supabase e modo local.
 Meus projetos (feito). Cartões, criar, editar, arquivar, restaurar, excluir, filtros, campanhas.
@@ -237,6 +255,7 @@ Polimento. Reordenar projetos na página inicial, busca rápida (Ctrl+K), atalho
 Dados confiáveis (feito). Testes de domain/, exportar JSON, importar do navegador para a conta.
 Agente (feito). API no servidor, tokens, registro, lembretes, servidor MCP e configuração do nanobot.
 Marca Tempestivo (feito, sem migração). Nome, logotipo, cores, tipografia, estados de prazo e voz do agente, pela marca em docs/marca/. Compatibilidade: tokens myplan_, MYPLAN_FUSO_HORARIO e a chave myplan:v2 do navegador continuam aceitos. Relatório em docs/relatorios/marca-tempestivo.md.
+Versão jurídica, etapa 5, fatia 1 (código pronto; migração 0006 e teste de banco ainda não executados). Captura do DJEN: configuração por advogado (desligada por padrão), cliente da API pública, consulta diária pela VPS com fila única e limites, sugestões pendentes sem duplicidade e extração conservadora dos dias. Nada é enviado ao advogado e o agente não mudou. Relatório em docs/relatorios/etapa-5-fatia-1.md.
 Versão jurídica, etapa 4 (feito, sem migração). Agente jurídico enxuto para o piloto: registrar_intimacao, criar_processo, prazos_proximos, audiencias_proximas, vocabulário jurídico, SOUL.md novo e uma instância do nanobot por advogado na mesma VPS.
 Versão jurídica, etapa 3 (feito, migração 0005 aplicada em 09/11/2026). Motor de prazos, feriados por tribunal e locais, tipos de tarefa, prazo fatal, lembretes automáticos, histórico de prazos e documentos do cliente. A contagem está em validação com advogados (docs/validacao-prazos.md).
 Versão jurídica, etapa 2 (feito, migração 0004 aplicada em 09/11/2026). Clientes, detalhes do processo, consultivo com tipo de serviço, ícones jurídicos.

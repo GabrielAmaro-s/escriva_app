@@ -22,6 +22,8 @@ WhatsApp ── nanobot gateway (VPS) ── HTTPS + token ──> Tempestivo /a
 | `nanobot/HEARTBEAT.md` | `~/.nanobot/workspace/HEARTBEAT.md` | Tarefa periódica: buscar lembretes e agendar os envios |
 | `systemd/nanobot-gateway.service` | `/etc/systemd/system/` | Serviço de uma instância só, rodando como o usuário `nanobot` |
 | `systemd/nanobot-gateway@.service` | `/etc/systemd/system/` | Serviço modelo do piloto: uma instância por advogado (`nanobot-gateway@<apelido>`) |
+| `systemd/tempestivo-djen@.service`, `.timer` | `/etc/systemd/system/` | Captura do DJEN por instância (7h, 12h e 17h), na fila única. **Ainda não instalar** (ver [Captura do DJEN](#captura-do-djen-ainda-não-instalar)) |
+| `systemd/tempestivo-djen.conf` | `/etc/tmpfiles.d/` | Cria a trava única da captura em `/run/lock` |
 
 > Diferença em relação ao plano original: a versão atual do nanobot **não usa mais uma ponte Node.js para o WhatsApp** (a documentação diz: *"WhatsApp no longer runs a local Node.js bridge"*). O WhatsApp roda dentro do próprio `nanobot gateway`. Por isso não há `nanobot-whatsapp.service` e o Node.js não é necessário.
 
@@ -249,6 +251,48 @@ Faça estas conferências para cada instância, além das [verificações de seg
 Para parar só uma instância: `sudo systemctl stop nanobot-gateway@ana`. Para tirá-la do piloto: `sudo systemctl disable --now nanobot-gateway@ana` e revogue o token dela no Tempestivo.
 
 > Conferido na documentação do nanobot em 10/11/2026 (`docs/multiple-instances.md`, `docs/cli-reference.md`, `docs/deployment.md` e `nanobot/config/schema.py`): `gateway.host` e `gateway.port` (padrão `127.0.0.1:18790`), a necessidade de portas diferentes entre instâncias, a recomendação de contas do sistema separadas e o fim da ponte Node do WhatsApp. **Não confirmado:** o caminho padrão da sessão do WhatsApp quando `channels.whatsapp.databasePath` não está definido. Com um usuário Linux por instância, cada sessão fica na casa do próprio usuário de qualquer forma.
+
+## Captura do DJEN (ainda não instalar)
+
+A etapa 5 traz a captura das comunicações do DJEN pela OAB do advogado (desenho em `docs/relatorios/etapa-5.md`, código da fatia 1 em `docs/relatorios/etapa-5-fatia-1.md`). **Não instale ainda:** a migração 0006 ainda não foi aplicada, e a captura só pode ser ligada a partir da fatia 2, com a conferência do nome ("É você?").
+
+**Por que na VPS.** O limite do DJEN é por IP, e o CNJ trata o uso de vários IPs para contornar o limite como abuso. Por isso a consulta nunca roda numa função da Vercel. Ela sai sempre do IP fixo da VPS, uma de cada vez.
+
+**Como funciona:**
+
+- `tempestivo-djen@<apelido>.timer` dispara às 7h, 12h e 17h (horário de Brasília).
+- O serviço entra na fila única (`flock /run/lock/tempestivo-djen.lock`) e roda `node scripts/captura-djen.ts` como o usuário da instância, com o token e a URL do `.env` dela.
+- O script pergunta ao Tempestivo se deve consultar:
+  - às 7h, sim;
+  - às 12h e às 17h, só se a tentativa anterior do dia falhou.
+- Ele busca no DJEN, com pelo menos 5 s entre requisições e as esperas de limite e de erro, e repassa ao app só os campos necessários.
+- O log tem só contagens e códigos HTTP.
+
+**Requisito: Node.js 22.18 ou mais novo.** O script roda o TypeScript direto, sem `npm install` e sem build, porque essas versões do Node já leem TypeScript. O Ubuntu 24.04 traz o Node 18 no `apt`, que não serve. Instale o Node 24 LTS pela NodeSource, com o usuário administrador:
+
+```bash
+curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
+sudo apt install -y nodejs
+node --version                       # precisa ser v22.18 ou mais novo
+```
+
+**Instalação (quando a fatia 2 liberar),** com o usuário administrador:
+
+```bash
+sudo git clone git@github.com:GabrielAmaro-s/tempestivoapp.git /opt/tempestivo-agente   # ou scp; para atualizar, git pull
+sudo cp /opt/tempestivo-agente/agente/systemd/tempestivo-djen.conf /etc/tmpfiles.d/
+sudo systemd-tmpfiles --create /etc/tmpfiles.d/tempestivo-djen.conf
+sudo cp /opt/tempestivo-agente/agente/systemd/tempestivo-djen@.service /opt/tempestivo-agente/agente/systemd/tempestivo-djen@.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now tempestivo-djen@ana.timer            # um por instância
+systemctl list-timers 'tempestivo-djen@*'
+sudo systemctl start tempestivo-djen@ana.service                 # rodada manual; o app decide se consulta
+journalctl -u tempestivo-djen@ana -n 20
+```
+
+Sem a captura ligada no Tempestivo para aquela conta, o log mostra `sem consulta: desligada` e nenhuma requisição vai ao DJEN.
+
+**Não testado na VPS:** a trava com `ProtectSystem=strict` e `fs.protected_regular`, o `OnCalendar` com fuso e o `--disable-warning` no Node da NodeSource. Confira os três na primeira instalação.
 
 ## Verificações de segurança (logo após instalar)
 

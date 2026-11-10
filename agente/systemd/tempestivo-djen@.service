@@ -1,0 +1,35 @@
+# Captura do DJEN de uma instância do agente (piloto: uma por advogado), na VPS.
+# NÃO INSTALADO na etapa 5, fatia 1: a captura só pode ser ligada a partir da fatia 2.
+#
+# O nome depois do @ é o apelido da instância: "tempestivo-djen@ana" roda como "nanobot-ana",
+# com o token e a URL do .env dessa instância. Quem dispara é o tempestivo-djen@.timer.
+# Todas as instâncias usam a mesma trava (flock): uma consulta por vez, do mesmo IP fixo,
+# formando a fila única. Precisa do Node 22.18 ou mais novo (roda TypeScript direto).
+# Instale em /etc/systemd/system/ junto com o .timer e o tempestivo-djen.conf (tmpfiles).
+
+[Unit]
+Description=Captura do DJEN do Tempestivo (instância %i)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=nanobot-%i
+Group=nanobot-%i
+# TEMPESTIVO_MCP_URL e TEMPESTIVO_MCP_TOKEN desta instância
+EnvironmentFile=/home/nanobot-%i/.nanobot/.env
+# Espera a vez na fila por até 1 hora; o script fica em /opt/tempestivo-agente (cópia do repositório).
+ExecStart=/usr/bin/flock --wait 3600 /run/lock/tempestivo-djen.lock \
+  /usr/bin/node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON /opt/tempestivo-agente/scripts/captura-djen.ts
+# Novas tentativas com espera crescente podem levar alguns minutos; a fila, mais.
+TimeoutStartSec=2h
+
+# Endurecimento: sem privilégios novos, sem acesso às casas e só a trava gravável
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/run/lock
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true

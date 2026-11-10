@@ -1,0 +1,16 @@
+# Dispara a captura do DJEN da instância às 7h, 12h e 17h (horário de Brasília).
+# NÃO INSTALADO na etapa 5, fatia 1.
+# O app decide se consulta: às 7h sim; às 12h e às 17h só se a tentativa anterior do dia
+# falhou (no máximo 3 por dia, com 4 horas de intervalo). Nas outras, o script pergunta
+# ao app e termina sem chamar o DJEN.
+#   sudo systemctl enable --now tempestivo-djen@ana.timer
+
+[Unit]
+Description=Captura do DJEN do Tempestivo (instância %i), 7h, 12h e 17h
+
+[Timer]
+OnCalendar=*-*-* 07,12,17:00:00 America/Sao_Paulo
+Unit=tempestivo-djen@%i.service
+
+[Install]
+WantedBy=timers.target
