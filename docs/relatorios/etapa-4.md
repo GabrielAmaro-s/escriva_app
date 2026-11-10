@@ -99,6 +99,10 @@ As duas de leitura também aparecem para token de leitura, que passa a enxergar 
 | Os nomes das ferramentas e das chaves de entrada não mudaram. | Instâncias já configuradas continuam funcionando. | Renomear para `listar_processos` e semelhantes. |
 | Um usuário Linux por instância, com o serviço modelo `nanobot-gateway@.service`. | A documentação do nanobot avisa que pastas separadas não isolam pessoas diferentes. | `--home` na mesma conta. |
 | `gateway.port` diferente por instância, com o valor no `config.json` e não por variável. | Duas instâncias na porta padrão (`18790`) não sobem. Um número fixo evita depender da conversão de texto em número. | `${VAR}` no `config.json`. |
+| "Vara" no órgão não conta como pista de vara comum. Decisão sua, depois da etapa. | Juizados adjuntos em comarcas pequenas e varas federais com JEF. Fica registrado na proposta o campo "rito" (comum ou juizado) em `processo_detalhes` como primeiro item depois do piloto. | Tratar "Vara" como pista. |
+| `documentos_pendentes` fica para depois do piloto e não entra no resumo das 8h. Decisões suas. | MVP enxuto. | Entrar no piloto. |
+| Uma chave de LLM para todas as instâncias no piloto, com provedor que tenha termos de não retenção. Decisão sua. | O `agente/README.md` explica que o texto das intimações passa pelo provedor e pede para avisar os advogados. | Uma chave por advogado. |
+| `.env.local` aponta para o Supabase local, e a produção fica no `.env.producao`, que os scripts `db:*` só leem com `-- --producao`. O `.env` foi movido para `.env.producao`. Decisão sua, depois da etapa. | O `npm run dev` desta máquina usava o banco de produção. O Next lê o `.env` sozinho, então as credenciais de produção não podiam ficar nele. | Manter o `.env` e só trocar o `.env.local`. |
 
 ## Mudanças de comportamento
 
@@ -201,11 +205,27 @@ Sem mudanças: nenhuma migração, tabela, coluna, política de RLS ou grant.
 - **Cada instância precisa de um número de WhatsApp próprio para o agente.** São 2 ou 3 chips para o piloto.
 - **Prazo criado pelo agente fica com prioridade média,** igual ao criado pela tela.
 
-**Dúvidas para a próxima etapa**
-1. "Vara Cível" (ou "Vara") no órgão deve contar como pista de vara comum, para o agente não perguntar?
-2. Quer `documentos_pendentes` no agente antes do piloto? Ele é simples com o que já existe.
-3. Os resumos das 8h devem citar os documentos pendentes do cliente, como a seção 8 da proposta previa?
-4. Para o piloto, o LLM será o mesmo provedor e a mesma chave para todos, ou um por advogado? Isso decide o `.env` de cada instância.
+**Dúvidas que você respondeu depois da etapa**
+1. "Vara" não conta como pista. O campo "rito" fica como primeiro item depois do piloto.
+2. `documentos_pendentes` fica para depois do piloto.
+3. Documentos pendentes não entram no resumo das 8h.
+4. Uma chave de LLM para todas as instâncias, com provedor de não retenção de dados.
+
+**Ambientes desta máquina, ajustados antes do push**
+- **`.env.local`:** aponta para o Supabase local, com um `MCP_SEGREDO_TOKENS` só deste ambiente. Com o carregador do próprio Next, `next dev` e `next build` leem só o `.env.local`, e as duas URLs são `127.0.0.1`.
+- **`.env.producao`:** é o antigo `.env`, movido com o conteúdo intacto (permissão 600 e no `.gitignore`).
+- **Scripts:**
+  - `db:migrar`, `db:reparar` e `db:tipos` rodam no Supabase local por padrão;
+  - com `-- --producao`, leem só o `.env.producao` e mostram "Alvo: PRODUÇÃO (...)" antes de rodar;
+  - `db:vincular` sem `--producao` é recusado.
+- **Conferido:**
+  - `db:migrar` local: nada pendente;
+  - `db:tipos` local gerou um `tipos-banco.ts` idêntico ao gerado de produção;
+  - `db:migrar -- --producao --dry-run`: banco de produção em dia, sem gravar nada.
+
+**Dúvidas para depois do piloto**
+1. O campo "rito": preencher pelo agente na primeira intimação de cada processo (perguntando uma vez) ou só no formulário?
+2. A carga anual de feriados de 2028 entra numa migração antes do fim de 2027, ou junto com a revisão dos casos de validação?
 
 ## Commits
 
@@ -218,5 +238,7 @@ Sem mudanças: nenhuma migração, tabela, coluna, política de RLS ou grant.
 | `1b30b91` | Ajusta o agente para o piloto jurídico: SOUL.md, perfil e uma instância por advogado |
 | `0d33b10` | Atualiza ARQUITETURA, proposta e README para a etapa 4 |
 | `c329e21` | Testa as ferramentas jurídicas do agente no Supabase local |
+| `1999504` | Adiciona o relatório da etapa 4 |
+| `c89fd45` | Separa o ambiente local da produção nos arquivos de ambiente e nos scripts do banco |
 
-O commit deste relatório entra depois dos listados acima.
+O commit que registra as respostas e o provedor de LLM entra depois dos listados acima.

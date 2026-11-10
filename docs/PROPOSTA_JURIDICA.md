@@ -184,6 +184,9 @@ Renomear e reorganizar (rápido). Rotas e textos da interface, modelos de coluna
 Processo e clientes. Migração com clientes e processo_detalhes (incluindo o campo de área), formulário, tela de clientes, cartão do processo com cliente e número. Ícones jurídicos para processos e casos consultivos.
 Motor de prazos. domain/prazos.ts com testes, tabela de feriados, tipos de tarefa, lembretes automáticos D-3/D-1/dia, histórico de alterações de prazo.
 Agente jurídico (versão enxuta para o piloto com 2 ou 3 advogados). Feito: registrar_intimacao, criar_processo, prazos_proximos e audiencias_proximas; mensagens no vocabulário jurídico; SOUL.md com os resumos de prazos e audiências; uma instância do nanobot por advogado na mesma VPS. Ficou para depois: documentos_pendentes, andamento_para_cliente, consultar_processo (DataJud) e um agente que atende vários números.
+Depois do piloto, nesta ordem:
+1. Campo "rito" (comum|juizado) em processo_detalhes, preenchido uma vez por processo, para o agente parar de perguntar "vara comum ou juizado?". Exige migração. Até lá, a palavra "Vara" no órgão não conta como pista, por causa dos juizados adjuntos em comarcas pequenas e das varas federais com JEF.
+2. documentos_pendentes no agente. Os documentos pendentes não entram no resumo das 8h.
 DataJud. Consulta por número CNJ e aviso de movimentação nova (sem substituir a leitura das intimações).
 Andamento para o cliente. Texto em linguagem simples, depois um link de acompanhamento só de leitura, se fizer sentido.
 

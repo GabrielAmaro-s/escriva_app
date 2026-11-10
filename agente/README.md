@@ -175,7 +175,15 @@ Para o piloto com 2 ou 3 advogados, cada um tem um nanobot próprio na mesma VPS
 | Número permitido (`WHATSAPP_PERMITIDO`) | O WhatsApp do advogado. A instância ignora qualquer outro número. |
 | Número do agente (o chip vinculado pelo QR) | Cada instância precisa de um WhatsApp próprio. Um mesmo número não pode estar vinculado a duas instâncias. |
 | `gateway.port` no `config.json` | O gateway abre uma porta local de saúde (padrão `18790`, em `127.0.0.1`). Duas instâncias na mesma porta não sobem. Use `18790`, `18791`, `18792`... |
-| Chave do LLM (recomendado) | Dá para usar a mesma, mas chaves separadas mostram o custo de cada advogado e permitem cortar uma sem parar as outras. |
+| Chave do LLM | **No piloto, a mesma chave em todas as instâncias** (veja "Provedor de LLM e sigilo" abaixo). |
+
+### Provedor de LLM e sigilo
+
+O nanobot manda para o provedor de LLM tudo o que passa pela conversa: as mensagens do advogado, **o texto das intimações coladas ou encaminhadas**, os resumos e as respostas das ferramentas do myPlan (nomes de processos, números, prazos e, fora dos processos em segredo de justiça, partes e clientes). Por isso:
+
+- **Use um provedor com termos de não retenção de dados** (às vezes chamado de "zero data retention"): os dados não ficam guardados depois da resposta e não são usados para treinar modelos. Confira isso no contrato ou nos termos do plano contratado, não só na página de marketing. Em vários provedores, a não retenção depende de pedir ou de ativar na conta.
+- **Conte isso aos advogados do piloto antes de começar:** o texto das intimações passa pelo provedor de LLM escolhido, além do WhatsApp. Quem preferir pode usar só o app, sem o agente.
+- **No piloto, uma chave só para todas as instâncias.** O custo aparece somado, sem separar por advogado, e revogar a chave desliga todas as instâncias de uma vez. Guarde a chave só no `.env` de cada instância (permissão 600) e troque se alguém sair do piloto.
 
 O canal WebSocket/WebUI do nanobot fica desligado no nosso `config.json`. Se alguém ligar, ele também precisa de uma porta própria (padrão `8765`).
 
@@ -206,7 +214,7 @@ Use um apelido curto, só com letras minúsculas (ex.: `ana`). Os comandos abaix
    cp /caminho/do/repo/agente/nanobot/.env.example        ~/.nanobot/.env
    cp /caminho/do/repo/agente/nanobot/{SOUL.md,USER.md,HEARTBEAT.md} ~/.nanobot/workspace/
    chmod 600 ~/.nanobot/.env ~/.nanobot/config.json
-   nano ~/.nanobot/.env                 # token deste advogado, número dele, LLM
+   nano ~/.nanobot/.env                 # token deste advogado, número dele; a chave do LLM é a mesma do piloto
    nano ~/.nanobot/config.json          # gateway.port: 18790 na primeira instância, 18791 na segunda...
    nano ~/.nanobot/workspace/USER.md    # nome, áreas e tribunais deste advogado
    ```
