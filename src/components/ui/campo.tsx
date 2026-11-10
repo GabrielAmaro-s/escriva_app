@@ -3,7 +3,7 @@ import { CaretDownIcon } from "@phosphor-icons/react";
 import { classes } from "@/lib/classes";
 
 export const classeControle =
-  "w-full rounded-[10px] border border-line2 bg-surface px-3 text-[13.5px] text-ink outline-none transition-[border-color,box-shadow] placeholder:text-ink3 focus:border-primary focus:shadow-focus";
+  "w-full rounded-[10px] border border-line-forte bg-surface-raised px-3 text-[13.5px] text-ink outline-none transition-[border-color,box-shadow] placeholder:text-ink-muted focus:border-primary focus:shadow-focus";
 
 export const CampoTexto = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(function CampoTexto({ className, ...props }, ref) {
   return <input ref={ref} className={classes(classeControle, "h-[38px]", className)} {...props} />;
@@ -24,7 +24,7 @@ export function Selecao({ inicio, className, children, ...props }: SelectHTMLAtt
       >
         {children}
       </select>
-      <span className="pointer-events-none absolute inset-y-0 right-2.5 flex items-center text-ink3">
+      <span className="pointer-events-none absolute inset-y-0 right-2.5 flex items-center text-ink-muted">
         <CaretDownIcon size={14} />
       </span>
     </div>
@@ -36,7 +36,7 @@ export function RotuloCampo({ children, obrigatorio, htmlFor }: { children: Reac
     <label htmlFor={htmlFor} className="mb-1.5 block text-[12.5px] font-semibold">
       {children}
       {obrigatorio && (
-        <span className="text-s-red" aria-hidden>
+        <span className="text-fatal" aria-hidden>
           {" "}
           *
         </span>

@@ -55,7 +55,7 @@ export function FormularioCliente({ aberto, cliente, aoFechar }: { aberto: boole
     <Janela aberta={aberto} aoFechar={aoFechar} rotulo={titulo} className="max-w-[520px] p-6">
       <form onSubmit={enviar} noValidate>
         <div className="flex items-start justify-between">
-          <h2 className="text-xl font-bold tracking-[-0.02em]">{titulo}</h2>
+          <h2 className="text-xl font-semibold tracking-[-0.02em]">{titulo}</h2>
           <BotaoIcone rotulo="Fechar" onClick={aoFechar}>
             <XIcon size={17} weight="bold" />
           </BotaoIcone>
@@ -71,7 +71,7 @@ export function FormularioCliente({ aberto, cliente, aoFechar }: { aberto: boole
               onClick={() => alterar({ tipo: t })}
               className={classes(
                 "h-8 rounded-full border px-3.5 text-[12.5px] font-medium transition-[background,border-color,color] duration-150",
-                formulario.tipo === t ? "border-primary-line bg-primary-soft text-primary" : "border-line bg-surface text-ink2 hover:text-ink",
+                formulario.tipo === t ? "border-primary-line bg-primary-soft text-primary" : "border-line bg-surface-raised text-ink-muted hover:text-ink",
               )}
             >
               {ROTULO_TIPO_CLIENTE[t]}
@@ -131,18 +131,18 @@ export function FormularioCliente({ aberto, cliente, aoFechar }: { aberto: boole
                     <Link href={`/projetos/${p.id}`} onClick={aoFechar} className="text-[13px] font-medium text-primary">
                       {p.name}
                     </Link>
-                    <span className="text-xs text-ink3"> · {p.kind === "campaign" ? "Consultivo" : "Processo"}</span>
+                    <span className="text-xs text-ink-muted"> · {p.kind === "campaign" ? "Consultivo" : "Processo"}</span>
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="text-[13px] text-ink2">Nenhum processo ou caso consultivo ainda.</p>
+              <p className="text-[13px] text-ink-muted">Nenhum processo ou caso consultivo ainda.</p>
             )}
           </div>
         )}
 
         {erro && (
-          <p role="alert" className="mt-4 text-xs text-s-red">
+          <p role="alert" className="mt-4 text-xs text-fatal">
             {erro}
           </p>
         )}
@@ -154,7 +154,7 @@ export function FormularioCliente({ aberto, cliente, aoFechar }: { aberto: boole
                 estado.excluir(cliente.id);
                 aoFechar();
               }}
-              className="text-s-red"
+              className="text-fatal"
             >
               <TrashIcon size={15} />
               Excluir

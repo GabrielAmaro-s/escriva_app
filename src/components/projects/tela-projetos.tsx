@@ -75,7 +75,7 @@ export function TelaProjetos() {
       {estado.carregando ? (
         <div className="grid grid-cols-[repeat(auto-fill,minmax(270px,1fr))] gap-4">
           {Array.from({ length: 6 }, (_, i) => (
-            <div key={i} className="h-[214px] animate-pulse rounded-[14px] border border-line bg-surface" />
+            <div key={i} className="h-[214px] animate-pulse rounded-[14px] border border-line bg-surface-raised" />
           ))}
         </div>
       ) : estado.erro ? (

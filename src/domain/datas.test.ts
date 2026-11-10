@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dataNoFuso, descreverDia, formatarDataHora, interpretarDataHora, isoNoFuso, paraCampoDataHora, somarDias } from "./datas";
+import { dataComDia, dataCurtaComDia, dataNoFuso, dataNumerica, descreverDia, formatarDataHora, interpretarDataHora, isoNoFuso, paraCampoDataHora, somarDias } from "./datas";
 import { calcularSituacaoAgente, descreverMinutos, validarLembrete } from "./lembrete";
 
 const SP = "America/Sao_Paulo";
@@ -30,13 +30,21 @@ describe("datas com fuso", () => {
     expect(somarDias("2026-03-01", -1)).toBe("2026-02-28");
   });
 
-  it("descreverDia usa hoje, amanhã, dia da semana ou data", () => {
+  it("descreverDia usa hoje, amanhã ou o dia da semana com a data (Voz e tom do manual)", () => {
     const hoje = "2026-11-04"; // quarta
     expect(descreverDia("2026-11-04", hoje)).toBe("hoje");
     expect(descreverDia("2026-11-05", hoje)).toBe("amanhã");
-    expect(descreverDia("2026-11-06", hoje)).toBe("sexta");
-    expect(descreverDia("2026-11-28", hoje)).toBe("28 de nov");
-    expect(descreverDia("2027-01-15", hoje)).toBe("15 de jan de 2027");
+    expect(descreverDia("2026-11-03", hoje)).toBe("ontem");
+    expect(descreverDia("2026-11-06", hoje)).toBe("sexta, 06/11");
+    expect(descreverDia("2026-11-28", hoje)).toBe("sábado, 28/11");
+    expect(descreverDia("2027-01-15", hoje)).toBe("sexta, 15/01/2027");
+  });
+
+  it("datas numéricas: dd/mm no mesmo ano, dd/mm/aaaa quando muda", () => {
+    expect(dataNumerica("2026-12-02", "2026-11-04")).toBe("02/12");
+    expect(dataNumerica("2027-01-28", "2026-11-04")).toBe("28/01/2027");
+    expect(dataComDia("2026-12-02", "2026-11-04")).toBe("quarta, 02/12");
+    expect(dataCurtaComDia("2026-12-02")).toBe("qua, 02/12/2026");
   });
 
   it("formatarDataHora: Hoje, Amanhã e data com ano quando muda", () => {

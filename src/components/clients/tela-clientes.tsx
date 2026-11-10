@@ -52,7 +52,7 @@ export function TelaClientes() {
       {estado.carregando ? (
         <div className="flex flex-col gap-2">
           {Array.from({ length: 4 }, (_, i) => (
-            <div key={i} className="h-[62px] animate-pulse rounded-xl border border-line bg-surface" />
+            <div key={i} className="h-[62px] animate-pulse rounded-xl border border-line bg-surface-raised" />
           ))}
         </div>
       ) : estado.erro ? (
@@ -76,7 +76,7 @@ export function TelaClientes() {
           </EstadoVazio>
         )
       ) : (
-        <ul className="flex flex-col overflow-hidden rounded-[14px] border border-line bg-surface">
+        <ul className="flex flex-col overflow-hidden rounded-[14px] border border-line bg-surface-raised">
           {lista.map((c) => {
             const casos = casosPorCliente.get(c.id);
             const resumo = [
@@ -92,13 +92,13 @@ export function TelaClientes() {
                 >
                   <span className="min-w-0 flex-[1_1_220px]">
                     <span className="block text-[14px] font-semibold">{c.nome}</span>
-                    <span className="block text-xs text-ink3">
+                    <span className="block text-xs text-ink-muted">
                       {ROTULO_TIPO_CLIENTE[c.tipo]}
                       {c.documento ? ` · ${formatarDocumento(c.documento)}` : ""}
                     </span>
                   </span>
-                  <span className="flex-[0_1_200px] text-xs text-ink2">{c.telefone || c.email || ""}</span>
-                  <span className="flex-[0_1_220px] text-xs text-ink2">{resumo.length ? resumo.join(", ") : "Nenhum caso ativo"}</span>
+                  <span className="flex-[0_1_200px] text-xs text-ink-muted">{c.telefone || c.email || ""}</span>
+                  <span className="flex-[0_1_220px] text-xs text-ink-muted">{resumo.length ? resumo.join(", ") : "Nenhum caso ativo"}</span>
                 </button>
               </li>
             );

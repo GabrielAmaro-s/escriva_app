@@ -1,12 +1,13 @@
 "use client";
 
-import { BellIcon, CalendarBlankIcon, CheckIcon, CheckSquareIcon, DotsThreeIcon, FlagIcon, GavelIcon, WarningOctagonIcon } from "@phosphor-icons/react";
+import { BellIcon, CalendarBlankIcon, CheckIcon, CheckSquareIcon, DotsThreeIcon, FlagIcon, GavelIcon } from "@phosphor-icons/react";
 import { forwardRef, type HTMLAttributes } from "react";
 import { Pilula } from "@/components/ui/pecas";
 import { formatarDataHora } from "@/domain/datas";
 import { COR_PRIORIDADE, ROTULO_PRIORIDADE, corDoPrazo, formatarData, progressoDoChecklist } from "@/domain/quadro";
 import type { Etiqueta, Tarefa } from "@/domain/tipos";
 import { classes } from "@/lib/classes";
+import { SeloPrazo } from "@/components/ui/prazo";
 
 interface PropsCartaoTarefa extends HTMLAttributes<HTMLDivElement> {
   tarefa: Tarefa;
@@ -34,9 +35,9 @@ export const CartaoTarefa = forwardRef<HTMLDivElement, PropsCartaoTarefa>(functi
     <div
       ref={ref}
       className={classes(
-        "flex cursor-grab touch-manipulation flex-col gap-[9px] rounded-[11px] border border-line bg-surface px-3 py-[11px] text-left transition-[border-color,box-shadow,opacity] duration-150 hover:border-line2 hover:shadow-soft active:cursor-grabbing",
+        "flex cursor-grab touch-manipulation flex-col gap-[9px] rounded-[11px] border border-line bg-surface-raised px-3 py-[11px] text-left transition-[border-color,box-shadow,opacity] duration-150 hover:border-line-forte active:cursor-grabbing",
         arrastando && "opacity-40",
-        sobreposto && "rotate-[1.5deg] cursor-grabbing border-line2 shadow-pop",
+        sobreposto && "rotate-[1.5deg] cursor-grabbing border-line-forte shadow-flutuante",
         className,
       )}
       {...props}
@@ -53,11 +54,11 @@ export const CartaoTarefa = forwardRef<HTMLDivElement, PropsCartaoTarefa>(functi
 
       <div className="flex items-start gap-2">
         {concluida && (
-          <span className="mt-px grid size-4 shrink-0 place-items-center rounded-full bg-s-green text-on-primary" aria-label="Concluída">
+          <span className="mt-px grid size-4 shrink-0 place-items-center rounded-full bg-no-prazo text-on-primary" aria-label="Concluída">
             <CheckIcon size={10} weight="bold" />
           </span>
         )}
-        <span className={classes("min-w-0 flex-1 break-words text-[13.5px] font-medium leading-[1.4] tracking-[-0.005em]", concluida && "text-ink3 line-through")}>
+        <span className={classes("min-w-0 flex-1 break-words text-[13.5px] font-medium leading-[1.4] tracking-[-0.005em]", concluida && "text-ink-muted line-through")}>
           {tarefa.title}
         </span>
         {aoAbrirMenu && (
@@ -69,7 +70,7 @@ export const CartaoTarefa = forwardRef<HTMLDivElement, PropsCartaoTarefa>(functi
               e.stopPropagation();
               aoAbrirMenu(e);
             }}
-            className="-mr-[5px] -mt-[3px] grid size-6 shrink-0 place-items-center rounded-md border-0 bg-transparent text-ink3 nav:hidden"
+            className="-mr-[5px] -mt-[3px] grid size-6 shrink-0 place-items-center rounded-md border-0 bg-transparent text-ink-muted nav:hidden"
           >
             <DotsThreeIcon size={16} />
           </button>
@@ -77,11 +78,11 @@ export const CartaoTarefa = forwardRef<HTMLDivElement, PropsCartaoTarefa>(functi
       </div>
 
       {temMetadados && (
-        <div className="flex items-center gap-3 text-[11.5px] text-ink3">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11.5px] text-ink-muted">
           {tarefa.dueOn && (
             <span
               className="inline-flex items-center gap-[5px]"
-              style={{ color: corDoPrazo(tarefa.dueOn, concluida) }}
+              style={{ color: corDoPrazo(tarefa.dueOn, concluida, undefined, { prazoInterno: Boolean(fatal) }) }}
               title={fatal ? "Prazo interno" : undefined}
             >
               <CalendarBlankIcon size={13} />
@@ -89,9 +90,9 @@ export const CartaoTarefa = forwardRef<HTMLDivElement, PropsCartaoTarefa>(functi
             </span>
           )}
           {fatal && (
-            <span className="inline-flex items-center gap-[5px] font-semibold text-s-red" title="Prazo fatal">
-              <WarningOctagonIcon size={13} weight="fill" />
-              Fatal {formatarData(fatal)}
+            <span className="inline-flex items-center gap-1.5" title="Prazo fatal">
+              <SeloPrazo tarefa={tarefa} className="px-1.5 py-0.5 text-[11px]" />
+              <span className="dado text-ink-muted">fatal {formatarData(fatal)}</span>
             </span>
           )}
           {audiencia && (

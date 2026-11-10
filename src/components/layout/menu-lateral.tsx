@@ -1,33 +1,23 @@
 "use client";
 
-import { BriefcaseIcon, CheckSquareIcon, ScalesIcon, SlidersHorizontalIcon, StackIcon, SunIcon, UsersIcon, type Icon } from "@phosphor-icons/react";
+import { BriefcaseIcon, CalendarCheckIcon, ScalesIcon, SlidersHorizontalIcon, SunIcon, UsersIcon, type Icon } from "@phosphor-icons/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useProjetos } from "@/hooks/use-projetos";
 import { useUsuarioAtual } from "@/hooks/use-usuario-atual";
 import { classes } from "@/lib/classes";
+import { Logotipo } from "./logotipo";
+
+export { Logotipo };
 
 const NAVEGACAO: { href: string; rotulo: string; icone: Icon }[] = [
   { href: "/hoje", rotulo: "Hoje", icone: SunIcon },
   { href: "/", rotulo: "Processos", icone: ScalesIcon },
   { href: "/consultivo", rotulo: "Consultivo", icone: BriefcaseIcon },
-  { href: "/prazos", rotulo: "Prazos e tarefas", icone: CheckSquareIcon },
+  { href: "/prazos", rotulo: "Prazos e tarefas", icone: CalendarCheckIcon },
   { href: "/clientes", rotulo: "Clientes", icone: UsersIcon },
   { href: "/configuracoes", rotulo: "Configurações", icone: SlidersHorizontalIcon },
 ];
-
-export function Logotipo({ compacto }: { compacto?: boolean }) {
-  return (
-    <span className="flex items-center gap-2.5">
-      {!compacto && (
-        <span className="grid size-7 place-items-center rounded-lg bg-primary text-on-primary">
-          <StackIcon size={16} />
-        </span>
-      )}
-      <span className={classes("font-bold tracking-[-0.02em]", compacto ? "text-[15px]" : "text-base")}>myPlan</span>
-    </span>
-  );
-}
 
 export function MenuLateral({ aoNavegar }: { aoNavegar?: () => void }) {
   const caminho = usePathname();
@@ -57,7 +47,7 @@ export function MenuLateral({ aoNavegar }: { aoNavegar?: () => void }) {
               aria-current={ativo ? "page" : undefined}
               className={classes(
                 "flex h-9 items-center gap-[11px] rounded-[9px] px-2.5 text-[13.5px] no-underline transition-[background,color] duration-150",
-                ativo ? "bg-primary-soft font-semibold text-primary" : "font-medium text-ink2 hover:bg-hover",
+                ativo ? "bg-primary-soft font-semibold text-primary" : "font-medium text-ink-muted hover:bg-hover",
               )}
             >
               <Glifo size={17} />
@@ -71,7 +61,7 @@ export function MenuLateral({ aoNavegar }: { aoNavegar?: () => void }) {
         <span className="grid size-[30px] place-items-center rounded-full bg-primary-soft text-[12.5px] font-semibold text-primary">{usuario.inicial}</span>
         <span className="flex flex-col leading-tight">
           <span className="text-[13px] font-semibold">{usuario.nome}</span>
-          <span className="text-[11.5px] text-ink3">{usuario.plano}</span>
+          <span className="text-[11.5px] text-ink-muted">{usuario.plano}</span>
         </span>
       </div>
     </nav>

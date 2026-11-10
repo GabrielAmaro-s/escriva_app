@@ -40,7 +40,7 @@ export interface ExtrasDoFormulario {
 const chipClasse = (ativo: boolean) =>
   classes(
     "h-7 rounded-full border px-3 text-[12.5px] transition-[background,border-color,color] duration-150",
-    ativo ? "border-primary-line bg-primary-soft text-primary" : "border-line bg-surface text-ink2 hover:text-ink",
+    ativo ? "border-primary-line bg-primary-soft text-primary" : "border-line bg-surface-raised text-ink-muted hover:text-ink",
   );
 
 export function FormularioProjeto({
@@ -155,8 +155,8 @@ export function FormularioProjeto({
       <form onSubmit={enviar} noValidate>
         <div className="flex items-start justify-between">
           <div>
-            <h2 className="text-xl font-bold tracking-[-0.02em]">{titulo}</h2>
-            <p className="mt-1 text-[13px] text-ink2">
+            <h2 className="text-xl font-semibold tracking-[-0.02em]">{titulo}</h2>
+            <p className="mt-1 text-[13px] text-ink-muted">
               {editando ? "Ajuste as informações e salve." : "Cadastre um processo ou um caso consultivo para organizar prazos e tarefas."}
             </p>
           </div>
@@ -178,13 +178,13 @@ export function FormularioProjeto({
                 onClick={() => definirTipo(tipo)}
                 className={classes(
                   "flex items-start gap-[11px] rounded-xl border p-3 text-left text-ink transition-[background,border-color] duration-150",
-                  ativo ? "border-primary bg-primary-soft" : "border-line bg-surface hover:border-line2",
+                  ativo ? "border-primary bg-primary-soft" : "border-line bg-surface-raised hover:border-line-forte",
                 )}
               >
-                <Glifo size={20} className={classes("mt-px shrink-0", ativo ? "text-primary" : "text-ink2")} />
+                <Glifo size={20} className={classes("mt-px shrink-0", ativo ? "text-primary" : "text-ink-muted")} />
                 <span>
                   <span className="block text-[13.5px] font-semibold">{nome}</span>
-                  <span className="mt-0.5 block text-xs leading-snug text-ink2">{dica}</span>
+                  <span className="mt-0.5 block text-xs leading-snug text-ink-muted">{dica}</span>
                 </span>
               </button>
             );
@@ -207,10 +207,10 @@ export function FormularioProjeto({
             }}
             placeholder={ehCampanha ? "Ex.: Contrato de prestação de serviços" : "Ex.: Cobrança de aluguéis, Reclamação trabalhista…"}
             maxLength={120}
-            className={erroNoNome ? "border-s-red" : undefined}
+            className={erroNoNome ? "border-fatal" : undefined}
           />
           {erroNoNome && (
-            <p role="alert" className="mt-1.5 text-xs text-s-red">
+            <p role="alert" className="mt-1.5 text-xs text-fatal">
               {erro}
             </p>
           )}
@@ -232,7 +232,7 @@ export function FormularioProjeto({
               <option key={c.id} value={c.nome} />
             ))}
           </datalist>
-          {clienteNovo && <p className="mt-1.5 text-xs text-ink3">Cliente novo: será cadastrado com este nome ao salvar.</p>}
+          {clienteNovo && <p className="mt-1.5 text-xs text-ink-muted">Cliente novo: será cadastrado com este nome ao salvar.</p>}
         </div>
 
         {!editando && (
@@ -245,7 +245,7 @@ export function FormularioProjeto({
                 </button>
               ))}
             </div>
-            <p className="mt-1.5 text-xs text-ink3">Colunas: {MODELOS_DE_QUADRO[modelo].colunas.map((c) => c.title).join(", ")}.</p>
+            <p className="mt-1.5 text-xs text-ink-muted">Colunas: {MODELOS_DE_QUADRO[modelo].colunas.map((c) => c.title).join(", ")}.</p>
           </div>
         )}
 
@@ -282,7 +282,7 @@ export function FormularioProjeto({
             </div>
 
             <details className="group mt-4 rounded-xl border border-line px-3.5 py-2.5" open={editando && Boolean(processo.tribunal || processo.orgao || processo.parteContraria)}>
-              <summary className="cursor-pointer text-[12.5px] font-semibold text-ink2">Mais dados do processo</summary>
+              <summary className="cursor-pointer text-[12.5px] font-semibold text-ink-muted">Mais dados do processo</summary>
               <div className="mt-3 flex flex-wrap gap-x-4 gap-y-4 pb-1">
                 <div className="min-w-[120px] flex-1">
                   <RotuloCampo htmlFor="np-tribunal">Tribunal</RotuloCampo>
@@ -405,7 +405,7 @@ export function FormularioProjeto({
                   data-tone={t}
                   onClick={() => alterar({ color: t })}
                   className={classes(
-                    "size-[22px] rounded-full border-2 border-surface bg-tone p-0 transition-shadow duration-150",
+                    "size-[22px] rounded-full border-2 border-surface-raised bg-tone p-0 transition-shadow duration-150",
                     formulario.color === t ? "shadow-[0_0_0_2px_var(--ink)]" : "shadow-none",
                   )}
                 />
@@ -437,7 +437,7 @@ export function FormularioProjeto({
         </div>
 
         {erro && !erroNoNome && (
-          <p role="alert" className="mt-4 text-xs text-s-red">
+          <p role="alert" className="mt-4 text-xs text-fatal">
             {erro}
           </p>
         )}

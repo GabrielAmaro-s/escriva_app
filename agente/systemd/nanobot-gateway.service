@@ -2,7 +2,7 @@
 # Instale em /etc/systemd/system/nanobot-gateway.service e rode como o usuário "nanobot" (sem sudo).
 
 [Unit]
-Description=nanobot gateway (agente do myPlan no WhatsApp)
+Description=nanobot gateway (agente do Tempestivo no WhatsApp)
 Wants=network-online.target
 After=network-online.target
 # Se cair muitas vezes seguidas, continua tentando em vez de desistir

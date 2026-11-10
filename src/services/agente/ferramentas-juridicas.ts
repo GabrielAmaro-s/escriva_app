@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { clienteVazio } from "@/domain/cliente";
-import { interpretarDataHora, somarDias } from "@/domain/datas";
+import { dataComDia, dataNoFuso, dataNumerica, interpretarDataHora, somarDias } from "@/domain/datas";
 import { ErroDeConflito, ErroDeValidacao } from "@/domain/erros";
 import { STATUS_ATIVOS } from "@/domain/lembrete";
 import {
@@ -15,7 +15,7 @@ import {
   numeroCnjValido,
   validarDetalhesProcesso,
 } from "@/domain/processo";
-import { AVISO_CONTAGEM_EM_VALIDACAO, REGRAS, ROTULO_MEIO, alteracaoDePrazo, formatarData, formatarDataCurta, regraSeguraDoProcesso, tribunalDoProcesso } from "@/domain/prazos";
+import { AVISO_CONTAGEM_EM_VALIDACAO, type SituacaoPrazo, REGRAS, diasEntreDatas, situacaoDoPrazo, ROTULO_MEIO, alteracaoDePrazo, formatarData, formatarDataCurta, regraSeguraDoProcesso, tribunalDoProcesso } from "@/domain/prazos";
 import { dadosProjetoVazios } from "@/domain/projeto";
 import { MODELOS_DE_QUADRO, ordenarPorPosicao, proximaPosicaoNaColuna, type ModeloQuadro } from "@/domain/quadro";
 import type { Cliente, Projeto, Tarefa } from "@/domain/tipos";
@@ -37,12 +37,13 @@ import {
   plural,
   procurarPorNome,
 } from "./auxiliares";
-import { PEDIR_SIM, confirmado, data, definir, type Ferramenta } from "./definicao";
+import { PEDIR_SIM_REGISTRAR, confirmado, data, definir, type Ferramenta } from "./definicao";
 
 // Ferramentas jurídicas do agente (etapa 4): intimação, processo, prazos e audiências.
 // Usam os mesmos services da tela. Processo com segredo de justiça aparece só com nome e número.
 
-const NADA_CRIADO = "Nada foi criado.";
+const NADA_CRIADO = "Nada foi registrado.";
+const OFERECER_CADASTRO = "Quer que eu cadastre o processo?";
 
 /** Erros de validação e de conflito dos services viram mensagem legível; os outros seguem como inesperados. */
 function comoErroFerramenta(e: unknown): unknown {
@@ -91,7 +92,7 @@ function encontrarProcesso(pedido: string, projetos: Projeto[]): Projeto {
     }
     const achado = projetos.find((p) => p.kind === "project" && p.processo?.numeroCnj === digitos);
     if (!achado) {
-      throw new ErroFerramenta(`Não encontrei nenhum processo com o número ${formatarNumeroCnj(digitos)} na sua conta. ${NADA_CRIADO} Se ele ainda não está cadastrado, use criar_processo.`);
+      throw new ErroFerramenta(`Não achei o processo ${formatarNumeroCnj(digitos)} na sua conta. ${NADA_CRIADO} ${OFERECER_CADASTRO}`);
     }
     if (achado.archivedAt) throw new ErroFerramenta(`O processo ${achado.name} está arquivado. Restaure no app antes de registrar a intimação. ${NADA_CRIADO}`);
     return achado;
@@ -104,7 +105,7 @@ function encontrarProcesso(pedido: string, projetos: Projeto[]): Projeto {
   );
   if (processos.length === 1) return processos[0];
   if (processos.length > 1) {
-    throw new ErroFerramenta(`Encontrei mais de um processo parecido com "${texto}": ${processos.map((p) => `"${p.name}"`).join(", ")}. Qual deles? ${NADA_CRIADO}`);
+    throw new ErroFerramenta(`Achei mais de um processo parecido com "${texto}": ${processos.map((p) => `"${p.name}"`).join(", ")}. Qual deles? ${NADA_CRIADO}`);
   }
   const [consultivo] = procurarPorNome(
     visiveis.filter((p) => p.kind === "campaign"),
@@ -112,27 +113,11 @@ function encontrarProcesso(pedido: string, projetos: Projeto[]): Projeto {
     (p) => p.name,
   );
   if (consultivo) throw new ErroFerramenta(`${consultivo.name} é um caso consultivo: intimação só vale para processo. ${NADA_CRIADO}`);
-  throw new ErroFerramenta(`Não encontrei processo parecido com "${texto}" na sua conta. ${NADA_CRIADO} Se ele ainda não está cadastrado, use criar_processo.`);
+  throw new ErroFerramenta(`Não achei processo parecido com "${texto}" na sua conta. ${NADA_CRIADO} ${OFERECER_CADASTRO}`);
 }
 
-/** Dias entre duas datas AAAA-MM-DD (b - a). */
-function diasEntre(a: string, b: string): number {
-  const utc = (d: string) => {
-    const [ano, mes, dia] = d.split("-").map(Number);
-    return Date.UTC(ano, mes - 1, dia);
-  };
-  return Math.round((utc(b) - utc(a)) / 86_400_000);
-}
-
-type Situacao = "fatal_vencido" | "interno_vencido" | "vence_hoje" | "interno_hoje" | "no_prazo";
-
-function situacaoDoPrazo(t: Tarefa, hoje: string): Situacao {
-  if (t.prazoFatal && t.prazoFatal < hoje) return "fatal_vencido";
-  if (t.prazoFatal === hoje) return "vence_hoje";
-  if (t.dueOn && t.dueOn < hoje) return "interno_vencido";
-  if (t.dueOn === hoje) return "interno_hoje";
-  return "no_prazo";
-}
+type Situacao = SituacaoPrazo;
+const diasEntre = diasEntreDatas;
 
 function descreverSituacao(ctx: ContextoAgente, t: Tarefa, s: Situacao): string {
   if (s === "fatal_vencido") return `o prazo fatal venceu em ${formatarDataCurta(t.prazoFatal!)}`;
@@ -330,7 +315,7 @@ export function ferramentasJuridicas(): { leitura: Ferramenta[]; escrita: Ferram
       const regra = args.regra ?? regraSeguraDoProcesso(processo.processo);
       if (!regra) {
         return {
-          mensagem: `Antes de calcular: ${processo.name} corre em vara comum ou em juizado? No recesso de fim de ano a contagem muda. ${NADA_CRIADO}`,
+          mensagem: `${processo.name} corre na vara comum ou no juizado? A contagem muda no recesso.`,
           dados: {
             precisa_regra: true,
             processo: resumo,
@@ -382,19 +367,20 @@ export function ferramentasJuridicas(): { leitura: Ferramenta[]; escrita: Ferram
       };
       const aviso = AVISO_CONTAGEM_EM_VALIDACAO;
       const alertaRepetido = repetidos.length
-        ? `Atenção: parece repetido, já existe o prazo “${repetidos[0].title}” neste processo com a mesma disponibilização e a mesma quantidade de dias.`
+        ? `Parece repetido: já existe o prazo “${repetidos[0].title}” neste processo, com a mesma disponibilização e a mesma quantidade de dias.`
         : null;
-      const frase = `Prazo de ${args.dias} dias ${unidade}${args.em_dobro ? " em dobro" : ""} em ${processo.name}: vence ${formatarData(contagem.vencimento)} (prazo interno ${formatarData(interno)}).`;
+      const hoje = hojeNoFuso(ctx);
+      const frase = `Prazo de ${args.dias} dias ${unidade}${args.em_dobro ? " em dobro" : ""} em ${processo.name}: vence ${dataComDia(contagem.vencimento, hoje)} (prazo interno ${dataComDia(interno, hoje)}).`;
 
       const previa = (motivo?: string) => ({
-        mensagem: [motivo, frase, alertaRepetido, aviso, PEDIR_SIM].filter(Boolean).join(" "),
+        mensagem: [motivo, frase, alertaRepetido, aviso, PEDIR_SIM_REGISTRAR].filter(Boolean).join(" "),
         dados: {
           precisa_confirmacao: true,
           processo: resumo,
           prazo,
           aviso,
           repetido: repetidos.length ? repetidos.map((t) => ({ id: t.id, titulo: t.title, link: linkDaTarefa(ctx, t) })) : null,
-          pergunta: `Posso registrar esse prazo? ${PEDIR_SIM}`,
+          pergunta: `Posso registrar esse prazo? ${PEDIR_SIM_REGISTRAR}`,
         },
       });
 
@@ -402,7 +388,7 @@ export function ferramentasJuridicas(): { leitura: Ferramenta[]; escrita: Ferram
       if (args.prazo_fatal_esperado !== contagem.vencimento) {
         return previa(
           args.prazo_fatal_esperado
-            ? `O cálculo mudou desde a prévia (ela dizia ${formatarData(args.prazo_fatal_esperado)}). ${NADA_CRIADO}`
+            ? `O cálculo mudou desde a prévia, que dizia ${dataComDia(args.prazo_fatal_esperado, hoje)}. ${NADA_CRIADO}`
             : `Falta o prazo_fatal_esperado da prévia. ${NADA_CRIADO}`,
         );
       }
@@ -425,9 +411,13 @@ export function ferramentasJuridicas(): { leitura: Ferramenta[]; escrita: Ferram
         throw comoErroFerramenta(e);
       }
       const lembretes = (await ctx.repo.listarLembretes({ tarefaId: tarefa.id, status: STATUS_ATIVOS })).filter((l) => l.automatico);
-      const sobreLembretes = lembretes.length ? ` ${plural(lembretes.length, "lembrete automático", "lembretes automáticos")}.` : "";
+      // "Vou lembrar em 26/11, 30/11 e no dia." (como no exemplo MensagemAgente do manual)
+      const quandoLembra = [...lembretes]
+        .sort((a, b) => a.quando.localeCompare(b.quando))
+        .map((l) => (l.automatico === "dia" ? "no dia" : dataNumerica(dataNoFuso(new Date(l.quando), ctx.fuso), hoje)));
+      const sobreLembretes = quandoLembra.length ? ` Vou lembrar ${quandoLembra.length > 1 ? `em ${quandoLembra.slice(0, -1).join(", ")} e ${quandoLembra.at(-1)}` : quandoLembra[0] === "no dia" ? "no dia" : `em ${quandoLembra[0]}`}.` : "";
       return {
-        mensagem: `Registrei “${titulo}” em ${processo.name}: vence ${formatarData(contagem.vencimento)} (prazo interno ${formatarData(interno)}).${sobreLembretes}${aviso ? ` ${aviso}` : ""}`,
+        mensagem: `Registrei “${titulo}” em ${processo.name}: vence ${dataComDia(contagem.vencimento, hoje)} (prazo interno ${dataComDia(interno, hoje)}).${sobreLembretes}`,
         dados: {
           processo: resumo,
           prazo,

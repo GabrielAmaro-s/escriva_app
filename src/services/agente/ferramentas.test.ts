@@ -27,7 +27,7 @@ async function idDaTarefa(titulo: string) {
 
 beforeEach(() => {
   repo = criarRepositorioLocal({ dados: criarDadosDeExemplo(new Date(2026, 10, 4, 12)) });
-  ctx = { repo, fuso: "America/Sao_Paulo", urlApp: "https://myplan.teste", limiteItens: 10, agora: () => AGORA };
+  ctx = { repo, fuso: "America/Sao_Paulo", urlApp: "https://tempestivo.teste", limiteItens: 10, agora: () => AGORA };
 });
 
 describe("catálogo", () => {
@@ -84,7 +84,7 @@ describe("leitura", () => {
     const cobranca = (r.corpo.projetos as { nome: string; progresso: number; status: string; link: string }[]).find((p) => p.nome === "Cobrança de aluguéis")!;
     expect(r.erro).toBe(false);
     expect(cobranca).toMatchObject({ progresso: 44, status: "ativo", tarefas: "7 de 16" });
-    expect(cobranca.link).toMatch(/^https:\/\/myplan\.teste\/projetos\//);
+    expect(cobranca.link).toMatch(/^https:\/\/tempestivo\.teste\/projetos\//);
     const campanhas = await chamar("listar_projetos", { tipo: "campanha" });
     expect((campanhas.corpo.projetos as unknown[]).length).toBe(3);
   });
@@ -148,7 +148,7 @@ describe("escrita", () => {
         { titulo: "Publicar", prazo: "2026-11-06", etiquetas: ["Recurso"] },
       ],
     });
-    expect(r.corpo.mensagem).toBe("Criei 3 tarefas em Cobrança de aluguéis, prazo sexta.");
+    expect(r.corpo.mensagem).toBe("Criei 3 tarefas em Cobrança de aluguéis, prazo sexta, 06/11.");
     const tarefas = r.corpo.tarefas as { id: string; link: string }[];
     expect(tarefas[0].link).toMatch(/\/projetos\/[^?]+\?tarefa=/);
     const espaco = await repo.obterEspacoDeTrabalho();
@@ -264,7 +264,7 @@ describe("com confirmação", () => {
   it("concluir_em_lote: prévia não altera nada; confirmado aplica", async () => {
     const ids = [await idDaTarefa("Pedir contrato ao cliente"), await idDaTarefa("Conferir custas iniciais")];
     const previa = await chamar("concluir_em_lote", { tarefas: ids });
-    expect(previa.corpo).toMatchObject({ precisa_confirmacao: true, mensagem: 'Vou concluir 2 tarefas. Responda "sim" para confirmar.' });
+    expect(previa.corpo).toMatchObject({ precisa_confirmacao: true, mensagem: 'Vou concluir 2 tarefas. Responda *sim* para confirmar.' });
     expect((await repo.obterEspacoDeTrabalho()).tarefas.filter((t) => ids.includes(t.id) && t.completed)).toHaveLength(0);
 
     const feito = await chamar("concluir_em_lote", { tarefas: ids, confirmado: true });

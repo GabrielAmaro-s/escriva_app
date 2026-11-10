@@ -11,8 +11,11 @@ import { useClientes } from "@/hooks/use-clientes";
 import { useProjetos } from "@/hooks/use-projetos";
 import { classes } from "@/lib/classes";
 
+/** Fatos que se conferem dígito a dígito: em IBM Plex Mono (manual da marca). */
+const DADOS = new Set(["Número", "Valor da causa", "Prazo", "Prazo de entrega", "Recebido em"]);
+
 function Titulo({ children }: { children: React.ReactNode }) {
-  return <p className="mb-1.5 text-xs font-semibold text-ink3">{children}</p>;
+  return <p className="mb-1.5 text-xs font-semibold text-ink-muted">{children}</p>;
 }
 
 export function AbaDetalhes({ projeto }: { projeto: Projeto }) {
@@ -73,10 +76,10 @@ export function AbaDetalhes({ projeto }: { projeto: Projeto }) {
               <p className="text-sm leading-normal">{c?.objective || "Ainda sem pedido do cliente. Defina em Editar."}</p>
             </div>
             <div>
-              <p className="mb-2 text-xs font-semibold text-ink3">
+              <p className="mb-2 text-xs font-semibold text-ink-muted">
                 Entregas planejadas · {entregas.filter((e) => e.done).length} de {entregas.length}
               </p>
-              <div className="flex flex-col overflow-hidden rounded-xl border border-line bg-surface">
+              <div className="flex flex-col overflow-hidden rounded-xl border border-line bg-surface-raised">
                 {entregas.map((e) => (
                   <button
                     key={e.id}
@@ -86,18 +89,18 @@ export function AbaDetalhes({ projeto }: { projeto: Projeto }) {
                     className="flex items-center gap-[11px] border-0 border-b border-solid border-line bg-transparent px-3.5 py-[11px] text-left text-[13.5px] hover:bg-hover"
                   >
                     <Marcador marcado={e.done} />
-                    <span className={classes(e.done ? "text-ink3 line-through" : "text-ink")}>{e.title}</span>
+                    <span className={classes(e.done ? "text-ink-muted line-through" : "text-ink")}>{e.title}</span>
                   </button>
                 ))}
                 <div className="flex items-center gap-2.5 px-3.5">
-                  <PlusIcon size={14} weight="bold" className="text-ink3" />
+                  <PlusIcon size={14} weight="bold" className="text-ink-muted" />
                   <input
                     value={novaEntrega}
                     onChange={(e) => setNovaEntrega(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), adicionarEntrega())}
                     placeholder="Adicionar entrega…"
                     aria-label="Adicionar entrega"
-                    className="h-10 flex-1 border-0 bg-transparent text-[13.5px] text-ink outline-none placeholder:text-ink3"
+                    className="h-10 flex-1 border-0 bg-transparent text-[13.5px] text-ink outline-none placeholder:text-ink-muted"
                   />
                 </div>
               </div>
@@ -106,7 +109,7 @@ export function AbaDetalhes({ projeto }: { projeto: Projeto }) {
         ) : (
           <div>
             <Titulo>Sobre o processo</Titulo>
-            <p className="text-sm leading-relaxed text-ink2">{projeto.description || "Sem descrição. Adicione uma em Editar."}</p>
+            <p className="text-sm leading-relaxed text-ink-muted">{projeto.description || "Sem descrição. Adicione uma em Editar."}</p>
             {d?.linkAutos && (
               <a href={d.linkAutos} target="_blank" rel="noreferrer noopener" className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-medium text-primary">
                 <ArrowSquareOutIcon size={14} />
@@ -117,11 +120,11 @@ export function AbaDetalhes({ projeto }: { projeto: Projeto }) {
         )}
       </div>
 
-      <div className="min-w-[240px] flex-[0_1_280px] rounded-[14px] border border-line bg-surface px-4 py-1.5">
+      <div className="min-w-[240px] flex-[0_1_280px] rounded-[14px] border border-line bg-surface-raised px-4 py-1.5">
         {fatos.map((f) => (
           <div key={f.k} className="flex justify-between gap-3 border-b border-line py-3 text-[13px]">
-            <span className="text-ink2">{f.k}</span>
-            <span className="text-right font-semibold">{f.v}</span>
+            <span className="text-ink-muted">{f.k}</span>
+            <span className={classes("text-right font-semibold", DADOS.has(f.k) && "dado font-medium")}>{f.v}</span>
           </div>
         ))}
         <div className="pb-3 pt-3.5">

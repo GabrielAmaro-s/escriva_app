@@ -45,7 +45,7 @@ const INTIMACAO = {
 
 beforeEach(() => {
   repo = criarRepositorioLocal({ dados: criarDadosDeExemplo(new Date(2026, 10, 4, 12)) });
-  ctx = { repo, fuso: "America/Sao_Paulo", urlApp: "https://myplan.teste", limiteItens: 10, agora: () => AGORA };
+  ctx = { repo, fuso: "America/Sao_Paulo", urlApp: "https://tempestivo.teste", limiteItens: 10, agora: () => AGORA };
 });
 
 describe("catálogo", () => {
@@ -81,7 +81,7 @@ describe("registrar_intimacao: prévia e confirmação", () => {
     });
     expect((r.corpo.prazo as { memoria: string }).memoria).toContain("Consciência Negra");
     expect(r.corpo.mensagem).toBe(
-      `Prazo de 15 dias úteis em Cobrança de aluguéis: vence 01/12/2026 (prazo interno 27/11/2026). ${AVISO_CONTAGEM_EM_VALIDACAO} Responda "sim" para confirmar.`,
+      `Prazo de 15 dias úteis em Cobrança de aluguéis: vence terça, 01/12 (prazo interno sexta, 27/11). ${AVISO_CONTAGEM_EM_VALIDACAO} Responda *sim* para registrar.`,
     );
     expect((await tarefasDe("Cobrança de aluguéis")).length).toBe(antes);
   });
@@ -92,7 +92,7 @@ describe("registrar_intimacao: prévia e confirmação", () => {
     // A pessoa respondeu "não": o agente não chama de novo. E um confirmado=true sem o prazo da prévia também não cria.
     const semEsperado = await chamar("registrar_intimacao", { ...INTIMACAO, confirmado: true });
     expect(semEsperado.corpo).toMatchObject({ precisa_confirmacao: true });
-    expect(semEsperado.corpo.mensagem).toMatch(/^Falta o prazo_fatal_esperado da prévia\. Nada foi criado\./);
+    expect(semEsperado.corpo.mensagem).toMatch(/^Falta o prazo_fatal_esperado da prévia\. Nada foi registrado\./);
     expect((await repo.obterEspacoDeTrabalho()).tarefas.length).toBe(antes);
     expect(await repo.listarLembretes()).toEqual([]);
   });
@@ -101,7 +101,7 @@ describe("registrar_intimacao: prévia e confirmação", () => {
     const r = await chamar("registrar_intimacao", { ...INTIMACAO, titulo: "Manifestação sobre a contestação", confirmado: true, prazo_fatal_esperado: "2026-12-01" });
     expect(r.erro).toBe(false);
     expect(r.corpo.mensagem).toBe(
-      `Registrei “Manifestação sobre a contestação” em Cobrança de aluguéis: vence 01/12/2026 (prazo interno 27/11/2026). 3 lembretes automáticos. ${AVISO_CONTAGEM_EM_VALIDACAO}`,
+      "Registrei “Manifestação sobre a contestação” em Cobrança de aluguéis: vence terça, 01/12 (prazo interno sexta, 27/11). Vou lembrar em 26/11, 30/11 e no dia.",
     );
     const tarefa = (await tarefasDe("Cobrança de aluguéis")).find((t) => t.title === "Manifestação sobre a contestação")!;
     expect(tarefa).toMatchObject({ tipo: "prazo", prazoFatal: "2026-12-01", dueOn: "2026-11-27", description: INTIMACAO.texto_original });
@@ -121,7 +121,7 @@ describe("registrar_intimacao: prévia e confirmação", () => {
     const antes = (await repo.obterEspacoDeTrabalho()).tarefas.length;
     const r = await chamar("registrar_intimacao", { ...INTIMACAO, confirmado: true, prazo_fatal_esperado: "2026-11-30" });
     expect(r.corpo).toMatchObject({ precisa_confirmacao: true, prazo: { prazo_fatal: "2026-12-01" } });
-    expect(r.corpo.mensagem).toMatch(/^O cálculo mudou desde a prévia \(ela dizia 30\/11\/2026\)\. Nada foi criado\./);
+    expect(r.corpo.mensagem).toMatch(/^O cálculo mudou desde a prévia, que dizia segunda, 30\/11\. Nada foi registrado\./);
     expect((await repo.obterEspacoDeTrabalho()).tarefas.length).toBe(antes);
   });
 
@@ -139,7 +139,7 @@ describe("registrar_intimacao: prévia e confirmação", () => {
   it("avisa quando parece repetido (mesmo processo, mesma disponibilização, mesma quantidade de dias)", async () => {
     await chamar("registrar_intimacao", { ...INTIMACAO, confirmado: true, prazo_fatal_esperado: "2026-12-01" });
     const r = await chamar("registrar_intimacao", INTIMACAO);
-    expect(r.corpo.mensagem).toContain("Atenção: parece repetido");
+    expect(r.corpo.mensagem).toContain("Parece repetido:");
     expect((r.corpo.repetido as unknown[]).length).toBe(1);
     const outro = await chamar("registrar_intimacao", { ...INTIMACAO, dias: 5 });
     expect(outro.corpo.repetido).toBeNull();
@@ -151,7 +151,7 @@ describe("registrar_intimacao: processo", () => {
     const antes = (await repo.obterEspacoDeTrabalho()).tarefas.length;
     const r = await chamar("registrar_intimacao", { ...INTIMACAO, processo: "Inventário dos Silva", confirmado: true, prazo_fatal_esperado: "2026-12-01" });
     expect(r.erro).toBe(true);
-    expect(r.corpo.erro).toBe('Não encontrei processo parecido com "Inventário dos Silva" na sua conta. Nada foi criado. Se ele ainda não está cadastrado, use criar_processo.');
+    expect(r.corpo.erro).toBe('Não achei processo parecido com "Inventário dos Silva" na sua conta. Nada foi registrado. Quer que eu cadastre o processo?');
     expect((await repo.obterEspacoDeTrabalho()).tarefas.length).toBe(antes);
     expect((await repo.listarRegistroAgente(1))[0]).toMatchObject({ ferramenta: "registrar_intimacao", sucesso: false });
   });
@@ -161,7 +161,7 @@ describe("registrar_intimacao: processo", () => {
     const r = await chamar("registrar_intimacao", { ...INTIMACAO, processo: "0009999-07.2026.8.21.0001" });
     expect(r.erro).toBe(true);
     expect(r.corpo.erro).toBe(
-      "Não encontrei nenhum processo com o número 0009999-07.2026.8.21.0001 na sua conta. Nada foi criado. Se ele ainda não está cadastrado, use criar_processo.",
+      "Não achei o processo 0009999-07.2026.8.21.0001 na sua conta. Nada foi registrado. Quer que eu cadastre o processo?",
     );
   });
 
@@ -181,7 +181,7 @@ describe("registrar_intimacao: processo", () => {
 
   it("caso consultivo não recebe intimação", async () => {
     const r = await chamar("registrar_intimacao", { ...INTIMACAO, processo: "Parecer sobre LGPD" });
-    expect(r.corpo.erro).toBe("Parecer sobre LGPD é um caso consultivo: intimação só vale para processo. Nada foi criado.");
+    expect(r.corpo.erro).toBe("Parecer sobre LGPD é um caso consultivo: intimação só vale para processo. Nada foi registrado.");
   });
 });
 
@@ -191,7 +191,7 @@ describe("registrar_intimacao: regra pela área", () => {
     const r = await chamar("registrar_intimacao", { ...INTIMACAO, processo: "Cobrança de cheques" });
     expect(r.erro).toBe(false);
     expect(r.corpo).toMatchObject({ precisa_regra: true, pergunta: "Vara comum ou juizado?" });
-    expect(r.corpo.mensagem).toBe("Antes de calcular: Cobrança de cheques corre em vara comum ou em juizado? No recesso de fim de ano a contagem muda. Nada foi criado.");
+    expect(r.corpo.mensagem).toBe("Cobrança de cheques corre na vara comum ou no juizado? A contagem muda no recesso.");
     expect(r.corpo.prazo).toBeUndefined();
   });
 
@@ -209,7 +209,7 @@ describe("registrar_intimacao: regra pela área", () => {
 
   it("a exceção do recesso penal só vale para prazo penal", async () => {
     const r = await chamar("registrar_intimacao", { ...INTIMACAO, excecao_recesso_penal: true });
-    expect(r.corpo.erro).toBe("A exceção do recesso (art. 798-A do CPP) só vale para prazo penal. Nada foi criado.");
+    expect(r.corpo.erro).toBe("A exceção do recesso (art. 798-A do CPP) só vale para prazo penal. Nada foi registrado.");
   });
 
   it("prazo em dobro dobra a contagem", async () => {
@@ -257,7 +257,7 @@ describe("criar_processo", () => {
     await mudarProcesso("Cobrança de aluguéis", { numeroCnj: "00012344720268210001" });
     const antes = (await repo.listarClientes()).length;
     const r = await chamar("criar_processo", { nome: "Duplicado", numero_cnj: "0001234-47.2026.8.21.0001", cliente: "Cliente Novo" });
-    expect(r.corpo.erro).toBe("Já existe um processo com esse número. Nada foi criado.");
+    expect(r.corpo.erro).toBe("Já existe um processo com esse número. Nada foi registrado.");
     expect((await repo.listarClientes()).length).toBe(antes);
   });
 

@@ -44,21 +44,21 @@ export function TelaHoje() {
       {!carregando && numeros.length > 0 && (
         <div className="mt-6 flex flex-wrap gap-3">
           {numeros.map((n) => (
-            <div key={n.l} className="flex-[1_1_150px] rounded-xl border border-line bg-surface px-4 py-3.5">
-              <p className={classes("text-2xl font-bold tracking-[-0.02em]", n.alerta ? "text-s-amber" : "text-ink")}>{n.v}</p>
-              <p className="mt-0.5 text-[12.5px] text-ink2">{n.l}</p>
+            <div key={n.l} className="flex-[1_1_150px] rounded-xl border border-line bg-surface-raised px-4 py-3.5">
+              <p className={classes("text-2xl font-bold tracking-[-0.02em]", n.alerta ? "text-interno" : "text-ink")}>{n.v}</p>
+              <p className="mt-0.5 text-[12.5px] text-ink-muted">{n.l}</p>
             </div>
           ))}
         </div>
       )}
-      <p className="mb-2.5 mt-7 text-xs font-semibold text-ink3">Próximos lembretes</p>
+      <p className="mb-2.5 mt-7 text-xs font-semibold text-ink-muted">Próximos lembretes</p>
       <ListaLembretes lembretes={lembretes.ativos.slice(0, 5)} projetos={projetosPorId} aoAbrirTarefa={setTarefaAberta} carregando={lembretes.carregando} />
-      <p className="mb-2.5 mt-7 text-xs font-semibold text-ink3">Próximos prazos</p>
+      <p className="mb-2.5 mt-7 text-xs font-semibold text-ink-muted">Próximos prazos</p>
       <ListaTarefas tarefas={proximas} projetos={projetosPorId} aoAbrir={setTarefaAberta} aoAlternar={api.alternarConclusao} carregando={carregando} />
       {documentos.length > 0 && (
         <>
-          <p className="mb-2.5 mt-7 text-xs font-semibold text-ink3">Documentos pendentes do cliente · {documentos.length}</p>
-          <ul className="flex flex-col overflow-hidden rounded-[14px] border border-line bg-surface">
+          <p className="mb-2.5 mt-7 text-xs font-semibold text-ink-muted">Documentos pendentes do cliente · {documentos.length}</p>
+          <ul className="flex flex-col overflow-hidden rounded-[14px] border border-line bg-surface-raised">
             {documentos.map((d) => {
               const projeto = projetosPorId.get(d.projectId);
               const cliente = projeto?.clienteId ? clientes.find((c) => c.id === projeto.clienteId) : undefined;
@@ -71,7 +71,7 @@ export function TelaHoje() {
                   >
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-[13.5px] font-medium">{d.texto}</span>
-                      <span className="mt-0.5 block truncate text-xs text-ink3">
+                      <span className="mt-0.5 block truncate text-xs text-ink-muted">
                         {[cliente?.nome, projeto?.name].filter(Boolean).join(" · ")}
                       </span>
                     </span>

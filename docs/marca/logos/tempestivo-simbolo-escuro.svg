@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <title>Tempestivo, símbolo para fundo escuro</title>
+  <rect width="64" height="64" rx="14" fill="#5FB3B3"/>
+  <path d="M26 14h8v28a4 4 0 0 0 4 4h6v8h-8a10 10 0 0 1-10-10Z" fill="#0E1514"/>
+  <rect x="16" y="22" width="26" height="8" rx="2" fill="#0E1514"/>
+  <circle cx="49" cy="26" r="5" fill="#F2C94C"/>
+</svg>

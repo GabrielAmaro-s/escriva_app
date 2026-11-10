@@ -1,0 +1,22 @@
+<!-- @dsCard group="Interface" height=96 subtitle="Os quatro estados de um prazo" -->
+<!doctype html>
+<html lang="pt-BR">
+<head><meta charset="utf-8"><title>SeloPrazo</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;600&display=swap">
+<style>
+  body{margin:0;background:var(--surface);font-family:var(--font-sans);}
+  .row{display:flex;flex-wrap:wrap;gap:var(--space-2);padding:var(--space-6);align-items:center;}
+  .selo{display:inline-flex;align-items:center;gap:var(--space-1);padding:var(--space-1) var(--space-2);border-radius:var(--radius-sm);font-size:12px;line-height:16px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;}
+  .selo b{font-family:var(--font-mono);font-weight:500;letter-spacing:0;text-transform:none;}
+  .fatal{color:var(--fatal);background:var(--fatal-soft);}
+  .interno{color:var(--interno);background:var(--interno-soft);}
+  .ok{color:var(--no-prazo);background:var(--no-prazo-soft);}
+</style></head>
+<body>
+<div class="row">
+  <span class="selo fatal">Fatal vencido</span>
+  <span class="selo fatal">Vence hoje</span>
+  <span class="selo interno">Interno vencido <b>2 dias</b></span>
+  <span class="selo ok">No prazo <b>5 dias</b></span>
+</div>
+</body></html>

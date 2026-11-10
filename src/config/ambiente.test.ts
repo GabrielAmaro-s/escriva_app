@@ -34,15 +34,24 @@ describe("ambiente", () => {
     expect(() => outro.obterAmbienteServidor()).toThrow(/fuso IANA/);
   });
 
+  it("fuso: TEMPESTIVO_FUSO_HORARIO tem prioridade e MYPLAN_FUSO_HORARIO continua aceito", async () => {
+    const novo = await carregar({ ...SUPABASE, NODE_ENV: "development", TEMPESTIVO_FUSO_HORARIO: "America/Manaus", MYPLAN_FUSO_HORARIO: "America/Recife" });
+    expect(novo.obterAmbienteServidor().fusoHorario).toBe("America/Manaus");
+    const antigo = await carregar({ ...SUPABASE, NODE_ENV: "development", TEMPESTIVO_FUSO_HORARIO: "", MYPLAN_FUSO_HORARIO: "America/Recife" });
+    expect(antigo.obterAmbienteServidor().fusoHorario).toBe("America/Recife");
+    const invalido = await carregar({ ...SUPABASE, NODE_ENV: "development", TEMPESTIVO_FUSO_HORARIO: "Lua/Base" });
+    expect(() => invalido.obterAmbienteServidor()).toThrow(/TEMPESTIVO_FUSO_HORARIO \(ou MYPLAN_FUSO_HORARIO\)/);
+  });
+
   it("em desenvolvimento, com tudo certo, lê os valores e os padrões", async () => {
     const { ambientePublico, obterAmbienteServidor } = await carregar({
       ...SUPABASE,
       NODE_ENV: "development",
-      NEXT_PUBLIC_APP_URL: "https://myplan.exemplo.com/",
+      NEXT_PUBLIC_APP_URL: "https://tempestivo.exemplo.com/",
       MCP_SEGREDO_TOKENS: "x".repeat(40),
       MCP_VALIDADE_TOKEN_DIAS: "30",
     });
-    expect(ambientePublico).toMatchObject({ modoLocal: false, urlApp: "https://myplan.exemplo.com" });
+    expect(ambientePublico).toMatchObject({ modoLocal: false, urlApp: "https://tempestivo.exemplo.com" });
     expect(obterAmbienteServidor()).toMatchObject({ validadeTokenDias: 30, limiteItensPorPedido: 10, alertaSemHeartbeatMin: 60 });
   });
 });

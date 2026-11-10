@@ -30,4 +30,6 @@ export const definir = <E extends z.ZodObject>(f: Ferramenta<E>) => f as unknown
 
 export const data = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { error: "Use a data no formato AAAA-MM-DD." });
 export const confirmado = z.boolean().default(false).describe("false (padrão) só mostra a prévia. Use true depois que a pessoa disser sim.");
-export const PEDIR_SIM = 'Responda "sim" para confirmar.';
+/** Confirmação no WhatsApp: o *sim* entre asteriscos aparece em negrito (manual da marca, Voz e tom). */
+export const PEDIR_SIM = "Responda *sim* para confirmar.";
+export const PEDIR_SIM_REGISTRAR = "Responda *sim* para registrar.";

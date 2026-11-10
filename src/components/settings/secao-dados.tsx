@@ -34,7 +34,7 @@ export function SecaoDados() {
       const url = URL.createObjectURL(new Blob([JSON.stringify(dados, null, 2)], { type: "application/json" }));
       const link = document.createElement("a");
       link.href = url;
-      link.download = `myplan-${hojeIso()}.json`;
+      link.download = `tempestivo-${hojeIso()}.json`;
       link.click();
       URL.revokeObjectURL(url);
       avisar({ texto: "Arquivo exportado", tom: "info" });
@@ -65,8 +65,8 @@ export function SecaoDados() {
 
   return (
     <>
-      <p className="mb-2.5 mt-7 text-xs font-semibold text-ink3">Dados</p>
-      <div className="rounded-[14px] border border-line bg-surface px-[18px]">
+      <p className="mb-2.5 mt-7 text-xs font-semibold text-ink-muted">Dados</p>
+      <div className="rounded-[14px] border border-line bg-surface-raised px-[18px]">
         <LinhaConfiguracao titulo="Exportar dados" dica="Baixa um arquivo JSON com clientes, processos, casos consultivos, colunas, tarefas e etiquetas.">
           <Botao tamanho="sm" onClick={exportar} disabled={exportando}>
             <DownloadSimpleIcon size={15} />

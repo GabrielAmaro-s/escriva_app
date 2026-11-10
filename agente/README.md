@@ -1,11 +1,11 @@
-# Agente pessoal do myPlan (nanobot no WhatsApp)
+# Agente do Tempestivo (nanobot no WhatsApp)
 
-O [nanobot](https://github.com/HKUDS/nanobot) roda numa VPS, conversa pelo WhatsApp e usa o servidor MCP do myPlan (`/api/mcp`) para registrar intimações, cadastrar processos, consultar prazos e audiências, criar tarefas e lembretes e mandar os resumos.
+O [nanobot](https://github.com/HKUDS/nanobot) roda numa VPS, conversa pelo WhatsApp e usa o servidor MCP do Tempestivo (`/api/mcp`) para registrar intimações, cadastrar processos, consultar prazos e audiências, criar tarefas e lembretes e mandar os resumos.
 
 Para o piloto com vários advogados, cada um tem a própria instância na mesma VPS: veja [Piloto: uma instância por advogado](#piloto-uma-instância-por-advogado).
 
 ```
-WhatsApp ── nanobot gateway (VPS) ── HTTPS + token ──> myPlan /api/mcp ──> Supabase
+WhatsApp ── nanobot gateway (VPS) ── HTTPS + token ──> Tempestivo /api/mcp ──> Supabase
                  │
                  ├─ heartbeat a cada 15 min: lembretes_proximos -> agenda os envios (cron)
                  └─ cron: resumo do dia (8h: prazos de hoje, atrasados, audiências) e da semana (segunda, 8h: prazos fatais)
@@ -27,11 +27,11 @@ WhatsApp ── nanobot gateway (VPS) ── HTTPS + token ──> myPlan /api/m
 
 ## Antes de começar
 
-1. O myPlan precisa estar com Supabase e publicado num endereço que a VPS alcance:
+1. O Tempestivo precisa estar com Supabase e publicado num endereço que a VPS alcance:
    - um domínio público com HTTPS (ex.: Vercel), ou
    - uma máquina na sua rede Tailscale (ex.: `http://meu-pc:3000`).
-   Em ambos os casos, `NEXT_PUBLIC_APP_URL` no myPlan deve ser esse endereço: é ele que vai nos links que o agente manda.
-2. No myPlan, abra **Configurações > Agente > Gerar token**, dê o nome "nanobot da VPS", escolha **Escrita** e copie o token (ele só aparece uma vez).
+   Em ambos os casos, `NEXT_PUBLIC_APP_URL` no Tempestivo deve ser esse endereço: é ele que vai nos links que o agente manda.
+2. No Tempestivo, abra **Configurações > Agente > Gerar token**, dê o nome "nanobot da VPS", escolha **Escrita** e copie o token (ele só aparece uma vez).
 3. Tenha uma chave de um provedor de LLM compatível com a API da OpenAI (URL base, chave e nome do modelo).
 
 ## Passo a passo na VPS (Ubuntu 24.04)
@@ -58,7 +58,7 @@ sudo ufw enable
 sudo ufw status verbose
 ```
 
-Antes de fechar a sessão atual, teste entrar por outro terminal com `ssh seu-usuario@<ip-tailscale>` (ou `tailscale ssh`). Se o provedor da VPS tiver firewall no painel, deixe a entrada fechada lá também. O nanobot só faz conexões de saída (WhatsApp, LLM e myPlan); o gateway escuta apenas em `127.0.0.1`.
+Antes de fechar a sessão atual, teste entrar por outro terminal com `ssh seu-usuario@<ip-tailscale>` (ou `tailscale ssh`). Se o provedor da VPS tiver firewall no painel, deixe a entrada fechada lá também. O nanobot só faz conexões de saída (WhatsApp, LLM e Tempestivo); o gateway escuta apenas em `127.0.0.1`.
 
 ### 2. Usuário do agente e instalação do nanobot
 
@@ -75,7 +75,7 @@ nanobot plugins enable whatsapp
 
 ### 3. Configuração
 
-Copie a pasta `agente/nanobot` do repositório para a VPS (por `git clone` ou `scp` pelo Tailscale). Ainda como `nanobot`:
+Copie a pasta `agente/nanobot` do repositório para a VPS, por `git clone git@github.com:GabrielAmaro-s/tempestivoapp.git` ou `scp` pelo Tailscale. Ainda como `nanobot`:
 
 ```bash
 mkdir -p ~/.nanobot/workspace
@@ -91,8 +91,8 @@ O que vai em cada variável:
 
 | Variável | Exemplo |
 |---|---|
-| `MYPLAN_MCP_URL` | `https://myplan.seudominio.com/api/mcp` |
-| `MYPLAN_MCP_TOKEN` | o token `myplan_...` gerado no app |
+| `TEMPESTIVO_MCP_URL` | `https://tempestivo.seudominio.com/api/mcp` (hoje `https://myplan-ashy.vercel.app/api/mcp`) |
+| `TEMPESTIVO_MCP_TOKEN` | o token `tempestivo_...` gerado no app (tokens antigos `myplan_...` continuam valendo) |
 | `LLM_API_KEY`, `LLM_API_BASE` | chave e URL base do provedor (compatível com OpenAI) |
 | `LLM_MODELO` | nome do modelo nesse provedor |
 | `WHATSAPP_PERMITIDO` | seu número só com dígitos, com DDI e DDD, sem `+` (ex.: `5511999998888`) |
@@ -104,6 +104,8 @@ set -a; source ~/.nanobot/.env; set +a
 ```
 
 ### 4. Vincular o WhatsApp (QR code)
+
+No WhatsApp do número do agente, use **Tempestivo** como nome do perfil e o símbolo `docs/marca/logos/tempestivo-simbolo.svg` como foto (o WhatsApp pede PNG ou JPG: exporte o SVG em 640x640). É assim que o advogado reconhece o contato, como manda o manual da marca.
 
 Use um número de WhatsApp para o agente (o ideal é um chip só para isso). Ainda como `nanobot`, com as variáveis carregadas:
 
@@ -153,7 +155,7 @@ O serviço roda como `nanobot`, reinicia sozinho se cair (`Restart=always`) e so
 
 > Alternativa da documentação do nanobot: `nanobot gateway install-service --manager systemd` cria um serviço de usuário em `~/.config/systemd/user/`; nesse caso rode `loginctl enable-linger nanobot` para ele continuar depois do logout. Use um ou outro, não os dois.
 
-### 7. Conferir no myPlan
+### 7. Conferir no Tempestivo
 
 Em **Configurações > Agente**:
 
@@ -171,7 +173,7 @@ Para o piloto com 2 ou 3 advogados, cada um tem um nanobot próprio na mesma VPS
 |---|---|
 | Usuário Linux `nanobot-<apelido>` | A documentação do nanobot avisa que pastas separadas não isolam uma instância da outra. Para pessoas diferentes, ela recomenda contas do sistema separadas. Cada usuário só enxerga a própria casa. |
 | `~/.nanobot` (config, workspace, sessões, sessão do WhatsApp) | Cada um tem o próprio `SOUL.md`, `USER.md`, `HEARTBEAT.md`, histórico de conversa e crons. |
-| Conta no myPlan e token do MCP | Cada advogado entra no myPlan com o próprio e-mail e gera o próprio token. O token só enxerga os dados daquela conta. |
+| Conta no Tempestivo e token do MCP | Cada advogado entra no Tempestivo com o próprio e-mail e gera o próprio token. O token só enxerga os dados daquela conta. |
 | Número permitido (`WHATSAPP_PERMITIDO`) | O WhatsApp do advogado. A instância ignora qualquer outro número. |
 | Número do agente (o chip vinculado pelo QR) | Cada instância precisa de um WhatsApp próprio. Um mesmo número não pode estar vinculado a duas instâncias. |
 | `gateway.port` no `config.json` | O gateway abre uma porta local de saúde (padrão `18790`, em `127.0.0.1`). Duas instâncias na mesma porta não sobem. Use `18790`, `18791`, `18792`... |
@@ -179,7 +181,7 @@ Para o piloto com 2 ou 3 advogados, cada um tem um nanobot próprio na mesma VPS
 
 ### Provedor de LLM e sigilo
 
-O nanobot manda para o provedor de LLM tudo o que passa pela conversa: as mensagens do advogado, **o texto das intimações coladas ou encaminhadas**, os resumos e as respostas das ferramentas do myPlan (nomes de processos, números, prazos e, fora dos processos em segredo de justiça, partes e clientes). Por isso:
+O nanobot manda para o provedor de LLM tudo o que passa pela conversa: as mensagens do advogado, **o texto das intimações coladas ou encaminhadas**, os resumos e as respostas das ferramentas do Tempestivo (nomes de processos, números, prazos e, fora dos processos em segredo de justiça, partes e clientes). Por isso:
 
 - **Use um provedor com termos de não retenção de dados** (às vezes chamado de "zero data retention"): os dados não ficam guardados depois da resposta e não são usados para treinar modelos. Confira isso no contrato ou nos termos do plano contratado, não só na página de marketing. Em vários provedores, a não retenção depende de pedir ou de ativar na conta.
 - **Conte isso aos advogados do piloto antes de começar:** o texto das intimações passa pelo provedor de LLM escolhido, além do WhatsApp. Quem preferir pode usar só o app, sem o agente.
@@ -191,7 +193,7 @@ O canal WebSocket/WebUI do nanobot fica desligado no nosso `config.json`. Se alg
 
 Use um apelido curto, só com letras minúsculas (ex.: `ana`). Os comandos abaixo usam `ana`. Troque pelo apelido de cada um.
 
-1. **No myPlan:**
+1. **No Tempestivo:**
    - o advogado entra pelo link mágico com o próprio e-mail;
    - em **Configurações > Agente > Gerar token**, ele gera um token de **Escrita** chamado "nanobot do piloto" e passa o token por um canal seguro.
 2. **Usuário e nanobot** (com o usuário administrador):
@@ -219,7 +221,7 @@ Use um apelido curto, só com letras minúsculas (ex.: `ana`). Os comandos abaix
    nano ~/.nanobot/workspace/USER.md    # nome, áreas e tribunais deste advogado
    ```
 
-   Copie o repositório para um lugar que todos os usuários leem (ex.: `/opt/myplan-agente`), ou use `scp` para cada casa.
+   Copie o repositório para um lugar que todos os usuários leem (ex.: `/opt/tempestivo-agente`), ou use `scp` para cada casa.
 4. **WhatsApp:** com o celular do número do agente desta instância, rode `set -a; source ~/.nanobot/.env; set +a`, depois `nanobot channels login whatsapp` e leia o QR. Confira com `nanobot channels status`.
 5. **Serviço** (volte ao administrador com `exit`). O modelo é instalado uma vez só, e cada instância é ativada pelo apelido:
 
@@ -239,10 +241,10 @@ Faça estas conferências para cada instância, além das [verificações de seg
 
 - **Instâncias de pé:** `systemctl list-units 'nanobot-gateway@*'` lista todas, ativas. Cada uma responde na sua porta: `curl -s http://127.0.0.1:18790/health`, `curl -s http://127.0.0.1:18791/health`...
 - **Uma não enxerga a outra:** como administrador, `sudo ls /proc/$(systemctl show -p MainPID --value nanobot-gateway@ana)/root/home` deve mostrar só `nanobot-ana`. E `sudo -u nanobot-ana ls /home/nanobot-bia` deve dar "Permissão negada".
-- **Dados separados:** o advogado A pergunta "quais prazos tenho?" e só recebe os dele. No myPlan de B, em Configurações > Agente > Atividade, não aparece nada da conversa de A.
+- **Dados separados:** o advogado A pergunta "quais prazos tenho?" e só recebe os dele. No Tempestivo de B, em Configurações > Agente > Atividade, não aparece nada da conversa de A.
 - **Número certo:** mande uma mensagem do WhatsApp de B para o agente de A. Ela deve ser ignorada.
 
-Para parar só uma instância: `sudo systemctl stop nanobot-gateway@ana`. Para tirá-la do piloto: `sudo systemctl disable --now nanobot-gateway@ana` e revogue o token dela no myPlan.
+Para parar só uma instância: `sudo systemctl stop nanobot-gateway@ana`. Para tirá-la do piloto: `sudo systemctl disable --now nanobot-gateway@ana` e revogue o token dela no Tempestivo.
 
 > Conferido na documentação do nanobot em 10/11/2026 (`docs/multiple-instances.md`, `docs/cli-reference.md`, `docs/deployment.md` e `nanobot/config/schema.py`): `gateway.host` e `gateway.port` (padrão `127.0.0.1:18790`), a necessidade de portas diferentes entre instâncias, a recomendação de contas do sistema separadas e o fim da ponte Node do WhatsApp. **Não confirmado:** o caminho padrão da sessão do WhatsApp quando `channels.whatsapp.databasePath` não está definido. Com um usuário Linux por instância, cada sessão fica na casa do próprio usuário de qualquer forma.
 
@@ -252,7 +254,7 @@ Faça estas três conferências antes de usar o agente no dia a dia:
 
 1. **Sem terminal.** Mande pelo WhatsApp: *"rode ls /"*. O agente precisa responder que não tem ferramenta de terminal (ou equivalente), sem listar pastas. **Se ele executar o comando**, pare o serviço na hora (`sudo systemctl stop nanobot-gateway`). Corrija `tools.exec` no `~/.nanobot/config.json` (deve estar `"exec": { "enable": false }`; confira na documentação do nanobot se o nome da chave mudou) e só religue quando o teste passar.
 2. **Só o seu número.** Mande uma mensagem de **outro número** para o agente. Ele deve ignorar: nenhuma resposta e nenhuma linha nova em Configurações > Agente > Atividade. Se responder, confira `WHATSAPP_PERMITIDO` e `channels.whatsapp.allowFrom`.
-3. **Token e registro.** No myPlan, em **Configurações > Agente**, confira que o token usado pelo nanobot aparece como **Escrita**, com "Último uso" recente, e que a **Atividade do agente** registra as chamadas feitas nos testes (ex.: "Conferiu os lembretes").
+3. **Token e registro.** No Tempestivo, em **Configurações > Agente**, confira que o token usado pelo nanobot aparece como **Escrita**, com "Último uso" recente, e que a **Atividade do agente** registra as chamadas feitas nos testes (ex.: "Conferiu os lembretes").
 
 ## Pedidos de teste
 
@@ -269,9 +271,9 @@ Faça estas três conferências antes de usar o agente no dia a dia:
 
 ## Problemas comuns
 
-- **401 do myPlan**: token errado, revogado ou expirado (90 dias por padrão). Gere outro e atualize `MYPLAN_MCP_TOKEN`.
-- **O agente não enxerga as ferramentas**: confira `MYPLAN_MCP_URL` com `curl -i -X POST $MYPLAN_MCP_URL`. Sem token, deve responder 401; isso prova que a rota está no ar.
-- **myPlan pelo Tailscale**: se o nanobot bloquear o endereço `100.x` por proteção contra SSRF, acrescente `"ssrfWhitelist": ["100.64.0.0/10"]` dentro de `tools` no `config.json`.
+- **401 do Tempestivo**: token errado, revogado ou expirado (90 dias por padrão). Gere outro e atualize `TEMPESTIVO_MCP_TOKEN`.
+- **O agente não enxerga as ferramentas**: confira `TEMPESTIVO_MCP_URL` com `curl -i -X POST $TEMPESTIVO_MCP_URL`. Sem token, deve responder 401; isso prova que a rota está no ar.
+- **Tempestivo pelo Tailscale**: se o nanobot bloquear o endereço `100.x` por proteção contra SSRF, acrescente `"ssrfWhitelist": ["100.64.0.0/10"]` dentro de `tools` no `config.json`.
 - **Ele responde a outras pessoas**: confira `WHATSAPP_PERMITIDO`. Só esse número é atendido.
 
 ## Chaves conferidas na documentação do nanobot

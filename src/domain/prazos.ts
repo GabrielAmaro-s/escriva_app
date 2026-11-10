@@ -1,4 +1,4 @@
-import { dataNoFuso, interpretarDataHora, partesNoFuso, somarDias } from "./datas";
+import { dataNoFuso, diaDaSemana, interpretarDataHora, partesNoFuso, somarDias } from "./datas";
 import type {
   AlteracaoTarefa,
   AreaProcesso,
@@ -30,6 +30,42 @@ import type {
 
 /** Aviso mostrado junto de todo cálculo. Para tirar de todas as telas, troque por null. */
 export const AVISO_CONTAGEM_EM_VALIDACAO: string | null = "Contagem em validação. Confira o vencimento antes de usar.";
+
+// Situação de um prazo (tela e agente) -------------------------------------------------
+
+export type SituacaoPrazo = "fatal_vencido" | "vence_hoje" | "interno_vencido" | "interno_hoje" | "no_prazo";
+
+/** Cor do estado no manual da marca: fatal, interno ou no-prazo. A palavra vai sempre junto. */
+export type CorDoEstado = "fatal" | "interno" | "no-prazo";
+
+export function situacaoDoPrazo(t: { prazoFatal: string | null; dueOn: string | null }, hoje: string): SituacaoPrazo {
+  if (t.prazoFatal && t.prazoFatal < hoje) return "fatal_vencido";
+  if (t.prazoFatal === hoje) return "vence_hoje";
+  if (t.dueOn && t.dueOn < hoje) return "interno_vencido";
+  if (t.dueOn === hoje) return "interno_hoje";
+  return "no_prazo";
+}
+
+/** Selo do prazo: palavra, cor e, quando faz sentido, os dias até o fatal ("5 dias"). */
+export function seloDoPrazo(t: { prazoFatal: string | null; dueOn: string | null; completed: boolean }, hoje: string): { rotulo: string; cor: CorDoEstado; dias: string | null } {
+  if (t.completed) return { rotulo: "Cumprido", cor: "no-prazo", dias: null };
+  const s = situacaoDoPrazo(t, hoje);
+  const faltam = t.prazoFatal ? diasEntreDatas(hoje, t.prazoFatal) : null;
+  const dias = faltam !== null && faltam > 0 ? `${faltam} ${faltam === 1 ? "dia" : "dias"}` : null;
+  if (s === "fatal_vencido") return { rotulo: "Fatal vencido", cor: "fatal", dias: null };
+  if (s === "vence_hoje") return { rotulo: "Vence hoje", cor: "fatal", dias: null };
+  if (s === "interno_vencido") return { rotulo: "Interno vencido", cor: "interno", dias };
+  return { rotulo: "No prazo", cor: "no-prazo", dias };
+}
+
+/** Dias corridos entre duas datas AAAA-MM-DD (b - a). */
+export function diasEntreDatas(a: string, b: string): number {
+  const utc = (d: string) => {
+    const [ano, mes, dia] = d.split("-").map(Number);
+    return Date.UTC(ano, mes - 1, dia);
+  };
+  return Math.round((utc(b) - utc(a)) / 86_400_000);
+}
 
 export const MARGEM_PADRAO = 2;
 export const MENSAGEM_FERIADO_DUPLICADO = "Você já cadastrou um feriado nessa data.";
@@ -568,11 +604,12 @@ export function lembretesDesejados(
 
   if (tarefa.tipo === "prazo" && tarefa.prazoFatal) {
     const datas = datasDosLembretes(tarefa.prazoFatal, calendario);
-    const vence = formatarDataCurta(tarefa.prazoFatal);
+    const vence = `${diaDaSemana(tarefa.prazoFatal)}, ${formatarDataCurta(tarefa.prazoFatal)}`;
     lista = [
-      { automatico: "d-3", quando: as9(datas["d-3"]), texto: `Prazo fatal em ${vence}: ${titulo}` },
-      { automatico: "d-1", quando: as9(datas["d-1"]), texto: `Prazo fatal em ${vence}: ${titulo}` },
-      { automatico: "dia", quando: as9(datas.dia), texto: `Prazo fatal hoje: ${titulo}` },
+      // Voz e tom do manual: o que importa primeiro, com o dia da semana; sem alarme nem emoji.
+      { automatico: "d-3", quando: as9(datas["d-3"]), texto: `Prazo fatal na ${vence}: ${titulo}` },
+      { automatico: "d-1", quando: as9(datas["d-1"]), texto: `Prazo fatal na ${vence}: ${titulo}` },
+      { automatico: "dia", quando: as9(datas.dia), texto: `Vence hoje o prazo fatal: ${titulo}` },
     ];
   }
 
@@ -584,8 +621,8 @@ export function lembretesDesejados(
     const hora = `${String(p.hora).padStart(2, "0")}:${String(p.minuto).padStart(2, "0")}`;
     const onde = tarefa.localAudiencia ? ` (${encurtar(tarefa.localAudiencia, 120)})` : "";
     lista = [
-      { automatico: "d-3", quando: as9(datas["d-3"]), texto: `Audiência em ${formatarDataCurta(dia)} às ${hora}: ${titulo}${onde}` },
-      { automatico: "d-1", quando: as9(datas["d-1"]), texto: `Audiência em ${formatarDataCurta(dia)} às ${hora}: ${titulo}${onde}` },
+      { automatico: "d-3", quando: as9(datas["d-3"]), texto: `Audiência na ${diaDaSemana(dia)}, ${formatarDataCurta(dia)}, às ${hora}: ${titulo}${onde}` },
+      { automatico: "d-1", quando: as9(datas["d-1"]), texto: `Audiência na ${diaDaSemana(dia)}, ${formatarDataCurta(dia)}, às ${hora}: ${titulo}${onde}` },
       {
         automatico: "dia",
         quando: new Date(instante.getTime() - HORAS_ANTES_DA_AUDIENCIA * 3_600_000).toISOString(),

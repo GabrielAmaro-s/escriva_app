@@ -24,7 +24,7 @@ describe("tokens do agente", () => {
     const { repo, hashes } = cenario();
     const { token, registro } = await gerarToken(repo, { nome: " nanobot ", escopo: "escrita" }, CONFIG, new Date("2026-11-04T00:00:00Z"));
     hashes.set(registro.id, calcularHashDoToken(token, CONFIG.segredo));
-    expect(token).toMatch(/^myplan_[A-Za-z0-9_-]{43}$/);
+    expect(token).toMatch(/^tempestivo_[A-Za-z0-9_-]{43}$/);
     expect(registro).toMatchObject({ nome: "nanobot", escopo: "escrita", expiraEm: "2027-02-02T00:00:00.000Z", revogadoEm: null });
     expect(JSON.stringify(await repo.listarTokensAgente())).not.toContain(token);
   });
@@ -50,6 +50,23 @@ describe("tokens do agente", () => {
     expect(await validarToken(`myplan_${"x".repeat(43)}`, { segredo: CONFIG.segredo, buscarPorHash })).toEqual({ ok: false, motivo: "desconhecido" });
     expect(await validarToken("Bearer abc", { segredo: CONFIG.segredo, buscarPorHash })).toEqual({ ok: false, motivo: "formato" });
     expect(await validarToken(token, { segredo: "o".repeat(48), buscarPorHash, agora: new Date("2026-11-04T01:00:00Z") })).toEqual({ ok: false, motivo: "desconhecido" });
+  });
+
+  it("token antigo com prefixo myplan_ continua valendo; o novo usa tempestivo_", async () => {
+    const { repo, buscarPorHash, hashes } = cenario();
+    const antigo = `myplan_${"A".repeat(43)}`;
+    const registro = await repo.criarTokenAgente({ nome: "token de antes da marca", escopo: "escrita", hash: calcularHashDoToken(antigo, CONFIG.segredo), expiraEm: "2027-12-31T00:00:00.000Z" });
+    hashes.set(registro.id, calcularHashDoToken(antigo, CONFIG.segredo));
+    const r = await validarToken(antigo, { segredo: CONFIG.segredo, buscarPorHash, agora: new Date("2026-11-10T00:00:00Z") });
+    expect(r.ok && r.token.nome).toBe("token de antes da marca");
+
+    const { token: novo, registro: reg2 } = await gerarToken(repo, { nome: "novo", escopo: "leitura" }, CONFIG);
+    hashes.set(reg2.id, calcularHashDoToken(novo, CONFIG.segredo));
+    expect(novo.startsWith("tempestivo_")).toBe(true);
+    expect((await validarToken(novo, { segredo: CONFIG.segredo, buscarPorHash })).ok).toBe(true);
+    // Prefixo desconhecido ou curto demais continua recusado.
+    expect(await validarToken(`outro_${"A".repeat(43)}`, { segredo: CONFIG.segredo, buscarPorHash })).toEqual({ ok: false, motivo: "formato" });
+    expect(await validarToken("tempestivo_curto", { segredo: CONFIG.segredo, buscarPorHash })).toEqual({ ok: false, motivo: "formato" });
   });
 
   it("exige nome", async () => {

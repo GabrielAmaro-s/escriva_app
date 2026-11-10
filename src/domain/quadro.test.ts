@@ -180,10 +180,10 @@ describe("datas", () => {
     expect(hojeIso(new Date(2026, 0, 5, 10))).toBe("2026-01-05");
   });
 
-  it("formatarData mostra Hoje ou dia e mês curto", () => {
+  it("formatarData mostra Hoje, dd/mm ou dd/mm/aaaa quando o ano muda", () => {
     expect(formatarData("2026-11-04", "2026-11-04")).toBe("Hoje");
-    expect(formatarData("2026-11-28", "2026-11-04")).toBe("28 de nov");
-    expect(formatarData("2027-01-01", "2026-11-04")).toBe("1 de jan");
+    expect(formatarData("2026-11-28", "2026-11-04")).toBe("28/11");
+    expect(formatarData("2027-01-01", "2026-11-04")).toBe("01/01/2027");
   });
 
   it("formatarPeriodo no mesmo ano não mostra o ano", () => {
@@ -201,11 +201,13 @@ describe("datas", () => {
     expect(formatarPeriodo("2025-11-01", null, "2026-11-04")).toBe("Desde 1 nov 2025");
   });
 
-  it("corDoPrazo: atrasada, hoje, futura e concluída", () => {
-    expect(corDoPrazo("2026-11-03", false, "2026-11-04")).toBe("var(--s-red)");
-    expect(corDoPrazo("2026-11-04", false, "2026-11-04")).toBe("var(--s-amber)");
-    expect(corDoPrazo("2026-11-05", false, "2026-11-04")).toBe("var(--ink3)");
-    expect(corDoPrazo("2026-11-01", true, "2026-11-04")).toBe("var(--ink3)");
+  it("corDoPrazo: atrasada, hoje, futura e concluída, com as cores da marca", () => {
+    expect(corDoPrazo("2026-11-03", false, "2026-11-04")).toBe("var(--fatal)");
+    expect(corDoPrazo("2026-11-04", false, "2026-11-04")).toBe("var(--interno)");
+    expect(corDoPrazo("2026-11-05", false, "2026-11-04")).toBe("var(--ink-muted)");
+    expect(corDoPrazo("2026-11-01", true, "2026-11-04")).toBe("var(--ink-muted)");
+    // Num prazo, a data é o prazo interno: vencido fica em interno, não em fatal.
+    expect(corDoPrazo("2026-11-03", false, "2026-11-04", { prazoInterno: true })).toBe("var(--interno)");
   });
 });
 

@@ -66,8 +66,8 @@ export function SecaoAgente() {
   if (!supabaseConfigurado) {
     return (
       <>
-        <p className="mb-2.5 mt-7 text-xs font-semibold text-ink3">Agente</p>
-        <p className="text-[12.5px] text-ink3">O agente pessoal precisa do Supabase: ele conversa com o servidor do myPlan, não com este navegador.</p>
+        <p className="mb-2.5 mt-7 text-xs font-semibold text-ink-muted">Agente</p>
+        <p className="text-[12.5px] text-ink-muted">O agente pessoal precisa do Supabase: ele conversa com o servidor do Tempestivo, não com este navegador.</p>
       </>
     );
   }
@@ -127,8 +127,8 @@ export function SecaoAgente() {
 
   return (
     <>
-      <p className="mb-2.5 mt-7 text-xs font-semibold text-ink3">Agente</p>
-      <div className="rounded-[14px] border border-line bg-surface px-[18px]">
+      <p className="mb-2.5 mt-7 text-xs font-semibold text-ink-muted">Agente</p>
+      <div className="rounded-[14px] border border-line bg-surface-raised px-[18px]">
         <LinhaConfiguracao
           titulo="Estado do agente"
           dica={situacao?.ultimoSinalEm ? `Último sinal: ${formatarDataHora(situacao.ultimoSinalEm)}.` : "O agente avisa que está vivo cada vez que confere os lembretes."}
@@ -140,7 +140,7 @@ export function SecaoAgente() {
 
         <div className="border-b border-line py-4 last:border-b-0">
           <p className="text-sm font-semibold">Gerar token</p>
-          <p className="mt-0.5 text-[12.5px] text-ink2">O agente usa o token para acessar seus processos. Leitura só consulta; escrita também cria e altera.</p>
+          <p className="mt-0.5 text-[12.5px] text-ink-muted">O agente usa o token para acessar seus processos. Leitura só consulta; escrita também cria e altera.</p>
           <form
             className="mt-3 flex flex-wrap items-center gap-2"
             onSubmit={(e) => {
@@ -164,7 +164,7 @@ export function SecaoAgente() {
             <div className="mt-3 rounded-[10px] border border-primary-line bg-primary-soft p-3">
               <p className="text-[12.5px] font-semibold text-ink">Copie agora: este token não aparece de novo.</p>
               <div className="mt-2 flex items-center gap-2">
-                <code className="min-w-0 flex-1 select-all break-all rounded-lg border border-line bg-surface px-2.5 py-2 font-mono text-xs text-ink">{tokenNovo}</code>
+                <code className="min-w-0 flex-1 select-all break-all rounded-lg border border-line bg-surface-raised px-2.5 py-2 font-mono text-xs text-ink">{tokenNovo}</code>
                 <Botao tamanho="sm" onClick={copiar}>
                   <CopyIcon size={15} />
                   Copiar
@@ -177,7 +177,7 @@ export function SecaoAgente() {
         <div className="py-4">
           <p className="text-sm font-semibold">Tokens</p>
           {tokens.length === 0 ? (
-            <p className="mt-0.5 text-[12.5px] text-ink2">Nenhum token ainda.</p>
+            <p className="mt-0.5 text-[12.5px] text-ink-muted">Nenhum token ainda.</p>
           ) : (
             <ul className="mt-2 flex flex-col">
               {tokens.map((t) => {
@@ -185,10 +185,10 @@ export function SecaoAgente() {
                 return (
                   <li key={t.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-line py-2.5 last:border-b-0">
                     <div className="min-w-0 flex-1">
-                      <p className={classes("text-[13.5px] font-medium", (t.revogadoEm || expirado) && "text-ink3")}>
-                        {t.nome} <span className="font-normal text-ink3">· {t.escopo === "leitura" ? "Leitura" : "Escrita"}</span>
+                      <p className={classes("text-[13.5px] font-medium", (t.revogadoEm || expirado) && "text-ink-muted")}>
+                        {t.nome} <span className="font-normal text-ink-muted">· {t.escopo === "leitura" ? "Leitura" : "Escrita"}</span>
                       </p>
-                      <p className="text-xs text-ink3">
+                      <p className="text-xs text-ink-muted">
                         {t.ultimoUsoEm ? `Último uso: ${formatarDataHora(t.ultimoUsoEm)}` : "Nunca usado"} · {expirado ? "Expirou" : `Expira em ${formatarDataHora(t.expiraEm)}`}
                       </p>
                     </div>
@@ -207,14 +207,14 @@ export function SecaoAgente() {
         </div>
       </div>
 
-      <p className="mb-2.5 mt-7 text-xs font-semibold text-ink3">Atividade do agente</p>
-      <ul className="flex flex-col overflow-hidden rounded-[14px] border border-line bg-surface">
+      <p className="mb-2.5 mt-7 text-xs font-semibold text-ink-muted">Atividade do agente</p>
+      <ul className="flex flex-col overflow-hidden rounded-[14px] border border-line bg-surface-raised">
         {registro.map((r) => (
           <li key={r.id} className="flex items-center gap-3 border-b border-line px-4 py-[11px] last:border-b-0">
-            <span className={classes("size-1.5 shrink-0 rounded-full", r.sucesso ? "bg-s-green" : "bg-s-red")} aria-label={r.sucesso ? "Deu certo" : "Falhou"} />
+            <span className={classes("size-1.5 shrink-0 rounded-full", r.sucesso ? "bg-no-prazo" : "bg-fatal")} aria-label={r.sucesso ? "Deu certo" : "Falhou"} />
             <div className="min-w-0 flex-1">
-              <p className={classes("truncate text-[13.5px] font-medium", r.desfeitoEm && "text-ink3 line-through")}>{NOME_DA_FERRAMENTA[r.ferramenta] ?? r.ferramenta}</p>
-              <p className="text-xs text-ink3">
+              <p className={classes("truncate text-[13.5px] font-medium", r.desfeitoEm && "text-ink-muted line-through")}>{NOME_DA_FERRAMENTA[r.ferramenta] ?? r.ferramenta}</p>
+              <p className="text-xs text-ink-muted">
                 {formatarDataHora(r.criadoEm)}
                 {r.sucesso ? "" : " · falhou"}
               </p>
@@ -225,10 +225,10 @@ export function SecaoAgente() {
                 Desfazer
               </Botao>
             )}
-            {r.desfeitoEm && <span className="text-xs text-ink3">Desfeito</span>}
+            {r.desfeitoEm && <span className="text-xs text-ink-muted">Desfeito</span>}
           </li>
         ))}
-        {registro.length === 0 && <li className="px-5 py-6 text-center text-[13px] text-ink2">O agente ainda não fez nada por aqui.</li>}
+        {registro.length === 0 && <li className="px-5 py-6 text-center text-[13px] text-ink-muted">O agente ainda não fez nada por aqui.</li>}
       </ul>
     </>
   );

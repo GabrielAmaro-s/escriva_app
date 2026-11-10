@@ -1,3 +1,4 @@
+import { dataNumerica } from "./datas";
 import type { AlteracaoTarefa, Coluna, PrioridadeTarefa, Tarefa, TipoColuna, TipoProjeto } from "./tipos";
 
 export type ModeloQuadro = "civel" | "trabalhista" | "previdenciario" | "familia" | "consultivo";
@@ -89,19 +90,20 @@ export const ROTULO_PRIORIDADE: Record<PrioridadeTarefa, string> = {
 export const PRIORIDADES: PrioridadeTarefa[] = ["low", "medium", "high", "urgent"];
 
 /** Cor da bandeira de prioridade (variável CSS). */
+/** Cores neutras: fatal, interno e no-prazo são só dos estados de prazo, sempre com palavra (manual da marca). */
 export const COR_PRIORIDADE: Record<PrioridadeTarefa, string> = {
-  low: "var(--ink3)",
-  medium: "var(--s-blue)",
-  high: "var(--s-amber)",
-  urgent: "var(--s-red)",
+  low: "var(--ink-muted)",
+  medium: "var(--ink-muted)",
+  high: "var(--primary)",
+  urgent: "var(--ink)",
 };
 
 /** Cor do marcador de cada coluna. */
 export const COR_MARCADOR_COLUNA: Record<TipoColuna, string> = {
-  todo: "var(--s-gray)",
-  doing: "var(--s-violet)",
-  waiting: "var(--s-amber)",
-  done: "var(--s-green)",
+  todo: "var(--ink-muted)",
+  doing: "var(--primary)",
+  waiting: "var(--interno)",
+  done: "var(--no-prazo)",
 };
 
 const INTERVALO = 1024;
@@ -181,11 +183,15 @@ export function documentosPendentes(tarefas: Pick<Tarefa, "id" | "projectId" | "
 }
 
 /** Cor da data de entrega: vermelho se atrasada, âmbar se é hoje. */
-export function corDoPrazo(prazo: string, concluida: boolean, hoje = hojeIso()): string {
-  if (concluida) return "var(--ink3)";
-  if (prazo < hoje) return "var(--s-red)";
-  if (prazo === hoje) return "var(--s-amber)";
-  return "var(--ink3)";
+/**
+ * Cor da data de uma tarefa. Num prazo, a data mostrada é o prazo interno: vencido fica em interno,
+ * porque fatal é só do prazo fatal (manual da marca).
+ */
+export function corDoPrazo(prazo: string, concluida: boolean, hoje = hojeIso(), opcoes: { prazoInterno?: boolean } = {}): string {
+  if (concluida) return "var(--ink-muted)";
+  if (prazo < hoje) return opcoes.prazoInterno ? "var(--interno)" : "var(--fatal)";
+  if (prazo === hoje) return "var(--interno)";
+  return "var(--ink-muted)";
 }
 
 const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
@@ -197,10 +203,10 @@ export function hojeIso(agora = new Date()): string {
 }
 
 /** "28 de nov", ou "Hoje". */
+/** "Hoje", "28/11" ou "01/01/2027" (manual da marca: dd/mm no mesmo ano, dd/mm/aaaa quando muda). */
 export function formatarData(iso: string, hoje = hojeIso()): string {
   if (iso === hoje) return "Hoje";
-  const [, m, d] = iso.split("-").map(Number);
-  return `${d} de ${MESES[m - 1]}`;
+  return dataNumerica(iso, hoje);
 }
 
 function dataCurta(iso: string): string {

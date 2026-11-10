@@ -1,8 +1,8 @@
-Versão jurídica do myPlan: advogado autônomo
+Tempestivo: proposta da versão jurídica para o advogado autônomo
 
-Proposta para adaptar o myPlan ao dia a dia do advogado que trabalha sozinho. Nome definitivo fica para depois; neste documento o produto é chamado de myPlan Jurídico (codinome provisório).
+Proposta para adaptar o myPlan, o gerenciador de projetos que deu origem ao produto, ao dia a dia do advogado que trabalha sozinho. O produto se chama **Tempestivo** ("tempestivo" é o ato praticado dentro do prazo); a marca está em docs/marca/.
 
-Base técnica: repositório GabrielAmaro-s/myPlan como está hoje (ver arquitetura-pauta.md).
+Base técnica: repositório GabrielAmaro-s/tempestivoapp (antes GabrielAmaro-s/myPlan); a arquitetura está em docs/ARQUITETURA.md.
 
 1. A ideia em uma frase
 
@@ -27,7 +27,7 @@ O sistema sugere, o advogado confirma. Nenhum prazo fatal é gravado sem confirm
 Simples de alimentar. Criar um processo deve levar menos de um minuto; o resto se completa com o uso.
 Sigilo desde o início. Dados de clientes tratados como sensíveis em todas as decisões.
 Na dúvida, o prazo vence antes. Um feriado ou uma suspensão a mais empurra o vencimento para depois do real e pode fazer o advogado perder o prazo. Por isso, o motor e as cargas de feriados só tiram um dia da contagem quando há base clara, e entre duas leituras possíveis da regra ficam com a que vence antes.
-4. O que se aproveita do myPlan
+4. O que se aproveita do myPlan (a base do Tempestivo)
 Hoje	Na versão jurídica
 Projeto (kind = project)	Processo, com dados em processo_detalhes (mesmo padrão de campaign_details)
 Campanha (kind = campaign)	Consultivo: contrato, parecer, notificação extrajudicial, inventário extrajudicial
@@ -198,7 +198,8 @@ Sigilo profissional e LGPD. Mensagens passam pelo WhatsApp e pelo provedor de LL
 Feriados desatualizados. Uma tabela errada gera prazo errado. Revisão anual e cadastro de feriado local pelo próprio advogado.
 Concorrência. Astrea, ADVBOX, Projuris, EasyJur e CPJ já oferecem gestão completa. O diferencial é ser leve e centrado no WhatsApp, não ter mais funções.
 12. Pendências
-Nome do produto.
+Nome do produto: definido, Tempestivo (marca em docs/marca/).
+Domínio: o app ainda responde em myplan-ashy.vercel.app. Trocar por um domínio do Tempestivo e, junto, atualizar NEXT_PUBLIC_APP_URL na Vercel, as Redirect URLs do Supabase e o TEMPESTIVO_MCP_URL das instâncias do agente.
 Validação com advogados autônomos (dores, preço, uso do WhatsApp para trabalho).
 Revisão das regras de prazo por alguém da área antes de qualquer uso real (casos em docs/validacao-prazos.md).
 Feriados forenses do TJRS além da Data Magna: carregar só depois de conferir o ato do tribunal (etapa 3 deixou só o 20/09).

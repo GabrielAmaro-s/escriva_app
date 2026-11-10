@@ -94,17 +94,32 @@ export function diaDaSemana(data: string): string {
   return DIAS_DA_SEMANA[new Date(Date.UTC(a, m - 1, d)).getUTCDay()];
 }
 
+/** "02/12" no mesmo ano de hoje, "02/12/2027" quando o ano muda (manual da marca, Voz e tom). */
+export function dataNumerica(data: string, hoje: string): string {
+  const [a, m, d] = data.split("-");
+  return a === hoje.slice(0, 4) ? `${d}/${m}` : `${d}/${m}/${a}`;
+}
+
+/** "quarta, 02/12" (ou "quarta, 02/12/2027" em outro ano). */
+export function dataComDia(data: string, hoje: string): string {
+  return `${diaDaSemana(data)}, ${dataNumerica(data, hoje)}`;
+}
+
+/** "qua, 02/12/2026": dia da semana abreviado e data completa, para cartões e a memória do cálculo. */
+export function dataCurtaComDia(data: string): string {
+  const [a, m, d] = data.split("-");
+  return `${diaDaSemana(data).slice(0, 3)}, ${d}/${m}/${a}`;
+}
+
 /**
- * Data curta para mensagens: "hoje", "amanhã", "sexta" (até 6 dias) ou "28 de nov".
- * Usada nas respostas do agente para o WhatsApp.
+ * Data para mensagens do agente: "hoje", "amanhã", "ontem" ou "sexta, 22/01" (com o ano quando muda).
+ * Segue a seção Voz e tom do manual da marca: dias da semana ajudam a ler a data.
  */
 export function descreverDia(data: string, hoje: string): string {
   if (data === hoje) return "hoje";
   if (data === somarDias(hoje, 1)) return "amanhã";
   if (data === somarDias(hoje, -1)) return "ontem";
-  if (data > hoje && data <= somarDias(hoje, 6)) return diaDaSemana(data);
-  const [a, m, d] = data.split("-").map(Number);
-  return `${d} de ${MESES[m - 1]}${a !== +hoje.slice(0, 4) ? ` de ${a}` : ""}`;
+  return dataComDia(data, hoje);
 }
 
 /** "Hoje, 15:00", "Amanhã, 09:30" ou "7 de nov, 09:00", no fuso pedido. */

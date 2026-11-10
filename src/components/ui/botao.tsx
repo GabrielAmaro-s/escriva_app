@@ -6,8 +6,8 @@ type Tamanho = "md" | "sm" | "icone" | "icone-sm";
 
 const variantes: Record<Variante, string> = {
   primaria: "border-0 bg-primary text-on-primary font-semibold hover:brightness-110",
-  secundaria: "border border-line2 bg-surface text-ink font-medium hover:bg-hover",
-  discreta: "border-0 bg-transparent text-ink2 hover:bg-hover hover:text-ink",
+  secundaria: "border border-line-forte bg-surface-raised text-ink font-medium hover:bg-hover",
+  discreta: "border-0 bg-transparent text-ink-muted hover:bg-hover hover:text-ink",
 };
 
 const tamanhos: Record<Tamanho, string> = {
