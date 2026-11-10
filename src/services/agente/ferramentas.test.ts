@@ -31,7 +31,7 @@ beforeEach(() => {
 });
 
 describe("catálogo", () => {
-  it("tem as 15 ferramentas com os nomes combinados", () => {
+  it("tem as 19 ferramentas com os nomes combinados", () => {
     expect(NOMES_DAS_FERRAMENTAS.sort()).toEqual(
       [
         "listar_projetos",
@@ -49,16 +49,28 @@ describe("catálogo", () => {
         "sugerir_prioridades",
         "concluir_em_lote",
         "excluir_tarefa",
+        "prazos_proximos",
+        "audiencias_proximas",
+        "criar_processo",
+        "registrar_intimacao",
       ].sort(),
     );
   });
 
-  it("só sugerir_prioridades, concluir_em_lote e excluir_tarefa pedem confirmação", () => {
-    expect(ferramentas.filter((f) => f.confirmacao).map((f) => f.nome)).toEqual(["sugerir_prioridades", "concluir_em_lote", "excluir_tarefa"]);
+  it("só sugerir_prioridades, concluir_em_lote, excluir_tarefa e registrar_intimacao pedem confirmação", () => {
+    expect(ferramentas.filter((f) => f.confirmacao).map((f) => f.nome)).toEqual(["sugerir_prioridades", "concluir_em_lote", "excluir_tarefa", "registrar_intimacao"]);
   });
 
   it("escopo leitura enxerga só as ferramentas sem escrita", () => {
-    expect(ferramentas.filter((f) => !f.escrita).map((f) => f.nome)).toEqual(["listar_projetos", "ver_quadro", "buscar_tarefas", "resumir_projeto", "lembretes_proximos"]);
+    expect(ferramentas.filter((f) => !f.escrita).map((f) => f.nome)).toEqual([
+      "listar_projetos",
+      "ver_quadro",
+      "buscar_tarefas",
+      "resumir_projeto",
+      "lembretes_proximos",
+      "prazos_proximos",
+      "audiencias_proximas",
+    ]);
   });
 
   it("as descrições são fixas e em português (sem dados de usuário)", () => {

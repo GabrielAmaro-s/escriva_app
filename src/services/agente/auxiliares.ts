@@ -62,6 +62,16 @@ function semelhanca(pedido: string, nome: string): number {
   return Math.round((achadas / palavras.length) * 50);
 }
 
+/** Itens com o id exato ou, sem ele, os de nome mais parecido (vazio se nenhum parece). Não lança erro. */
+export function procurarPorNome<T extends { id: string }>(itens: T[], pedido: string, nomeDe: (i: T) => string): T[] {
+  const porId = itens.find((i) => i.id === pedido.trim());
+  if (porId) return [porId];
+  const notas = itens.map((i) => ({ item: i, nota: semelhanca(pedido, nomeDe(i)) })).filter((x) => x.nota >= 25);
+  if (!notas.length) return [];
+  const melhor = Math.max(...notas.map((x) => x.nota));
+  return notas.filter((x) => x.nota === melhor).map((x) => x.item);
+}
+
 /** Escolhe o item pelo id exato ou pelo nome mais parecido. Ambiguidade vira erro com as opções. */
 function escolher<T extends { id: string }>(itens: T[], pedido: string, nomeDe: (i: T) => string, oQue: string): T {
   const porId = itens.find((i) => i.id === pedido.trim());

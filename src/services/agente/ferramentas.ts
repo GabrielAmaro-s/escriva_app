@@ -2,7 +2,7 @@ import { z } from "zod";
 import { interpretarDataHora } from "@/domain/datas";
 import { ordenarPorQuando } from "@/domain/lembrete";
 import { MODELOS, alteracaoAoMudarColuna, ordenarPorPosicao, proximaPosicaoNaColuna } from "@/domain/quadro";
-import type { AlteracaoTarefa, Desfazer, PrioridadeTarefa, Tarefa } from "@/domain/tipos";
+import type { AlteracaoTarefa, PrioridadeTarefa, Tarefa } from "@/domain/tipos";
 import { criarLembrete, lembretesProximos, marcarLembrete } from "../lembretes";
 import { dadosProjetoVazios } from "@/domain/projeto";
 import { criarProjeto } from "../projetos";
@@ -32,44 +32,23 @@ import {
   resumoDaTarefa,
   resumoDoProjeto,
 } from "./auxiliares";
+import { PEDIR_SIM, confirmado, data, definir, type Ferramenta } from "./definicao";
+import { ferramentasJuridicas } from "./ferramentas-juridicas";
 
 // As ferramentas do servidor MCP do myPlan.
 // As descrições são fixas: nenhum texto vindo de tarefas, links ou mensagens entra nelas.
 
-export interface ResultadoFerramenta {
-  /** Frase curta, pronta para o WhatsApp. */
-  mensagem: string;
-  /** Dados estruturados para o agente (listas, ids, links). */
-  dados?: Record<string, unknown>;
-  /** Como reverter (vai para registro_agente.desfazer). */
-  desfazer?: Desfazer | null;
-}
+export type { Ferramenta, ResultadoFerramenta } from "./definicao";
 
-export interface Ferramenta<E extends z.ZodObject = z.ZodObject> {
-  nome: string;
-  titulo: string;
-  descricao: string;
-  /** Altera dados? Tokens de leitura não enxergam estas. */
-  escrita: boolean;
-  /** Exige `confirmado: true` para aplicar. */
-  confirmacao: boolean;
-  entrada: E;
-  executar(ctx: ContextoAgente, args: z.infer<E>): Promise<ResultadoFerramenta>;
-}
-
-const definir = <E extends z.ZodObject>(f: Ferramenta<E>) => f as unknown as Ferramenta;
-
-const data = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { error: "Use a data no formato AAAA-MM-DD." });
 const prioridade = z.enum(["baixa", "media", "alta", "urgente"]);
 const coluna = z.string().describe('Papel da coluna ("a_fazer", "em_andamento", "aguardando", "concluido") ou o título dela (ex.: "Aguardando decisão").');
 const refProjeto = z.string().min(1).describe('Id do processo ou caso consultivo, ou parte do nome (ex.: "cobrança de aluguéis").');
 const refTarefa = z.string().min(1).describe("Id da tarefa (de buscar_tarefas ou ver_quadro) ou o título exato.");
-const confirmado = z.boolean().default(false).describe("false (padrão) só mostra a prévia. Use true depois que a pessoa disser sim.");
 
-const PEDIR_SIM = 'Responda "sim" para confirmar.';
 
 export function criarFerramentas(config: { limiteItens: number }): Ferramenta[] {
   const limite = config.limiteItens;
+  const juridicas = ferramentasJuridicas();
 
   return [
     // Leitura -------------------------------------------------------------------------
@@ -224,6 +203,8 @@ export function criarFerramentas(config: { limiteItens: number }): Ferramenta[] 
         };
       },
     }),
+
+    ...juridicas.leitura,
 
     // Escrita -------------------------------------------------------------------------
     definir({
@@ -491,6 +472,8 @@ export function criarFerramentas(config: { limiteItens: number }): Ferramenta[] 
       },
     }),
 
+    ...juridicas.escrita,
+
     // Com confirmação ----------------------------------------------------------------
     definir({
       nome: "sugerir_prioridades",
@@ -654,9 +637,10 @@ export function criarFerramentas(config: { limiteItens: number }): Ferramenta[] 
         return { mensagem: `Excluí “${tarefa.title}”.`, dados: { link: linkDoProjeto(ctx, tarefa.projectId) }, desfazer: { tipo: "recriar_tarefa", tarefa } };
       },
     }),
+    ...juridicas.comConfirmacao,
   ];
 }
 
-/** Nomes das 15 ferramentas, na ordem em que aparecem para o agente. */
+/** Nomes das 19 ferramentas, na ordem em que aparecem para o agente. */
 export const NOMES_DAS_FERRAMENTAS = criarFerramentas({ limiteItens: 10 }).map((f) => f.nome);
 

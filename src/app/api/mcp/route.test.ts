@@ -73,12 +73,20 @@ describe("servidor MCP", () => {
     expect(r.corpo.result).toMatchObject({ serverInfo: { name: "myplan" } });
   });
 
-  it("token de escrita lista as 15 ferramentas; de leitura, só as 5 sem escrita", async () => {
+  it("token de escrita lista as 19 ferramentas; de leitura, só as 7 sem escrita", async () => {
     const escrita = await rpc(tokenEscrita, "tools/list");
     const nomes = (escrita.corpo.result!.tools as { name: string }[]).map((t) => t.name);
-    expect(nomes).toHaveLength(15);
+    expect(nomes).toHaveLength(19);
     const leitura = await rpc(tokenLeitura, "tools/list");
-    expect((leitura.corpo.result!.tools as { name: string }[]).map((t) => t.name)).toEqual(["listar_projetos", "ver_quadro", "buscar_tarefas", "resumir_projeto", "lembretes_proximos"]);
+    expect((leitura.corpo.result!.tools as { name: string }[]).map((t) => t.name)).toEqual([
+      "listar_projetos",
+      "ver_quadro",
+      "buscar_tarefas",
+      "resumir_projeto",
+      "lembretes_proximos",
+      "prazos_proximos",
+      "audiencias_proximas",
+    ]);
   });
 
   it("chamar uma ferramenta grava o registro e atualiza o último uso do token", async () => {
