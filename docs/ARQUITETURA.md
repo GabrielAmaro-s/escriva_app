@@ -1,6 +1,6 @@
-myPlan: arquitetura
+Tempestivo: arquitetura
 
-Gerenciador pessoal de projetos e campanhas, em adaptação para advogados autônomos (ver PROPOSTA_JURIDICA.md). Um quadro Kanban por projeto, pensado para uma pessoa só, com um agente pessoal (nanobot) que cria tarefas e lembretes pelo WhatsApp.
+O Tempestivo é o assistente no WhatsApp que não deixa o advogado autônomo perder prazo, com um app para ver e organizar processos, prazos e clientes (ver PROPOSTA_JURIDICA.md). Nasceu do myPlan, um gerenciador pessoal de projetos e campanhas, e o código ainda guarda essa base. Um quadro Kanban por projeto, pensado para uma pessoa só, com um agente pessoal (nanobot) que cria tarefas e lembretes pelo WhatsApp.
 
 Vocabulário: no código e no banco os nomes continuam projeto (kind = project) e campanha (kind = campaign). Na interface, projeto aparece como processo e campanha como caso consultivo.
 
@@ -39,7 +39,13 @@ src/config/ambiente.ts valida com zod as variáveis públicas (NEXT_PUBLIC_*). s
 
 2. Páginas, rotas e componentes
 
-O visual segue o protótipo myPlan_standalone.html: fonte Inter, ícones Phosphor, cor de destaque configurável (violeta por padrão) e modo escuro.
+O visual segue a marca Tempestivo, em docs/marca/ (MANUAL_DA_MARCA.md e tokens.json):
+- cores: os tokens do tokens.json, com os mesmos nomes de variável, no src/app/globals.css, nos temas claro e escuro; o teste src/lib/contraste.test.ts confere o CSS contra o tokens.json e mede 4,5:1 em todo texto;
+- cor de destaque em Configurações: Petróleo (padrão, a cor da marca), Grafite ou Ameixa, cada uma com um valor por tema (src/lib/aparencia.ts, guardada em tempestivo-destaque);
+- fontes pelo next/font/google: Bricolage Grotesque nos títulos e no logotipo, IBM Plex Sans no texto e IBM Plex Mono (classe dado) em número CNJ, vencimentos, valores e memória do cálculo;
+- logotipo: src/components/layout/logotipo.tsx (símbolo oficial e o nome em Bricolage 600); src/app/icon.svg e src/app/apple-icon.tsx;
+- estados de prazo: src/components/ui/prazo.tsx (SeloPrazo, MemoriaCalculo com o vencimento grifado em marca-texto, AvisoValidacao em interno sobre interno-soft), a partir de situacaoDoPrazo e seloDoPrazo em domain/prazos.ts;
+- ícones Phosphor e modo escuro.
 
 Rota	Tela
 /hoje	Hoje: números do momento (inclui prazos fatais em 7 dias), próximos lembretes, próximos prazos e documentos pendentes do cliente
@@ -85,7 +91,7 @@ O src/proxy.ts renova a sessão e redireciona as páginas para /login, mas não 
 
 Componentes
 src/components/
-├── layout/      estrutura-app (menu lateral; vira gaveta abaixo de 820px), menu-lateral
+├── layout/      estrutura-app (menu lateral; vira gaveta abaixo de 820px), menu-lateral, logotipo
 ├── projects/    tela-projetos, cartao-projeto, formulario-projeto, interface-projeto
 ├── campaigns/   tela-consultivo
 ├── clients/     tela-clientes, formulario-cliente
@@ -95,7 +101,7 @@ src/components/
 │                com memória e aviso, audiência, histórico), lista-tarefas, lista-lembretes,
 │                tela-hoje, tela-prazos
 ├── settings/    tela-configuracoes, linha-configuracao, secao-prazos, secao-dados, secao-agente
-└── ui/          pecas, botao, campo, janela, menu-contexto, aviso
+└── ui/          pecas, botao, campo, janela, menu-contexto, aviso, prazo (selo, memória e aviso de prazo)
 Nomes no código
 
 Funções, hooks, componentes, tipos e variáveis estão em português (criarTarefa, useTarefas, CartaoProjeto, Tarefa). Ficam como estão: nomes exigidos pelo framework (page.tsx, route.ts, GET, proxy), as tabelas e colunas que já existiam e os campos das entidades antigas (title, dueOn, projectId...), que espelham essas colunas e o formato já salvo no navegador. As tabelas novas têm colunas em português (texto, quando, criado_em).
@@ -171,7 +177,7 @@ As tabelas novas da 0005 começam com revoke all de anon e authenticated, porque
 
 src/app/api/mcp/route.ts usa mcp-handler 2.x com @modelcontextprotocol/server 2.x e zod 4. É Streamable HTTP sem estado e exporta GET e POST.
 
-Autenticação: Authorization: Bearer myplan_.... validarToken confere o hash, a revogação e a validade. Token inválido, expirado ou revogado recebe 401 (via withMcpAuth). Cada requisição atualiza ultimo_uso_em.
+Autenticação: Authorization: Bearer tempestivo_.... Tokens antigos, com o prefixo myplan_, continuam valendo. validarToken confere o hash, a revogação e a validade. Token inválido, expirado ou revogado recebe 401 (via withMcpAuth). Cada requisição atualiza ultimo_uso_em.
 Isolamento: o token traz o userId. As ferramentas usam criarRepositorioDoAgente(userId), um cliente admin embrulhado que põe user_id = userId em toda leitura, alteração e exclusão, e user_id: userId em toda inserção. O teste contexto-agente.test.ts passa por cada método do repositório e confere que toda gravação em clientes e processo_detalhes leva user_id explícito (no agente, auth.uid() é nulo). A única consulta sem esse filtro é buscarTokenPorHash, que descobre a quem o token pertence. Em feriados, a leitura é user_id nulo (carga geral) ou o do usuário; gravações e exclusões continuam presas ao usuário.
 Escopo: o mcp-handler cria um servidor por requisição. O token validado passa para a montagem por AsyncLocalStorage, e um token de leitura só recebe as 7 ferramentas sem escrita.
 Registro: toda chamada grava em registro_agente a entrada, o resultado, o sucesso e o desfazer. A tela de Configurações lista e desfaz.
@@ -200,7 +206,7 @@ concluir_em_lote	fecha várias tarefas	sim	sim
 excluir_tarefa	remove uma tarefa ou um lembrete	sim	sim
 registrar_intimacao	calcula o prazo da intimação (processo pelo número CNJ ou nome) e, com o "sim" e o prazo_fatal_esperado da prévia, cria o prazo com lembretes automáticos; pede a regra quando o processo não deixa claro se é vara comum ou juizado	sim	sim
 
-Com confirmação, confirmado=false (o padrão) só devolve a prévia e a pergunta, e confirmado=true aplica. Em registrar_intimacao, confirmado=true também exige prazo_fatal_esperado igual ao da prévia; se o recálculo mudar, volta uma prévia nova e nada é criado (o mesmo princípio do quando_esperado dos lembretes). Regra de contagem que o processo permite afirmar (regraSeguraDoProcesso): penal e trabalhista pela área, juizado quando o órgão diz Juizado, cível na família; nos outros casos a ferramenta pergunta "vara comum ou juizado?". As respostas de escrita trazem uma mensagem curta para o WhatsApp e o link (NEXT_PUBLIC_APP_URL/projetos/<id>?tarefa=<id>). Datas de prazo usam AAAA-MM-DD. Horários usam ISO no fuso MYPLAN_FUSO_HORARIO.
+Com confirmação, confirmado=false (o padrão) só devolve a prévia e a pergunta, e confirmado=true aplica. Em registrar_intimacao, confirmado=true também exige prazo_fatal_esperado igual ao da prévia; se o recálculo mudar, volta uma prévia nova e nada é criado (o mesmo princípio do quando_esperado dos lembretes). Regra de contagem que o processo permite afirmar (regraSeguraDoProcesso): penal e trabalhista pela área, juizado quando o órgão diz Juizado, cível na família; nos outros casos a ferramenta pergunta "vara comum ou juizado?". As respostas de escrita trazem uma mensagem curta para o WhatsApp e o link (NEXT_PUBLIC_APP_URL/projetos/<id>?tarefa=<id>). Datas de prazo usam AAAA-MM-DD. Horários usam ISO no fuso TEMPESTIVO_FUSO_HORARIO (ou MYPLAN_FUSO_HORARIO).
 
 O agente (nanobot numa VPS, WhatsApp) está documentado em agente/README.md.
 
@@ -230,6 +236,7 @@ Novo design (feito). Visão geral, Campanhas, Tarefas e Configurações; desfaze
 Polimento. Reordenar projetos na página inicial, busca rápida (Ctrl+K), atalhos de teclado no quadro.
 Dados confiáveis (feito). Testes de domain/, exportar JSON, importar do navegador para a conta.
 Agente (feito). API no servidor, tokens, registro, lembretes, servidor MCP e configuração do nanobot.
+Marca Tempestivo (feito, sem migração). Nome, logotipo, cores, tipografia, estados de prazo e voz do agente, pela marca em docs/marca/. Compatibilidade: tokens myplan_, MYPLAN_FUSO_HORARIO e a chave myplan:v2 do navegador continuam aceitos. Relatório em docs/relatorios/marca-tempestivo.md.
 Versão jurídica, etapa 4 (feito, sem migração). Agente jurídico enxuto para o piloto: registrar_intimacao, criar_processo, prazos_proximos, audiencias_proximas, vocabulário jurídico, SOUL.md novo e uma instância do nanobot por advogado na mesma VPS.
 Versão jurídica, etapa 3 (feito, migração 0005 aplicada em 09/11/2026). Motor de prazos, feriados por tribunal e locais, tipos de tarefa, prazo fatal, lembretes automáticos, histórico de prazos e documentos do cliente. A contagem está em validação com advogados (docs/validacao-prazos.md).
 Versão jurídica, etapa 2 (feito, migração 0004 aplicada em 09/11/2026). Clientes, detalhes do processo, consultivo com tipo de serviço, ícones jurídicos.

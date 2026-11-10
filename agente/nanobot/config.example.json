@@ -31,11 +31,11 @@
       "enable": false
     },
     "mcpServers": {
-      "myplan": {
+      "tempestivo": {
         "type": "streamableHttp",
-        "url": "${MYPLAN_MCP_URL}",
+        "url": "${TEMPESTIVO_MCP_URL}",
         "headers": {
-          "Authorization": "Bearer ${MYPLAN_MCP_TOKEN}"
+          "Authorization": "Bearer ${TEMPESTIVO_MCP_TOKEN}"
         },
         "toolTimeout": 60,
         "enabledTools": ["*"]

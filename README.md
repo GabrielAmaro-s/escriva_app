@@ -1,10 +1,16 @@
-# myPlan
+# Tempestivo
 
-Gerenciador pessoal de projetos e campanhas, com um quadro Kanban por projeto. Está sendo adaptado para advogados autônomos: na interface, projetos aparecem como **Processos** e campanhas como **Consultivo** (ver `docs/PROPOSTA_JURIDICA.md`).
+O assistente no WhatsApp que não deixa o advogado autônomo perder prazo. Ele recebe a intimação, calcula o vencimento mostrando como chegou na data, só grava depois do "sim", lembra antes do vencimento e manda toda manhã o que vence e as audiências do dia. O app serve para ver e organizar processos, casos consultivos, prazos e clientes.
+
+- Proposta e etapas: `docs/PROPOSTA_JURIDICA.md`.
+- Marca (manual, tokens, logotipo): `docs/marca/`.
+- O Tempestivo nasceu do myPlan, um gerenciador de projetos; por isso o código ainda chama processo de "project" e caso consultivo de "campaign".
 
 ## Rodar
 
 ```bash
+git clone git@github.com:GabrielAmaro-s/tempestivoapp.git
+cd tempestivoapp
 npm install
 npm run dev
 ```
@@ -13,7 +19,7 @@ Abra http://localhost:3000. Sem configuração nenhuma o app roda em **modo loca
 
 Telas: **Hoje** (`/hoje`), **Processos** (`/`), **Consultivo** (`/consultivo`), **Prazos e tarefas** (`/prazos`), **Clientes** (`/clientes`) e **Configurações**. Os endereços antigos `/visao-geral`, `/campanhas` e `/tarefas` redirecionam para os novos. Ao criar um processo, escolha o modelo de quadro (Cível/JEC, Trabalhista, Previdenciário ou Família), o cliente e, se quiser, o número CNJ e os outros dados do processo. Caso consultivo usa o modelo Consultivo e tem tipo de serviço, pedido do cliente e prazo de entrega.
 
-Quem já usava o modo local antes desta versão continua com os dados que tinha. Para ver o exemplo novo, com clientes, apague a chave `myplan:v2` do localStorage.
+Quem já usava o modo local continua com os dados que tinha: eles ficam na chave `tempestivo:v2` do localStorage, e dados antigos na chave `myplan:v2` passam para a nova na primeira leitura. Para ver o exemplo novo, apague a chave `tempestivo:v2`.
 
 ## Dois ambientes: local e produção
 
@@ -86,7 +92,7 @@ Os dados do modo local não vão para o Supabase sozinhos: em Configurações, u
 1. **Migre o banco antes do primeiro deploy.** Com o `.env.producao` preenchido: `npm run db:vincular -- --producao` e depois `npm run db:migrar -- --producao` (veja "Produção").
    A partir da etapa 2 da versão jurídica, o código depende da migração `0004_processos_e_clientes.sql` (clientes e detalhes do processo). Publicar esse código num banco sem a 0004 quebra a lista de processos; aplique a migração antes.
    A partir da etapa 3, depende também da `0005_prazos_e_feriados.sql` (tipo da tarefa, prazo fatal, feriados, histórico, lembretes automáticos e preferências). Sem ela, gravar tarefas e abrir as Configurações falha.
-2. **Importe o repositório** em vercel.com > Add New > Project. O framework (Next.js) é detectado sozinho.
+2. **Importe o repositório** `GabrielAmaro-s/tempestivoapp` em vercel.com > Add New > Project. O framework (Next.js) é detectado sozinho. O projeto de produção na Vercel se chama `tempestivo`.
 3. **Região das funções:** em Settings > Functions > Function Region, escolha **São Paulo (gru1)**, que fica na mesma região AWS do Supabase (`sa-east-1`). Assim as rotas /api e o servidor MCP ficam perto do banco.
 4. **Cadastre as variáveis** em Settings > Environment Variables (ambiente Production). As `NEXT_PUBLIC_*` são embutidas no build: cadastre antes do primeiro deploy e faça um novo deploy sempre que mudar alguma.
 
@@ -94,7 +100,7 @@ Os dados do modo local não vão para o Supabase sozinhos: em Configurações, u
 
    | Variável | Valor |
    |---|---|
-   | `NEXT_PUBLIC_APP_URL` | o domínio final, ex.: `https://myplan.seudominio.com` (sem barra no fim). É o endereço dos links que o agente manda |
+   | `NEXT_PUBLIC_APP_URL` | o domínio final, ex.: `https://tempestivo.seudominio.com` (sem barra no fim). Hoje é `https://myplan-ashy.vercel.app`, até a troca de domínio (pendência em `docs/PROPOSTA_JURIDICA.md`). É o endereço dos links que o agente manda |
    | `NEXT_PUBLIC_SUPABASE_URL` | `https://SEU-PROJETO.supabase.co` |
    | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | chave publicável (`sb_publishable_...`) |
 
@@ -107,14 +113,14 @@ Os dados do modo local não vão para o Supabase sozinhos: em Configurações, u
    | `DATABASE_URL` | conexão do pooler, modo transação (porta 6543) |
    | `DIRECT_URL` | conexão de sessão (porta 5432) |
    | `MCP_SEGREDO_TOKENS` | segredo longo (`openssl rand -base64 48`). Se mudar, todos os tokens do agente deixam de valer |
-   | `MYPLAN_FUSO_HORARIO` | `America/Sao_Paulo` |
+   | `TEMPESTIVO_FUSO_HORARIO` | `America/Sao_Paulo`. O nome antigo, `MYPLAN_FUSO_HORARIO`, continua aceito; a Vercel de produção ainda usa ele |
    | `MCP_VALIDADE_TOKEN_DIAS` | `90` |
    | `MCP_LIMITE_ITENS_POR_PEDIDO` | `10` |
    | `AGENTE_ALERTA_SEM_HEARTBEAT_MIN` | `60` |
 
    Sem `NEXT_PUBLIC_APP_URL`, `SUPABASE_SECRET_KEY` ou `MCP_SEGREDO_TOKENS`, o servidor para na inicialização com uma mensagem dizendo o que falta.
 5. **No Supabase**, em Authentication > URL Configuration:
-   - **Site URL:** o domínio final (ex.: `https://myplan.seudominio.com`);
+   - **Site URL:** o domínio final (ex.: `https://tempestivo.seudominio.com`);
    - **Redirect URLs:** `https://<domínio>/auth/callback` (mantenha também `http://localhost:3000/auth/callback` para desenvolver).
 6. **Faça o deploy** e, se usar domínio próprio, aponte-o em Settings > Domains.
 7. **Confira depois do deploy:**
