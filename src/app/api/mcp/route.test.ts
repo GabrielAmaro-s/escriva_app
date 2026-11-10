@@ -70,7 +70,7 @@ describe("servidor MCP", () => {
   it("initialize responde com o nome do servidor", async () => {
     const r = await rpc(tokenEscrita, "initialize", { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "teste", version: "1" } });
     expect(r.status).toBe(200);
-    expect(r.corpo.result).toMatchObject({ serverInfo: { name: "tempestivo" } });
+    expect(r.corpo.result).toMatchObject({ serverInfo: { name: "escriva" } });
   });
 
   it("token de escrita lista as 19 ferramentas; de leitura, só as 7 sem escrita", async () => {
