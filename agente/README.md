@@ -36,6 +36,8 @@ WhatsApp ── nanobot gateway (VPS) ── HTTPS + token ──> Tempestivo /a
 
 ## Passo a passo na VPS (Ubuntu 24.04)
 
+> No Google Cloud (VM e2-micro, OS Login, firewall da VPC e Gemini), siga [docs/agente-google-cloud.md](../docs/agente-google-cloud.md).
+
 Os comandos com `sudo` rodam com o seu usuário administrador. O agente roda com o usuário `nanobot`, que não tem sudo.
 
 ### 1. Sistema, firewall e Tailscale
@@ -91,7 +93,7 @@ O que vai em cada variável:
 
 | Variável | Exemplo |
 |---|---|
-| `TEMPESTIVO_MCP_URL` | `https://tempestivo.seudominio.com/api/mcp` (hoje `https://myplan-ashy.vercel.app/api/mcp`) |
+| `TEMPESTIVO_MCP_URL` | `https://tempestivo.seudominio.com/api/mcp` (hoje `https://tempestivo.vercel.app/api/mcp`) |
 | `TEMPESTIVO_MCP_TOKEN` | o token `tempestivo_...` gerado no app (tokens antigos `myplan_...` continuam valendo) |
 | `LLM_API_KEY`, `LLM_API_BASE` | chave e URL base do provedor (compatível com OpenAI) |
 | `LLM_MODELO` | nome do modelo nesse provedor |
