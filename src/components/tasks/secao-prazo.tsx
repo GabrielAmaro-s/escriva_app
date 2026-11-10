@@ -1,6 +1,6 @@
 "use client";
 
-import { CalculatorIcon, ClockCounterClockwiseIcon, WarningIcon } from "@phosphor-icons/react";
+import { CalculatorIcon, ClockCounterClockwiseIcon } from "@phosphor-icons/react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Botao } from "@/components/ui/botao";
 import { Selecao, classeControle } from "@/components/ui/campo";
@@ -20,23 +20,13 @@ import {
 } from "@/domain/prazos";
 import type { AlteracaoRegistrada, AlteracaoTarefa, Feriado, MeioIntimacao, Projeto, RegraPrazo, Tarefa, TipoTarefa } from "@/domain/tipos";
 import { classes } from "@/lib/classes";
+import { MemoriaCalculo, SeloPrazo } from "@/components/ui/prazo";
 
 const TIPOS: TipoTarefa[] = ["providencia", "prazo", "audiencia"];
 const classeData = classes(classeControle, "h-9 rounded-[9px] px-2.5 text-[13px]");
 
 function Rotulo({ children }: { children: ReactNode }) {
   return <span className="mb-1 block text-[11.5px] font-medium text-ink-muted">{children}</span>;
-}
-
-/** Aviso de que a contagem ainda está em validação (some quando a constante vira null). */
-export function AvisoValidacao() {
-  if (!AVISO_CONTAGEM_EM_VALIDACAO) return null;
-  return (
-    <p role="note" className="flex items-start gap-1.5 text-[11.5px] leading-snug text-interno">
-      <WarningIcon size={13} weight="fill" className="mt-px shrink-0" />
-      {AVISO_CONTAGEM_EM_VALIDACAO}
-    </p>
-  );
 }
 
 /** Tipo, prazo fatal e prazo interno, ou data e local da audiência (coluna da direita da janela). */
@@ -75,13 +65,16 @@ export function CamposDoTipo({ tarefa, alterar }: { tarefa: Tarefa; alterar: (a:
       {tarefa.tipo === "prazo" && (
         <>
           <label className="block">
-            <Rotulo>Prazo fatal</Rotulo>
+            <span className="mb-1 flex items-center justify-between gap-2">
+              <Rotulo>Prazo fatal</Rotulo>
+              {tarefa.prazoFatal && <SeloPrazo tarefa={tarefa} className="-mt-1" />}
+            </span>
             <input
               type="date"
               aria-label="Prazo fatal"
               value={tarefa.prazoFatal ?? ""}
               onChange={(e) => alterar({ prazoFatal: e.target.value || null })}
-              className={classes(classeData, "font-semibold text-fatal")}
+              className={classes(classeData, "dado font-medium")}
             />
           </label>
           <label className="block">
@@ -188,10 +181,7 @@ export function ContagemDoPrazo({
       </div>
 
       {salva && !aberta && (
-        <div className="flex flex-col gap-1.5 rounded-[10px] border border-line bg-surface px-3 py-2.5">
-          <p className="text-[13px] leading-normal text-ink">{salva.memoria}</p>
-          <AvisoValidacao />
-        </div>
+        <MemoriaCalculo vencimento={tarefa.prazoFatal} prazoInterno={tarefa.dueOn} memoria={salva.memoria} />
       )}
       {!salva && !aberta && <p className="text-[12.5px] text-ink-muted">Prazo fatal informado à mão, sem memória de cálculo.</p>}
 
@@ -255,12 +245,8 @@ export function ContagemDoPrazo({
           </p>
 
           {calculo ? (
-            <div className="flex flex-col gap-2 rounded-[10px] bg-surface px-3 py-2.5">
-              <p className="text-[13.5px] font-semibold text-ink">
-                Vence em {formatarData(calculo.contagem.vencimento)} · prazo interno {formatarData(calculo.prazoInterno)}
-              </p>
-              <p className="text-[12.5px] leading-normal text-ink-muted">{calculo.contagem.memoria}</p>
-              <AvisoValidacao />
+            <div className="flex flex-col gap-2">
+              <MemoriaCalculo vencimento={calculo.contagem.vencimento} prazoInterno={calculo.prazoInterno} memoria={calculo.contagem.memoria} />
               <div>
                 <Botao
                   tamanho="sm"

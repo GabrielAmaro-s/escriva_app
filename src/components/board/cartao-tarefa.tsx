@@ -1,12 +1,13 @@
 "use client";
 
-import { BellIcon, CalendarBlankIcon, CheckIcon, CheckSquareIcon, DotsThreeIcon, FlagIcon, GavelIcon, WarningOctagonIcon } from "@phosphor-icons/react";
+import { BellIcon, CalendarBlankIcon, CheckIcon, CheckSquareIcon, DotsThreeIcon, FlagIcon, GavelIcon } from "@phosphor-icons/react";
 import { forwardRef, type HTMLAttributes } from "react";
 import { Pilula } from "@/components/ui/pecas";
 import { formatarDataHora } from "@/domain/datas";
 import { COR_PRIORIDADE, ROTULO_PRIORIDADE, corDoPrazo, formatarData, progressoDoChecklist } from "@/domain/quadro";
 import type { Etiqueta, Tarefa } from "@/domain/tipos";
 import { classes } from "@/lib/classes";
+import { SeloPrazo } from "@/components/ui/prazo";
 
 interface PropsCartaoTarefa extends HTMLAttributes<HTMLDivElement> {
   tarefa: Tarefa;
@@ -89,9 +90,9 @@ export const CartaoTarefa = forwardRef<HTMLDivElement, PropsCartaoTarefa>(functi
             </span>
           )}
           {fatal && (
-            <span className="inline-flex items-center gap-[5px] font-semibold text-fatal" title="Prazo fatal">
-              <WarningOctagonIcon size={13} weight="fill" />
-              Fatal {formatarData(fatal)}
+            <span className="inline-flex items-center gap-1.5" title="Prazo fatal">
+              <SeloPrazo tarefa={tarefa} className="px-1.5 py-0.5 text-[11px]" />
+              <span className="dado text-ink-muted">fatal {formatarData(fatal)}</span>
             </span>
           )}
           {audiencia && (

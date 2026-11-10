@@ -180,10 +180,10 @@ describe("datas", () => {
     expect(hojeIso(new Date(2026, 0, 5, 10))).toBe("2026-01-05");
   });
 
-  it("formatarData mostra Hoje ou dia e mês curto", () => {
+  it("formatarData mostra Hoje, dd/mm ou dd/mm/aaaa quando o ano muda", () => {
     expect(formatarData("2026-11-04", "2026-11-04")).toBe("Hoje");
-    expect(formatarData("2026-11-28", "2026-11-04")).toBe("28 de nov");
-    expect(formatarData("2027-01-01", "2026-11-04")).toBe("1 de jan");
+    expect(formatarData("2026-11-28", "2026-11-04")).toBe("28/11");
+    expect(formatarData("2027-01-01", "2026-11-04")).toBe("01/01/2027");
   });
 
   it("formatarPeriodo no mesmo ano não mostra o ano", () => {

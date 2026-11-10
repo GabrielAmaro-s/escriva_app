@@ -11,6 +11,9 @@ import { useClientes } from "@/hooks/use-clientes";
 import { useProjetos } from "@/hooks/use-projetos";
 import { classes } from "@/lib/classes";
 
+/** Fatos que se conferem dígito a dígito: em IBM Plex Mono (manual da marca). */
+const DADOS = new Set(["Número", "Valor da causa", "Prazo", "Prazo de entrega", "Recebido em"]);
+
 function Titulo({ children }: { children: React.ReactNode }) {
   return <p className="mb-1.5 text-xs font-semibold text-ink-muted">{children}</p>;
 }
@@ -121,7 +124,7 @@ export function AbaDetalhes({ projeto }: { projeto: Projeto }) {
         {fatos.map((f) => (
           <div key={f.k} className="flex justify-between gap-3 border-b border-line py-3 text-[13px]">
             <span className="text-ink-muted">{f.k}</span>
-            <span className="text-right font-semibold">{f.v}</span>
+            <span className={classes("text-right font-semibold", DADOS.has(f.k) && "dado font-medium")}>{f.v}</span>
           </div>
         ))}
         <div className="pb-3 pt-3.5">

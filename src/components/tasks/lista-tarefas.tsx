@@ -5,6 +5,7 @@ import { Marcador } from "@/components/ui/pecas";
 import { COR_PRIORIDADE, ROTULO_PRIORIDADE, corDoPrazo, formatarData } from "@/domain/quadro";
 import type { Projeto, Tarefa } from "@/domain/tipos";
 import { classes } from "@/lib/classes";
+import { SeloPrazo } from "@/components/ui/prazo";
 
 /** Lista de tarefas de vários projetos (Visão geral e Tarefas). */
 export function ListaTarefas({
@@ -61,13 +62,14 @@ export function ListaTarefas({
                 </div>
                 {t.tipo === "audiencia" && <GavelIcon size={13} className="shrink-0 text-ink-muted" aria-label="Audiência" />}
                 {t.dueOn && (
-                  <span className="whitespace-nowrap text-xs" style={{ color: corDoPrazo(t.dueOn, t.completed) }} title={t.prazoFatal ? "Prazo interno" : undefined}>
+                  <span className="dado whitespace-nowrap text-xs" style={{ color: corDoPrazo(t.dueOn, t.completed) }} title={t.prazoFatal ? "Prazo interno" : undefined}>
                     {formatarData(t.dueOn)}
                   </span>
                 )}
                 {t.tipo === "prazo" && t.prazoFatal && (
-                  <span className={classes("whitespace-nowrap text-xs font-semibold", t.completed ? "text-ink-muted" : "text-fatal")} title="Prazo fatal">
-                    Fatal {formatarData(t.prazoFatal)}
+                  <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-xs" title="Prazo fatal">
+                    <SeloPrazo tarefa={t} className="px-1.5 py-0.5 text-[11px]" />
+                    <span className="dado text-ink-muted">fatal {formatarData(t.prazoFatal)}</span>
                   </span>
                 )}
                 <span

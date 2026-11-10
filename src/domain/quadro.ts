@@ -1,3 +1,4 @@
+import { dataNumerica } from "./datas";
 import type { AlteracaoTarefa, Coluna, PrioridadeTarefa, Tarefa, TipoColuna, TipoProjeto } from "./tipos";
 
 export type ModeloQuadro = "civel" | "trabalhista" | "previdenciario" | "familia" | "consultivo";
@@ -197,10 +198,10 @@ export function hojeIso(agora = new Date()): string {
 }
 
 /** "28 de nov", ou "Hoje". */
+/** "Hoje", "28/11" ou "01/01/2027" (manual da marca: dd/mm no mesmo ano, dd/mm/aaaa quando muda). */
 export function formatarData(iso: string, hoje = hojeIso()): string {
   if (iso === hoje) return "Hoje";
-  const [, m, d] = iso.split("-").map(Number);
-  return `${d} de ${MESES[m - 1]}`;
+  return dataNumerica(iso, hoje);
 }
 
 function dataCurta(iso: string): string {

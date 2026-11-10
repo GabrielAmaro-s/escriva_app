@@ -60,7 +60,7 @@ export function CartaoProjeto({ projeto }: { projeto: Projeto }) {
           )}
           {(d?.numeroCnj || d?.area || d?.segredoJustica) && (
             <span className="flex flex-wrap items-center gap-x-2 text-ink-muted">
-              {d?.numeroCnj && <span className="tabular-nums">{formatarNumeroCnj(d.numeroCnj)}</span>}
+              {d?.numeroCnj && <span className="dado">{formatarNumeroCnj(d.numeroCnj)}</span>}
               {d?.area && <span>{ROTULO_AREA[d.area]}</span>}
               {d?.segredoJustica && (
                 <span className="inline-flex items-center gap-1" title="Segredo de justiça">
