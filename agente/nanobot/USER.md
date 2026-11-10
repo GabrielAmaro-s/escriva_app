@@ -1,9 +1,11 @@
-# Sobre a usuária
+# Sobre quem você atende
 
-- Nome: Laura
-- Usa o myPlan para organizar projetos pessoais e campanhas de marketing.
+- Nome: <nome do advogado ou da advogada>
+- Atua como advogado(a) autônomo(a), com processos e casos consultivos no myPlan.
+- Áreas principais: <ex.: cível, trabalhista, previdenciário>
+- Tribunais em que mais atua: <ex.: TJRS, TRT4>
 - Fuso horário: America/Sao_Paulo.
 - Prefere respostas curtas e diretas, em português do Brasil.
 - Horário em que gosta de receber o resumo do dia: 8h.
 
-<!-- Ajuste à vontade: o agente lê este arquivo como perfil da usuária. -->
+<!-- Uma cópia por instância. O agente lê este arquivo como perfil de quem ele atende. -->

@@ -1,12 +1,14 @@
 # Agente pessoal do myPlan (nanobot no WhatsApp)
 
-O [nanobot](https://github.com/HKUDS/nanobot) roda numa VPS, conversa com você pelo WhatsApp e usa o servidor MCP do myPlan (`/api/mcp`) para criar tarefas, lembretes e resumos.
+O [nanobot](https://github.com/HKUDS/nanobot) roda numa VPS, conversa pelo WhatsApp e usa o servidor MCP do myPlan (`/api/mcp`) para registrar intimações, cadastrar processos, consultar prazos e audiências, criar tarefas e lembretes e mandar os resumos.
+
+Para o piloto com vários advogados, cada um tem a própria instância na mesma VPS: veja [Piloto: uma instância por advogado](#piloto-uma-instância-por-advogado).
 
 ```
 WhatsApp ── nanobot gateway (VPS) ── HTTPS + token ──> myPlan /api/mcp ──> Supabase
                  │
                  ├─ heartbeat a cada 15 min: lembretes_proximos -> agenda os envios (cron)
-                 └─ cron: resumo do dia (8h) e da semana (segunda, 8h)
+                 └─ cron: resumo do dia (8h: prazos de hoje, atrasados, audiências) e da semana (segunda, 8h: prazos fatais)
 ```
 
 ## Arquivos
@@ -15,10 +17,11 @@ WhatsApp ── nanobot gateway (VPS) ── HTTPS + token ──> myPlan /api/m
 |---|---|---|
 | `nanobot/config.example.json` | `~/.nanobot/config.json` | Configuração do nanobot. Os segredos ficam em variáveis `${...}` |
 | `nanobot/.env.example` | `~/.nanobot/.env` | Variáveis do agente: URL e token do MCP, LLM e número do WhatsApp |
-| `nanobot/SOUL.md` | `~/.nanobot/workspace/SOUL.md` | Instruções: como responder, quando pedir "sim", lembretes, resumos |
-| `nanobot/USER.md` | `~/.nanobot/workspace/USER.md` | Quem é a usuária (preencha o nome) |
+| `nanobot/SOUL.md` | `~/.nanobot/workspace/SOUL.md` | Instruções: intimações, quando pedir "sim", lembretes, resumos, segredo de justiça |
+| `nanobot/USER.md` | `~/.nanobot/workspace/USER.md` | Quem a instância atende (preencha nome, áreas e tribunais) |
 | `nanobot/HEARTBEAT.md` | `~/.nanobot/workspace/HEARTBEAT.md` | Tarefa periódica: buscar lembretes e agendar os envios |
-| `systemd/nanobot-gateway.service` | `/etc/systemd/system/` | Serviço com reinício automático, rodando como usuário sem sudo |
+| `systemd/nanobot-gateway.service` | `/etc/systemd/system/` | Serviço de uma instância só, rodando como o usuário `nanobot` |
+| `systemd/nanobot-gateway@.service` | `/etc/systemd/system/` | Serviço modelo do piloto: uma instância por advogado (`nanobot-gateway@<apelido>`) |
 
 > Diferença em relação ao plano original: a versão atual do nanobot **não usa mais uma ponte Node.js para o WhatsApp** (a documentação diz: *"WhatsApp no longer runs a local Node.js bridge"*). O WhatsApp roda dentro do próprio `nanobot gateway`. Por isso não há `nanobot-whatsapp.service` e o Node.js não é necessário.
 
@@ -81,7 +84,7 @@ cp agente/nanobot/.env.example        ~/.nanobot/.env
 cp agente/nanobot/SOUL.md agente/nanobot/USER.md agente/nanobot/HEARTBEAT.md ~/.nanobot/workspace/
 chmod 600 ~/.nanobot/.env ~/.nanobot/config.json
 nano ~/.nanobot/.env                # preencha as 6 variáveis
-nano ~/.nanobot/workspace/USER.md   # confira o perfil (já vem com o nome Laura)
+nano ~/.nanobot/workspace/USER.md   # preencha nome, áreas e tribunais de quem a instância atende
 ```
 
 O que vai em cada variável:
@@ -158,6 +161,83 @@ Em **Configurações > Agente**:
 - **Tokens** mostra o último uso.
 - **Atividade do agente** lista o que ele fez, com "Desfazer".
 
+## Piloto: uma instância por advogado
+
+Para o piloto com 2 ou 3 advogados, cada um tem um nanobot próprio na mesma VPS. Um agente que atende vários números não faz parte desta versão.
+
+**O que é separado por instância:**
+
+| Item | Por quê |
+|---|---|
+| Usuário Linux `nanobot-<apelido>` | A documentação do nanobot avisa que pastas separadas não isolam uma instância da outra. Para pessoas diferentes, ela recomenda contas do sistema separadas. Cada usuário só enxerga a própria casa. |
+| `~/.nanobot` (config, workspace, sessões, sessão do WhatsApp) | Cada um tem o próprio `SOUL.md`, `USER.md`, `HEARTBEAT.md`, histórico de conversa e crons. |
+| Conta no myPlan e token do MCP | Cada advogado entra no myPlan com o próprio e-mail e gera o próprio token. O token só enxerga os dados daquela conta. |
+| Número permitido (`WHATSAPP_PERMITIDO`) | O WhatsApp do advogado. A instância ignora qualquer outro número. |
+| Número do agente (o chip vinculado pelo QR) | Cada instância precisa de um WhatsApp próprio. Um mesmo número não pode estar vinculado a duas instâncias. |
+| `gateway.port` no `config.json` | O gateway abre uma porta local de saúde (padrão `18790`, em `127.0.0.1`). Duas instâncias na mesma porta não sobem. Use `18790`, `18791`, `18792`... |
+| Chave do LLM (recomendado) | Dá para usar a mesma, mas chaves separadas mostram o custo de cada advogado e permitem cortar uma sem parar as outras. |
+
+O canal WebSocket/WebUI do nanobot fica desligado no nosso `config.json`. Se alguém ligar, ele também precisa de uma porta própria (padrão `8765`).
+
+### Passo a passo para cada advogado
+
+Use um apelido curto, só com letras minúsculas (ex.: `ana`). Os comandos abaixo usam `ana`. Troque pelo apelido de cada um.
+
+1. **No myPlan:**
+   - o advogado entra pelo link mágico com o próprio e-mail;
+   - em **Configurações > Agente > Gerar token**, ele gera um token de **Escrita** chamado "nanobot do piloto" e passa o token por um canal seguro.
+2. **Usuário e nanobot** (com o usuário administrador):
+
+   ```bash
+   sudo adduser --disabled-password --gecos "" nanobot-ana
+   sudo chmod 700 /home/nanobot-ana          # um advogado não lê a pasta do outro
+   sudo -iu nanobot-ana
+   curl -LsSf https://astral.sh/uv/install.sh | sh
+   source ~/.local/bin/env
+   uv tool install nanobot-ai
+   nanobot plugins enable whatsapp
+   ```
+
+3. **Configuração** (ainda como `nanobot-ana`):
+
+   ```bash
+   mkdir -p ~/.nanobot/workspace
+   cp /caminho/do/repo/agente/nanobot/config.example.json ~/.nanobot/config.json
+   cp /caminho/do/repo/agente/nanobot/.env.example        ~/.nanobot/.env
+   cp /caminho/do/repo/agente/nanobot/{SOUL.md,USER.md,HEARTBEAT.md} ~/.nanobot/workspace/
+   chmod 600 ~/.nanobot/.env ~/.nanobot/config.json
+   nano ~/.nanobot/.env                 # token deste advogado, número dele, LLM
+   nano ~/.nanobot/config.json          # gateway.port: 18790 na primeira instância, 18791 na segunda...
+   nano ~/.nanobot/workspace/USER.md    # nome, áreas e tribunais deste advogado
+   ```
+
+   Copie o repositório para um lugar que todos os usuários leem (ex.: `/opt/myplan-agente`), ou use `scp` para cada casa.
+4. **WhatsApp:** com o celular do número do agente desta instância, rode `set -a; source ~/.nanobot/.env; set +a`, depois `nanobot channels login whatsapp` e leia o QR. Confira com `nanobot channels status`.
+5. **Serviço** (volte ao administrador com `exit`). O modelo é instalado uma vez só, e cada instância é ativada pelo apelido:
+
+   ```bash
+   sudo cp /caminho/do/repo/agente/systemd/nanobot-gateway@.service /etc/systemd/system/
+   sudo systemctl daemon-reload
+   sudo systemctl enable --now nanobot-gateway@ana
+   systemctl status nanobot-gateway@ana
+   journalctl -u nanobot-gateway@ana -f
+   ```
+
+6. **Repita os passos 1 a 5** para o próximo advogado, com outro apelido, outro `gateway.port`, outro número de agente e outro token.
+
+### Conferências do piloto
+
+Faça estas conferências para cada instância, além das [verificações de segurança](#verificações-de-segurança-logo-após-instalar):
+
+- **Instâncias de pé:** `systemctl list-units 'nanobot-gateway@*'` lista todas, ativas. Cada uma responde na sua porta: `curl -s http://127.0.0.1:18790/health`, `curl -s http://127.0.0.1:18791/health`...
+- **Uma não enxerga a outra:** como administrador, `sudo ls /proc/$(systemctl show -p MainPID --value nanobot-gateway@ana)/root/home` deve mostrar só `nanobot-ana`. E `sudo -u nanobot-ana ls /home/nanobot-bia` deve dar "Permissão negada".
+- **Dados separados:** o advogado A pergunta "quais prazos tenho?" e só recebe os dele. No myPlan de B, em Configurações > Agente > Atividade, não aparece nada da conversa de A.
+- **Número certo:** mande uma mensagem do WhatsApp de B para o agente de A. Ela deve ser ignorada.
+
+Para parar só uma instância: `sudo systemctl stop nanobot-gateway@ana`. Para tirá-la do piloto: `sudo systemctl disable --now nanobot-gateway@ana` e revogue o token dela no myPlan.
+
+> Conferido na documentação do nanobot em 10/11/2026 (`docs/multiple-instances.md`, `docs/cli-reference.md`, `docs/deployment.md` e `nanobot/config/schema.py`): `gateway.host` e `gateway.port` (padrão `127.0.0.1:18790`), a necessidade de portas diferentes entre instâncias, a recomendação de contas do sistema separadas e o fim da ponte Node do WhatsApp. **Não confirmado:** o caminho padrão da sessão do WhatsApp quando `channels.whatsapp.databasePath` não está definido. Com um usuário Linux por instância, cada sessão fica na casa do próprio usuário de qualquer forma.
+
 ## Verificações de segurança (logo após instalar)
 
 Faça estas três conferências antes de usar o agente no dia a dia:
@@ -166,13 +246,17 @@ Faça estas três conferências antes de usar o agente no dia a dia:
 2. **Só o seu número.** Mande uma mensagem de **outro número** para o agente. Ele deve ignorar: nenhuma resposta e nenhuma linha nova em Configurações > Agente > Atividade. Se responder, confira `WHATSAPP_PERMITIDO` e `channels.whatsapp.allowFrom`.
 3. **Token e registro.** No myPlan, em **Configurações > Agente**, confira que o token usado pelo nanobot aparece como **Escrita**, com "Último uso" recente, e que a **Atividade do agente** registra as chamadas feitas nos testes (ex.: "Conferiu os lembretes").
 
-## Três pedidos de teste
+## Pedidos de teste
 
-1. **"Cria 3 tarefas no Novo site para sexta: revisar textos, testar no celular e publicar."**
-   O agente chama `criar_tarefas` e responde algo como *"Criei 3 tarefas em Novo site, prazo sexta."* com o link. No app, as tarefas aparecem em A fazer.
-2. **"Me lembra amanhã às 15h de ligar para o cliente."**
+1. **Cole o texto de uma intimação** (ex.: *"Intimação no processo 0001234-47.2026.8.21.0001, disponibilizada no DJe em 06/11/2026: manifeste-se em 15 dias sobre a contestação."*).
+   O agente chama `registrar_intimacao` com `confirmado=false` e responde com o vencimento, o prazo interno e o aviso de que a contagem está em validação. Se o processo for cível sem "Juizado" no órgão, ele pergunta *"Vara comum ou juizado?"*. Só depois do seu "sim" ele cria o prazo, com os lembretes D-3, D-1 e no dia. Se o processo não existir na conta, ele diz isso e não cria nada.
+2. **"Quais prazos tenho esta semana?"**
+   Chama `prazos_proximos` e responde com os atrasados primeiro.
+3. **"Cria 3 tarefas na Cobrança de aluguéis para sexta: revisar textos, juntar comprovantes e protocolar."**
+   O agente chama `criar_tarefas` e responde algo como *"Criei 3 tarefas em Cobrança de aluguéis, prazo sexta."* com o link. No app, as tarefas aparecem em A fazer.
+4. **"Me lembra amanhã às 15h de ligar para o cliente."**
    Chama `criar_lembrete`, cria um cron para amanhã às 15:00 e marca como agendado. Amanhã às 15h chega *"⏰ Ligar para o cliente"*. No app, o lembrete aparece em Hoje > Próximos lembretes.
-3. **"Conclui as tarefas atrasadas do Novo site."**
+5. **"Conclui as tarefas atrasadas da Cobrança de aluguéis."**
    Busca as tarefas, chama `concluir_em_lote` sem confirmar e pergunta *"Vou concluir 2 tarefas. Responda sim para confirmar."*. Só depois do seu "sim" ele conclui. Dá para desfazer em Configurações > Agente.
 
 ## Problemas comuns
