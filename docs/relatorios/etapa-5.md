@@ -283,22 +283,50 @@ A resposta do DJEN traz nomes de partes (inclusive pessoas físicas), advogados 
   A limpeza é um job diário no banco.
 - **Provedor de LLM:** o agente recebe o trecho e os metadados, nunca o teor inteiro. Isso reduz o que sai para o provedor (ver "Provedor de LLM e sigilo" no `agente/README.md`).
 - **OAB como dado do advogado:**
-  - o número e a UF são informados por ele em Configurações > Agente, ao ligar a captura, e guardados em `preferencias`;
+  - o número e a UF são informados por ele ao ativar a captura, pelo WhatsApp ou em Configurações > Agente (ver "Ativação"), e guardados em `preferencias`;
   - a captura só consulta essa OAB, uma por conta, sem campo de busca livre por OAB, nome de parte ou de advogado;
   - na primeira consulta, o app mostra o nome que o DJEN associa à OAB e pergunta: "Achei comunicações para <nome> (OAB/RS <número>). É você?";
   - sem o *sim*, nada é guardado e a captura não liga;
   - o advogado desliga a captura quando quiser, e as sugestões pendentes são apagadas.
 - **Consentimento:** ao ligar a captura, o advogado aceita o aviso de cobertura abaixo e um texto curto sobre os dados que passam pela VPS, pelo app e pelo provedor de LLM.
 
+### Ativação: opcional e desligada por padrão
+
+**Decisão (10/11/2026):** a captura é opcional para cada advogado e vem desligada. Nenhuma consulta ao DJEN acontece para uma conta que não a ativou.
+
+**Motivos:**
+- a OAB é dado do advogado e só entra no Tempestivo quando ele a informa;
+- a resposta do DJEN traz dados de terceiros (partes e outros advogados), e a LGPD pede que esse tratamento comece por uma escolha clara do titular da conta;
+- a captura não cobre citações, o Domicílio Judicial Eletrônico nem o teor de processos sigilosos, então o aviso de cobertura precisa ser lido na ativação, e não descoberto depois.
+
+**Pelo WhatsApp** (a forma principal no piloto):
+1. O advogado escreve "ativar captura de intimações" (ou algo equivalente).
+2. O agente pede a OAB e a UF: "Qual é o número e a UF da sua OAB? Ex.: 12345/RS."
+3. O agente mostra o aviso de cobertura (versão do WhatsApp, abaixo), já com a OAB informada, e termina com "Responda *sim* para ativar."
+4. Só com o *sim*, a captura liga.
+   - A primeira consulta faz a conferência do nome ("Achei comunicações para <nome> (OAB/RS <número>). É você?").
+   - Sem o segundo *sim*, a captura volta a ficar desligada e nada é guardado.
+5. "Desativar captura de intimações" desliga na hora e apaga as sugestões pendentes, também com confirmação.
+
+**Em Configurações > Agente:** um interruptor "Captura do DJEN", desligado. Ao ligar, a tela pede a OAB e a UF, mostra o aviso de cobertura inteiro e só ativa com o botão de confirmar. A conferência do nome é a mesma do WhatsApp.
+
+**Depois do piloto**, o padrão pode ser reavaliado com dados:
+- quantos advogados ativaram;
+- quantas sugestões viraram prazo;
+- quantas foram descartadas;
+- se houve intimação perdida ou repetida.
+
+Até lá, fica desligado.
+
 ### Aviso de cobertura
 
-Texto para Configurações > Agente, ao ligar a captura, e para a primeira mensagem do agente depois disso. Segue a voz do manual.
+Texto mostrado na ativação, antes do *sim*: inteiro em Configurações > Agente e na versão curta no WhatsApp. Segue a voz do manual.
 
 > **Captura do DJEN.** Todo dia às 7h, o Tempestivo procura no DJEN as comunicações da sua OAB e traz para você confirmar. Ela não substitui a sua conferência. Não chegam por aqui: citações e intimações pessoais, que vão para o Domicílio Judicial Eletrônico; o teor de processos sigilosos, que só aparece no eproc; e o que o DJEN não publicar ou publicar com atraso. Se a consulta falhar, eu aviso no resumo das 8h. Confira o painel do eproc e o Domicílio Judicial Eletrônico.
 
 No WhatsApp, a versão curta:
 
-> A partir de amanhã, trago às 8h as comunicações do DJEN da sua OAB para você confirmar. Citações, intimações pessoais e o teor de processos sigilosos não chegam por aqui. Confira o eproc e o Domicílio Judicial Eletrônico.
+> Captura do DJEN para a OAB 12345/RS: todo dia às 8h trago as comunicações publicadas para você confirmar. Ela não substitui a sua conferência. Citações, intimações pessoais e o teor de processos sigilosos não chegam por aqui; confira o eproc e o Domicílio Judicial Eletrônico. Responda *sim* para ativar.
 
 ## O que mudou
 
@@ -320,6 +348,7 @@ Sem mudanças em domain, services, data, hooks, interface, agente/MCP ou banco.
 | Sigiloso sem cálculo | O teor não vem, e qualquer número seria chute. | Pedir os dias ao advogado pelo WhatsApp (ele precisa abrir o eproc de qualquer forma). |
 | Guardar só o trecho, com retenção | Minimização (LGPD) e menos dado no provedor de LLM. | Guardar o teor inteiro, como faz hoje a intimação colada. |
 | Consulta formal ao CNJ antes de ampliar | Não há termos próprios da API. | Assumir os termos do DataJud. |
+| Captura opcional e desligada por padrão; ativação pelo WhatsApp ou em Configurações, com OAB, UF, aviso de cobertura e *sim* | A OAB é dado do advogado, a resposta traz dados de terceiros (LGPD), e o aviso de cobertura (sem citações, Domicílio Judicial Eletrônico nem sigilosos) precisa ser lido na ativação. Decidido em 10/11/2026; o padrão pode ser reavaliado com os dados do piloto. | Ligada por padrão para quem tem OAB cadastrada. Ativação só pelo app. |
 
 ## Mudanças de comportamento
 
@@ -329,7 +358,7 @@ Nenhuma. O app, o agente e o banco estão como na `main`.
 
 Sem mudanças. A proposta prevê, para a etapa de implementação:
 - a tabela `comunicacoes_djen`;
-- as colunas `numero_oab`, `uf_oab` e `captura_djen_ligada` em `preferencias`;
+- as colunas `numero_oab`, `uf_oab` e `captura_djen_ligada` (padrão `false`) em `preferencias`;
 - a data da última consulta boa por advogado.
 
 O SQL completo será apresentado para revisão antes de qualquer migração.
@@ -361,13 +390,13 @@ Conferir também:
   - `POST /api/djen/comunicacoes`;
   - `domain/djen.ts` e `services/djen.ts`;
   - a migração;
-  - as ferramentas MCP;
-  - a tela de ligar a captura.
+  - as ferramentas MCP, inclusive a de ativar e desativar a captura pelo WhatsApp;
+  - o interruptor em Configurações > Agente.
 
   Fica para a próxima etapa, depois da aprovação deste desenho e da resposta do CNJ, quando for além do piloto.
-- **Comparar o painel do eproc com o DJEN** de um advogado do piloto, por uma ou duas semanas, para confirmar que nenhuma intimação ao advogado fica só no painel.
+- **Comparar o painel do eproc com o DJEN** de um advogado do piloto, por 1 a 2 semanas, para confirmar que nenhuma intimação ao advogado fica só no painel.
+- **Verificar como o DJEN trata o Ministério Público, a Defensoria e a parte sem advogado:** as fontes lidas não tratam deles.
 - **Ler no navegador o texto compilado da Res. CNJ 455/2022** (art. 11, 13 e o que fala de segredo de justiça e de acesso ao DJEN). Ele não abriu por acesso automatizado.
-- **Ministério Público, Defensoria e parte sem advogado no DJEN:** não confirmado.
 - **Atualizar a `docs/PROPOSTA_JURIDICA.md`** com a nova numeração (a responsável pelo produto fará).
 - **DataJud:** etapa posterior.
 
@@ -380,13 +409,14 @@ Conferir também:
 - **Extração dos dias:** é o ponto mais sensível ao erro de leitura. A função pura precisa de casos reais do TJRS, do TRT4 e do TRF4 nos testes (despachos, atos ordinatórios e sentenças), além de revisão por advogado, como os prazos em `docs/validacao-prazos.md`.
 - **Dados de terceiros:** a VPS recebe o teor inteiro por alguns segundos. O log não pode guardar o teor.
 - **Juizado ou vara:** o `nomeOrgao` do DJEN ajuda, mas os juizados adjuntos ("Juizado Especial Cível Adjunto da Comarca de ...") ficam dentro de varas. Por isso a pista vale para "Juizado", não para "Vara".
-- **Dúvida para a responsável pelo produto:** a captura é opcional por advogado (proposto) ou ligada por padrão?
+- **Padrão da captura:** decidido como opcional e desligado (ver "Ativação"). Reavaliar depois do piloto, com os dados de ativação, de sugestões confirmadas e descartadas e de intimações perdidas ou repetidas.
 
 ## Commits
 
 | Hash | Mensagem |
 |---|---|
-| (este commit) | Adiciona o relatório da etapa 5: investigação da captura pelo DJEN |
+| `f8f0557` | Adiciona o relatório da etapa 5: investigação da captura pelo DJEN |
+| (este commit) | Registra a captura do DJEN como opcional e desligada por padrão |
 
 ## Fontes
 
