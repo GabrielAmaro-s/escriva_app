@@ -1,33 +1,23 @@
 "use client";
 
-import { BriefcaseIcon, CheckSquareIcon, ScalesIcon, SlidersHorizontalIcon, StackIcon, SunIcon, UsersIcon, type Icon } from "@phosphor-icons/react";
+import { BriefcaseIcon, CalendarCheckIcon, ScalesIcon, SlidersHorizontalIcon, SunIcon, UsersIcon, type Icon } from "@phosphor-icons/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useProjetos } from "@/hooks/use-projetos";
 import { useUsuarioAtual } from "@/hooks/use-usuario-atual";
 import { classes } from "@/lib/classes";
+import { Logotipo } from "./logotipo";
+
+export { Logotipo };
 
 const NAVEGACAO: { href: string; rotulo: string; icone: Icon }[] = [
   { href: "/hoje", rotulo: "Hoje", icone: SunIcon },
   { href: "/", rotulo: "Processos", icone: ScalesIcon },
   { href: "/consultivo", rotulo: "Consultivo", icone: BriefcaseIcon },
-  { href: "/prazos", rotulo: "Prazos e tarefas", icone: CheckSquareIcon },
+  { href: "/prazos", rotulo: "Prazos e tarefas", icone: CalendarCheckIcon },
   { href: "/clientes", rotulo: "Clientes", icone: UsersIcon },
   { href: "/configuracoes", rotulo: "Configurações", icone: SlidersHorizontalIcon },
 ];
-
-export function Logotipo({ compacto }: { compacto?: boolean }) {
-  return (
-    <span className="flex items-center gap-2.5">
-      {!compacto && (
-        <span className="grid size-7 place-items-center rounded-lg bg-primary text-on-primary">
-          <StackIcon size={16} />
-        </span>
-      )}
-      <span className={classes("font-bold tracking-[-0.02em]", compacto ? "text-[15px]" : "text-base")}>myPlan</span>
-    </span>
-  );
-}
 
 export function MenuLateral({ aoNavegar }: { aoNavegar?: () => void }) {
   const caminho = usePathname();
