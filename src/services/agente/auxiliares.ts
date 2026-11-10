@@ -1,11 +1,14 @@
 import { dataNoFuso, descreverDia, isoNoFuso } from "@/domain/datas";
+import { ROTULO_AREA, formatarNumeroCnj } from "@/domain/processo";
 import { calcularProgresso, prazoDoProjeto } from "@/domain/projeto";
 import { progressoDoChecklist } from "@/domain/quadro";
 import type { Coluna, Etiqueta, PrioridadeTarefa, Projeto, StatusProjeto, Tarefa, TipoColuna } from "@/domain/tipos";
 import type { Repositorio } from "@/data/repositorio";
 
 // Peças comuns às ferramentas do agente: contexto, vocabulário em português,
-// busca de projeto/tarefa por id ou nome aproximado e formatação das respostas.
+// busca de processo/caso consultivo/tarefa por id ou nome aproximado e formatação das respostas.
+// No código e no banco, processo é "project" e caso consultivo é "campaign"; nas respostas, o
+// vocabulário é sempre o jurídico.
 
 export interface ContextoAgente {
   repo: Repositorio;
@@ -26,6 +29,14 @@ export const PRIORIDADE_DO_PT = { baixa: "low", media: "medium", alta: "high", u
 export const COLUNA_PT: Record<TipoColuna, "a_fazer" | "em_andamento" | "aguardando" | "concluido"> = { todo: "a_fazer", doing: "em_andamento", waiting: "aguardando", done: "concluido" };
 export const COLUNA_DO_PT = { a_fazer: "todo", em_andamento: "doing", aguardando: "waiting", concluido: "done" } as const satisfies Record<string, TipoColuna>;
 export const STATUS_PT: Record<StatusProjeto, "ativo" | "pausado" | "concluido"> = { active: "ativo", paused: "pausado", done: "concluido" };
+export const TIPO_PT: Record<Projeto["kind"], "processo" | "consultivo"> = { project: "processo", campaign: "consultivo" };
+
+/** Aceita o vocabulário jurídico e, por compatibilidade, o antigo ("projeto", "campanha"). */
+export const TIPOS_ACEITOS = ["processo", "consultivo", "projeto", "campanha"] as const;
+export const ehConsultivo = (tipo: (typeof TIPOS_ACEITOS)[number]) => tipo === "consultivo" || tipo === "campanha";
+
+/** "o processo X" ou "o caso consultivo X". */
+export const nomeDoCaso = (p: Pick<Projeto, "kind" | "name">) => `${p.kind === "campaign" ? "o caso consultivo" : "o processo"} ${p.name}`;
 
 /** Minúsculas, sem acento e sem espaços repetidos: "Campanha de Verão " -> "campanha de verao". */
 export function normalizar(texto: string): string {
@@ -67,7 +78,7 @@ function escolher<T extends { id: string }>(itens: T[], pedido: string, nomeDe: 
 
 export async function resolverProjeto(ctx: ContextoAgente, pedido: string, opcoes: { incluirArquivados?: boolean } = {}): Promise<Projeto> {
   const projetos = (await ctx.repo.listarProjetos()).filter((p) => opcoes.incluirArquivados || !p.archivedAt);
-  return escolher(projetos, pedido, (p) => p.name, "um projeto");
+  return escolher(projetos, pedido, (p) => p.name, "um processo ou caso consultivo");
 }
 
 export async function carregarEspaco(ctx: ContextoAgente) {
@@ -117,10 +128,14 @@ export function resumoDaTarefa(ctx: ContextoAgente, t: Tarefa, extras: { colunas
   return {
     id: t.id,
     titulo: t.title,
-    projeto: extras.projetos?.find((p) => p.id === t.projectId)?.name,
-    projeto_id: t.projectId,
+    tipo: t.tipo,
+    processo: extras.projetos?.find((p) => p.id === t.projectId)?.name,
+    processo_id: t.projectId,
+    // Título real da coluna (do modelo jurídico) e o código do papel, que serve de entrada no mover_tarefa.
     coluna: coluna?.title ?? null,
+    papel: coluna ? COLUNA_PT[coluna.kind] : null,
     prazo: t.dueOn,
+    prazo_fatal: t.prazoFatal,
     atrasada: Boolean(t.dueOn && !t.completed && t.dueOn < hoje),
     prioridade: PRIORIDADE_PT[t.priority],
     etiquetas: t.labelIds.map((id) => extras.etiquetas.find((e) => e.id === id)?.name).filter(Boolean),
@@ -134,7 +149,9 @@ export function resumoDoProjeto(ctx: ContextoAgente, p: Projeto) {
   return {
     id: p.id,
     nome: p.name,
-    tipo: p.kind === "campaign" ? "campanha" : "projeto",
+    tipo: TIPO_PT[p.kind],
+    numero_cnj: p.processo?.numeroCnj ? formatarNumeroCnj(p.processo.numeroCnj) : null,
+    area: p.processo?.area ? ROTULO_AREA[p.processo.area] : null,
     status: STATUS_PT[p.status],
     arquivado: Boolean(p.archivedAt),
     progresso: calcularProgresso(p),

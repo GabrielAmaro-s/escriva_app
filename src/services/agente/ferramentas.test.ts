@@ -77,6 +77,23 @@ describe("leitura", () => {
     expect((campanhas.corpo.projetos as unknown[]).length).toBe(3);
   });
 
+  it("listar_projetos fala em processos e casos consultivos, e aceita os tipos novos e os antigos", async () => {
+    const todos = await chamar("listar_projetos");
+    expect(todos.corpo.mensagem).toBe("4 processos e 3 casos consultivos.");
+    const consultivos = await chamar("listar_projetos", { tipo: "consultivo" });
+    expect(consultivos.corpo.mensagem).toBe("3 casos consultivos.");
+    expect((consultivos.corpo.projetos as { tipo: string }[]).every((p) => p.tipo === "consultivo")).toBe(true);
+    const processos = await chamar("listar_projetos", { tipo: "processo" });
+    const trabalhista = (processos.corpo.projetos as { nome: string; tipo: string; area: string }[]).find((p) => p.nome === "Reclamação trabalhista")!;
+    expect(trabalhista).toMatchObject({ tipo: "processo", area: "Trabalhista" });
+    expect((await chamar("listar_projetos", { tipo: "projeto" })).corpo.mensagem).toBe("4 processos.");
+  });
+
+  it("tarefas trazem o título real da coluna e o papel (código do mover_tarefa)", async () => {
+    const r = await chamar("buscar_tarefas", { texto: "despacho inicial" });
+    expect((r.corpo.tarefas as Record<string, unknown>[])[0]).toMatchObject({ coluna: "Aguardando decisão", papel: "aguardando", processo_id: expect.any(String) });
+  });
+
   it("ver_quadro aceita nome aproximado e mostra colunas e tarefas", async () => {
     const r = await chamar("ver_quadro", { projeto: "cobranca  de ALUGUEIS" });
     const colunas = r.corpo.colunas as { titulo: string; papel: string; tarefas: { titulo: string }[] }[];
@@ -101,9 +118,9 @@ describe("leitura", () => {
     expect((texto.corpo.tarefas as unknown[]).length).toBe(1);
   });
 
-  it("resumir_projeto lista atrasos, próximas entregas e Aguardando", async () => {
+  it("resumir_projeto lista atrasos, próximas entregas e a coluna de espera pelo título real", async () => {
     const r = await chamar("resumir_projeto", { projeto: "Cobrança de aluguéis" });
-    expect(r.corpo.mensagem).toBe("Cobrança de aluguéis: 44% (7 de 16 tarefas), próxima entrega hoje, 2 em Aguardando.");
+    expect(r.corpo.mensagem).toBe("Cobrança de aluguéis: 44% (7 de 16 tarefas), próxima entrega hoje, 2 em Aguardando decisão.");
     expect((r.corpo.aguardando as unknown[]).length).toBe(2);
     expect((r.corpo.proximas_entregas as { titulo: string }[])[0].titulo).toBe("Aguardar despacho inicial");
   });
@@ -193,11 +210,15 @@ describe("escrita", () => {
 
   it("criar_projeto usa Cível/JEC como modelo padrão de processo", async () => {
     const r = await chamar("criar_projeto", { nome: "Mudança de escritório", prazo: "2026-12-15" });
-    expect(r.corpo.mensagem).toBe("Criei o projeto Mudança de escritório.");
+    expect(r.corpo.mensagem).toBe("Criei o processo Mudança de escritório.");
+    expect((await repo.listarProjetos()).find((p) => p.name === "Mudança de escritório")?.icon).toBe("scales");
     const quadro = await chamar("ver_quadro", { projeto: "Mudança de escritório" });
     expect((quadro.corpo.colunas as { titulo: string }[]).map((c) => c.titulo)).toEqual(["A fazer", "Em andamento", "Aguardando decisão", "Concluído"]);
     const campanha = await chamar("criar_projeto", { nome: "Natal", tipo: "campanha", inicio: "2026-12-01", prazo: "2026-12-25", canais: ["Instagram"] });
-    expect(campanha.corpo.mensagem).toBe("Criei a campanha Natal.");
+    expect(campanha.corpo.mensagem).toBe("Criei o caso consultivo Natal.");
+    expect((await repo.listarProjetos()).find((p) => p.name === "Natal")?.icon).toBe("briefcase");
+    const parecer = await chamar("criar_projeto", { nome: "Parecer societário", tipo: "consultivo" });
+    expect(parecer.corpo.mensagem).toBe("Criei o caso consultivo Parecer societário.");
     const quadroDaCampanha = await chamar("ver_quadro", { projeto: "Natal" });
     expect((quadroDaCampanha.corpo.colunas as { titulo: string }[]).map((c) => c.titulo)).toEqual(["A fazer", "Redigindo", "Aguardando cliente", "Entregue"]);
   });
