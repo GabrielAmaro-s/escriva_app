@@ -1,4 +1,4 @@
-Tempestivo é o assistente no WhatsApp que não deixa o advogado autônomo perder prazo. Ele recebe a intimação, calcula o vencimento mostrando como chegou na data, só grava depois do "sim", lembra antes do vencimento e manda toda manhã o que vence e as audiências do dia.
+Escriva é a assessora no WhatsApp que não deixa o advogado autônomo perder prazo. Ela recebe a intimação, calcula o vencimento mostrando como chegou na data, só grava depois do "sim", lembra antes do vencimento e manda toda manhã o que vence e as audiências do dia.
 
 Este manual vale para o app, o agente no WhatsApp, o site e qualquer peça de divulgação.
 
@@ -7,19 +7,20 @@ Este manual vale para o app, o agente no WhatsApp, o site e qualquer peça de di
 - **Promessa:** nenhum prazo passa em branco.
 - **Para quem:** o advogado que trabalha sozinho, sem equipe e sem sistema caro, e que já vive no WhatsApp.
 - **Como entrega:** na conversa, sem precisar abrir um sistema; com o cálculo à vista; pedindo confirmação antes de gravar.
-- **Personalidade:** um colega de escritório atento. Preciso, calmo e breve. Nunca alarmista, nunca informal demais.
+- **Personalidade:** uma assessora de confiança, como a escrivã que cuidava das intimações no cartório. Precisa, calma e breve. Nunca alarmista, nunca informal demais.
 
 ### O nome
 
-"Tempestivo" é o termo técnico para o ato praticado dentro do prazo. É a palavra que o advogado usa quando o recurso foi aceito a tempo, e é exatamente o que o produto entrega.
+"Escriva" vem da escrivã, quem cuidava das intimações e dos prazos no cartório. O produto faz esse papel para o advogado que trabalha sozinho: recebe, anota, confere e avisa.
 
-- Em texto corrido, escreva **Tempestivo**, com inicial maiúscula.
-- No logotipo, o nome aparece em minúsculas: **tempestivo**.
-- Não abrevie, não use "Tempestivo App" nem "TPV", e não flexione ("Tempestiva" é outra palavra).
+- Em texto corrido, escreva **Escriva**, com inicial maiúscula, e sempre com artigo feminino: "a Escriva", "pergunte à Escriva".
+- No logotipo, o nome aparece em minúsculas: **escriva**.
+- Pronúncia: es-CRI-va, com a sílaba forte no meio. Não é "Escrivá".
+- Não abrevie, não use "Escriva App" e não troque por "Escreva".
 
 ## Voz e tom
 
-O Tempestivo escreve como fala com um advogado ocupado no meio do dia: frases curtas, a informação mais importante primeiro, termos jurídicos corretos e nada de juridiquês decorativo.
+A Escriva escreve como fala com um advogado ocupado no meio do dia: frases curtas, a informação mais importante primeiro, termos jurídicos corretos e nada de juridiquês decorativo.
 
 **Regras**
 
@@ -27,7 +28,7 @@ O Tempestivo escreve como fala com um advogado ocupado no meio do dia: frases cu
 - Use os termos certos: prazo fatal, prazo interno, intimação, disponibilização, dias úteis. Não invente sinônimos ("data limite final").
 - Datas sempre no formato `dd/mm` dentro do mesmo ano, e `dd/mm/aaaa` quando mudar de ano. Dias da semana ajudam: "sexta, 22/01".
 - Trate o advogado por "você". Sem "Dr." nem "prezado".
-- O Tempestivo calcula e lembra; quem decide é o advogado. Nunca escreva "garantido", "sem erro" ou "pode confiar". Escreva "confira o vencimento".
+- A Escriva calcula e lembra; quem decide é o advogado. Nunca escreva "garantido", "sem erro" ou "pode confiar". Escreva "confira o vencimento".
 - Peça confirmação com uma pergunta fechada: "Responda *sim* para registrar." Nas mensagens do WhatsApp, o *sim* vai entre asteriscos simples, que o WhatsApp mostra em negrito. Em outras peças (site, app), use negrito normal.
 - Erros dizem o que aconteceu e o que fazer: "Não achei esse número na sua conta. Quer que eu cadastre o processo?"
 - Sem emoji, sem exclamação em sequência e sem travessão. Use ponto e vírgula.
@@ -44,7 +45,7 @@ O Tempestivo escreve como fala com um advogado ocupado no meio do dia: frases cu
 
 ## Cores
 
-O Tempestivo é sóbrio por padrão e usa cor para dizer alguma coisa.
+A Escriva é sóbria por padrão e usa cor para dizer alguma coisa.
 
 - Fundo de tela em `surface`; cartões e janelas em `surface-raised`, separados por borda `line`, sem sombra.
 - Texto em `ink`; metadados em `ink-muted`.
@@ -75,9 +76,9 @@ Todo texto atinge pelo menos 4,5:1 de contraste nos dois temas, nas combinaçõe
 
 ## Logotipo
 
-O símbolo é um "t" minúsculo dentro de um quadrado de cantos arredondados, com um ponto em `marca-texto` no fim da barra: o prazo cumprido, marcado. O logotipo completo é o símbolo seguido do nome **tempestivo** em Bricolage Grotesque 600.
+O símbolo é um "e" minúsculo traçado de uma vez, como a anotação de quem cuida dos prazos, dentro de um quadrado de cantos arredondados, terminando num ponto em `marca-texto`: o prazo anotado e marcado. O logotipo completo é o símbolo seguido do nome **escriva** em Bricolage Grotesque 600.
 
-- **Arquivos:** `tempestivo-simbolo.svg` (cores da marca, para fundos claros), `tempestivo-simbolo-escuro.svg` (para fundos escuros) e `tempestivo-simbolo-mono.svg` (uma cor, para carimbo, papel timbrado e gravação).
+- **Arquivos:** `escriva-simbolo.svg` (cores da marca, para fundos claros), `escriva-simbolo-escuro.svg` (para fundos escuros) e `escriva-simbolo-mono.svg` (uma cor, para carimbo, papel timbrado e gravação).
 - **Área de proteção:** em volta do logotipo, deixe livre pelo menos a altura do ponto amarelo multiplicada por dois.
 - **Tamanho mínimo:** símbolo com 24px na tela e 8mm impresso. Abaixo disso, use só o símbolo, sem o nome.
 - **Não faça:** trocar as cores do símbolo, girar, esticar, contornar, aplicar sombra, colocar sobre foto sem área de cor sólida, ou mudar a fonte do nome.
@@ -92,6 +93,6 @@ O símbolo é um "t" minúsculo dentro de um quadrado de cantos arredondados, co
 
 ## Aplicações
 
-- **WhatsApp:** foto do perfil do agente com `tempestivo-simbolo.svg`. Nome do contato: "Tempestivo". As mensagens seguem a seção Voz e tom.
+- **WhatsApp:** foto do perfil do agente com `escriva-simbolo.svg`. Nome do contato: "Escriva". As mensagens seguem a seção Voz e tom.
 - **App:** símbolo no menu lateral, nome em `subtitulo`. O aviso de contagem em validação aparece em `interno-soft` com texto `interno`.
 - **Peças de divulgação:** fundo `surface` ou `petroleo`, título em `display`, uma data grifada com `marca-texto` como elemento de destaque.
