@@ -73,10 +73,10 @@ describe("servidor MCP", () => {
     expect(r.corpo.result).toMatchObject({ serverInfo: { name: "escriva" } });
   });
 
-  it("token de escrita lista as 19 ferramentas; de leitura, só as 7 sem escrita", async () => {
+  it("token de escrita lista as 20 ferramentas; de leitura, só as 8 sem escrita", async () => {
     const escrita = await rpc(tokenEscrita, "tools/list");
     const nomes = (escrita.corpo.result!.tools as { name: string }[]).map((t) => t.name);
-    expect(nomes).toHaveLength(19);
+    expect(nomes).toHaveLength(20);
     const leitura = await rpc(tokenLeitura, "tools/list");
     expect((leitura.corpo.result!.tools as { name: string }[]).map((t) => t.name)).toEqual([
       "listar_projetos",
@@ -86,6 +86,7 @@ describe("servidor MCP", () => {
       "lembretes_proximos",
       "prazos_proximos",
       "audiencias_proximas",
+      "documentos_pendentes",
     ]);
   });
 

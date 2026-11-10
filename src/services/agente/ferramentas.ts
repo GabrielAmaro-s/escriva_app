@@ -641,6 +641,6 @@ export function criarFerramentas(config: { limiteItens: number }): Ferramenta[] 
   ];
 }
 
-/** Nomes das 19 ferramentas, na ordem em que aparecem para o agente. */
+/** Nomes das 20 ferramentas, na ordem em que aparecem para o agente. */
 export const NOMES_DAS_FERRAMENTAS = criarFerramentas({ limiteItens: 10 }).map((f) => f.nome);
 

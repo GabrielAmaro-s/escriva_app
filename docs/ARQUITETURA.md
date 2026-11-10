@@ -184,7 +184,7 @@ Registro: toda chamada grava em registro_agente a entrada, o resultado, o sucess
 Texto é dado: as descrições das ferramentas são fixas. Títulos, links, textos de lembretes e textos de intimação só aparecem como valores no JSON de resposta, e as instruções do servidor dizem isso ao agente.
 Vocabulário: as respostas falam em processo e caso consultivo (tipo "processo" ou "consultivo"); os nomes das ferramentas e das chaves de entrada não mudaram, e as entradas tipo aceitam também "projeto" e "campanha". As tarefas trazem o título real da coluna e o papel (a_fazer, em_andamento, aguardando, concluido), que continua sendo o código de entrada do mover_tarefa.
 Segredo de justiça: nas ferramentas jurídicas, processo com segredo_justica aparece só com nome e número (sem parte contrária, cliente, órgão nem texto da intimação). A descrição da tarefa continua guardando o texto original.
-Arquivos: services/agente/definicao.ts (tipo Ferramenta, definir e esquemas comuns), ferramentas.ts (catálogo) e ferramentas-juridicas.ts (as quatro da etapa 4).
+Arquivos: services/agente/definicao.ts (tipo Ferramenta, definir e esquemas comuns), ferramentas.ts (catálogo) e ferramentas-juridicas.ts (as quatro da etapa 4 e documentos_pendentes).
 Ferramenta	O que faz	Escrita	Confirmação
 listar_projetos	processos e casos consultivos com status, número, área e progresso	não	não
 ver_quadro	colunas, tarefas e etiquetas (por id ou nome aproximado)	não	não
@@ -193,6 +193,7 @@ resumir_projeto	progresso, atrasos, próximas entregas, coluna de espera pelo t�
 lembretes_proximos	pendentes das próximas N horas; atualiza o heartbeat	não	não
 prazos_proximos	prazos abertos com fatal ou interno até hoje + N dias, atrasados primeiro, em todos os casos não arquivados (status quando não é ativo)	não	não
 audiencias_proximas	audiências de hoje até hoje + N dias, com hora e local	não	não
+documentos_pendentes	documentos do cliente ainda não entregues (checklist com doCliente), por cliente; segredo de justiça num grupo próprio, sem o cliente	não	não
 criar_tarefas	uma ou várias (até MCP_LIMITE_ITENS_POR_PEDIDO)	sim	não
 atualizar_tarefa	título, descrição, prazo, prioridade, etiquetas	sim	não
 mover_tarefa	troca de coluna com a regra de Concluído	sim	não
@@ -224,7 +225,7 @@ ambiente;
 tokens e lembretes;
 filtro de usuário do repositório do agente;
 integração navegador → API → serviços, inclusive clientes, prazos, feriados e preferências, 409 para repetidos e 400 para inválidos;
-as 19 ferramentas com o repositório em memória, inclusive intimação de processo não cadastrado, número CNJ fora da conta, confirmação negada, prazo que atravessa o recesso, regra pela área e segredo de justiça;
+as 20 ferramentas com o repositório em memória, inclusive intimação de processo não cadastrado, número CNJ fora da conta, confirmação negada, prazo que atravessa o recesso, regra pela área e segredo de justiça;
 a rota MCP de verdade (401, escopo e chamada).
 
 npm run test:banco-local (opcional, fora do npm test) roda supabase/testes contra o Supabase local: migrações do zero, RLS com dois usuários, chaves compostas com a chave de serviço, exclusão de cliente, feriados (RLS com dois usuários e sem login), histórico gravado só pelo gatilho, lembretes automáticos, preferências e o repositório do app e do agente contra o banco. Precisa de npx supabase start; o script só aceita URL local.

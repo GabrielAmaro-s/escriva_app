@@ -49,12 +49,12 @@ beforeEach(() => {
 });
 
 describe("catálogo", () => {
-  it("tem 19 ferramentas, com as 4 novas", () => {
-    expect(NOMES_DAS_FERRAMENTAS).toHaveLength(19);
-    expect(NOMES_DAS_FERRAMENTAS).toEqual(expect.arrayContaining(["registrar_intimacao", "criar_processo", "prazos_proximos", "audiencias_proximas"]));
+  it("tem 20 ferramentas, com as 5 jurídicas", () => {
+    expect(NOMES_DAS_FERRAMENTAS).toHaveLength(20);
+    expect(NOMES_DAS_FERRAMENTAS).toEqual(expect.arrayContaining(["registrar_intimacao", "criar_processo", "prazos_proximos", "audiencias_proximas", "documentos_pendentes"]));
   });
 
-  it("prazos_proximos e audiencias_proximas são de leitura; registrar_intimacao pede confirmação", () => {
+  it("prazos_proximos, audiencias_proximas e documentos_pendentes são de leitura; registrar_intimacao pede confirmação", () => {
     expect(ferramentas.filter((f) => !f.escrita).map((f) => f.nome)).toEqual([
       "listar_projetos",
       "ver_quadro",
@@ -63,6 +63,7 @@ describe("catálogo", () => {
       "lembretes_proximos",
       "prazos_proximos",
       "audiencias_proximas",
+      "documentos_pendentes",
     ]);
     expect(ferramentas.find((f) => f.nome === "registrar_intimacao")!.confirmacao).toBe(true);
   });
@@ -315,6 +316,106 @@ describe("prazos_proximos e audiencias_proximas", () => {
   it("sem nada na janela, diz que não há", async () => {
     expect((await chamar("prazos_proximos", { dias: 0 })).corpo.mensagem).toBe("Nenhum prazo aberto para hoje.");
     expect((await chamar("audiencias_proximas", { dias: 0 })).corpo.mensagem).toBe("Nenhuma audiência hoje.");
+  });
+});
+
+describe("documentos_pendentes", () => {
+  // Nos dados de exemplo, "Reclamação trabalhista" (cliente Fulano de Tal) já tem Holerites e CTPS pendentes.
+  async function documentoDoCliente(caso: string, itens: { text: string; done?: boolean; doCliente?: boolean }[], indice = 0) {
+    const tarefa = (await tarefasDe(caso)).filter((t) => !t.completed)[indice];
+    await repo.atualizarTarefa(tarefa.id, {
+      checklist: [...tarefa.checklist, ...itens.map((i, n) => ({ id: `${tarefa.id}-doc-${n}`, text: i.text, done: i.done ?? false, doCliente: i.doCliente ?? true }))],
+    });
+    return tarefa;
+  }
+
+  type Resposta = { grupo: string; cliente: string | null; segredo_justica?: boolean; documentos: Record<string, unknown>[] }[];
+
+  it("agrupa por cliente, em ordem alfabética, com processo e caso consultivo; entregues e itens comuns ficam de fora", async () => {
+    await documentoDoCliente("Cobrança de aluguéis", [{ text: "Procuração" }, { text: "RG", done: true }, { text: "Ligar para o síndico", doCliente: false }]);
+    await documentoDoCliente("Contrato de prestação de serviços", [{ text: "Contrato social" }]);
+    const r = await chamar("documentos_pendentes", {}, "leitura");
+    expect(r.erro).toBe(false);
+    expect(r.corpo.total).toBe(4);
+    const grupos = r.corpo.grupos as Resposta;
+    expect(grupos.map((g) => g.grupo)).toEqual(["Fulano de Tal", "Imobiliária Exemplo Ltda", "Prestadora Exemplo Ltda"]);
+    expect(grupos[0].documentos.map((d) => d.documento)).toEqual(["Holerites dos últimos 12 meses", "CTPS"]);
+    expect(grupos[1].documentos).toEqual([
+      expect.objectContaining({ documento: "Procuração", processo: { nome: "Cobrança de aluguéis", numero_cnj: null, tipo: "processo" }, link: expect.stringMatching(/^https:\/\/tempestivo\.teste\/projetos\/.+\?tarefa=/) }),
+    ]);
+    expect(grupos[2].documentos[0]).toMatchObject({ documento: "Contrato social", processo: { nome: "Contrato de prestação de serviços", tipo: "consultivo" } });
+    expect(r.corpo.mensagem).toBe(
+      "4 documentos pendentes de 3 clientes. Fulano de Tal: Holerites dos últimos 12 meses e CTPS (Reclamação trabalhista). E mais 2 documentos em outros grupos.",
+    );
+  });
+
+  it("tarefa concluída e caso arquivado não entram; caso sem cliente vai para o fim", async () => {
+    const tarefa = await documentoDoCliente("Cobrança de aluguéis", [{ text: "Procuração" }]);
+    await repo.atualizarTarefa(tarefa.id, { completed: true });
+    await repo.atualizarProjeto((await projeto("Reclamação trabalhista")).id, { archivedAt: AGORA.toISOString() });
+    await repo.atualizarProjeto((await projeto("Contrato de prestação de serviços")).id, { clienteId: null });
+    await documentoDoCliente("Contrato de prestação de serviços", [{ text: "Contrato social" }]);
+    await documentoDoCliente("Parecer sobre LGPD", [{ text: "Política de privacidade atual" }]);
+    const r = await chamar("documentos_pendentes");
+    expect((r.corpo.grupos as Resposta).map((g) => [g.grupo, g.cliente])).toEqual([
+      ["Loja Virtual Exemplo Ltda", "Loja Virtual Exemplo Ltda"],
+      ["Sem cliente", null],
+    ]);
+    expect(r.corpo.mensagem).toBe("2 documentos pendentes. Loja Virtual Exemplo Ltda: Política de privacidade atual (Parecer sobre LGPD). E mais 1 documento em outros grupos.");
+  });
+
+  it("processo em segredo de justiça: só nome e número, sem cliente nem título da tarefa, no grupo próprio", async () => {
+    await mudarProcesso("Reclamação trabalhista", { segredoJustica: true, numeroCnj: "00012344720268210001" });
+    await documentoDoCliente("Cobrança de aluguéis", [{ text: "Procuração" }]);
+    const r = await chamar("documentos_pendentes");
+    const grupos = r.corpo.grupos as Resposta;
+    expect(grupos.map((g) => g.grupo)).toEqual(["Imobiliária Exemplo Ltda", "Em segredo de justiça"]);
+    expect(grupos[1]).toMatchObject({ cliente: null, segredo_justica: true });
+    expect(grupos[1].documentos[0]).toEqual({
+      documento: "Holerites dos últimos 12 meses",
+      processo: { nome: "Reclamação trabalhista", numero_cnj: "0001234-47.2026.8.21.0001" },
+      link: expect.any(String),
+    });
+    expect(JSON.stringify(r.corpo)).not.toContain("Fulano de Tal");
+  });
+
+  it("filtra por cliente; processo em segredo não entra no filtro por cliente", async () => {
+    await documentoDoCliente("Cobrança de aluguéis", [{ text: "Procuração" }]);
+    const r = await chamar("documentos_pendentes", { cliente: "fulano" });
+    expect(r.corpo.mensagem).toBe("2 documentos pendentes de Fulano de Tal. Fulano de Tal: Holerites dos últimos 12 meses e CTPS (Reclamação trabalhista).");
+    expect(r.corpo.observacao).toBe("Processos em segredo de justiça não entram no filtro por cliente.");
+
+    await mudarProcesso("Reclamação trabalhista", { segredoJustica: true });
+    const emSegredo = await chamar("documentos_pendentes", { cliente: "Fulano de Tal" });
+    expect(emSegredo.corpo).toMatchObject({ total: 0, mensagem: "Nenhum documento pendente de Fulano de Tal." });
+    expect(JSON.stringify(emSegredo.corpo)).not.toContain("Reclamação trabalhista");
+  });
+
+  it("filtra por processo, pelo nome ou pelo número CNJ", async () => {
+    await documentoDoCliente("Cobrança de aluguéis", [{ text: "Procuração" }]);
+    await mudarProcesso("Cobrança de aluguéis", { numeroCnj: "00012344720268210001" });
+    for (const processo of ["aluguéis", "0001234-47.2026.8.21.0001"]) {
+      const r = await chamar("documentos_pendentes", { processo });
+      expect(r.corpo.mensagem).toBe("1 documento pendente em Cobrança de aluguéis. Imobiliária Exemplo Ltda: Procuração (Cobrança de aluguéis).");
+    }
+    expect((await chamar("documentos_pendentes", { processo: "Parecer" })).corpo.mensagem).toBe("Nenhum documento pendente em Parecer sobre LGPD.");
+  });
+
+  it("cliente ou processo ambíguo ou inexistente vira pergunta, sem inventar", async () => {
+    const ambiguo = await chamar("documentos_pendentes", { cliente: "de Tal" });
+    expect(ambiguo.erro).toBe(true);
+    expect(ambiguo.corpo.erro).toBe('Achei mais de um cliente parecido com "de Tal": "Beltrana de Tal", "Fulano de Tal". Qual deles?');
+    expect((await chamar("documentos_pendentes", { cliente: "Ciclano" })).corpo.erro).toBe('Não achei cliente parecido com "Ciclano" na sua conta.');
+    expect((await chamar("documentos_pendentes", { processo: "Cobrança" })).corpo.erro).toBe(
+      'Achei mais de um caso parecido com "Cobrança": "Cobrança de aluguéis", "Cobrança de cheques". Qual deles?',
+    );
+    expect((await chamar("documentos_pendentes", { processo: "0009999-07.2026.8.21.0001" })).corpo.erro).toBe("Não achei o processo 0009999-07.2026.8.21.0001 na sua conta.");
+  });
+
+  it("sem nenhum documento pendente, diz isso", async () => {
+    const tarefa = (await tarefasDe("Reclamação trabalhista")).find((t) => t.checklist.some((i) => i.doCliente))!;
+    await repo.atualizarTarefa(tarefa.id, { checklist: tarefa.checklist.map((i) => ({ ...i, done: true })) });
+    expect((await chamar("documentos_pendentes")).corpo).toMatchObject({ total: 0, grupos: [], mensagem: "Nenhum documento pendente de cliente." });
   });
 });
 

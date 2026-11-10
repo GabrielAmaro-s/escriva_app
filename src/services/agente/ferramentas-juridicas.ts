@@ -17,7 +17,7 @@ import {
 } from "@/domain/processo";
 import { AVISO_CONTAGEM_EM_VALIDACAO, type SituacaoPrazo, REGRAS, diasEntreDatas, situacaoDoPrazo, ROTULO_MEIO, alteracaoDePrazo, formatarData, formatarDataCurta, regraSeguraDoProcesso, tribunalDoProcesso } from "@/domain/prazos";
 import { dadosProjetoVazios } from "@/domain/projeto";
-import { MODELOS_DE_QUADRO, ordenarPorPosicao, proximaPosicaoNaColuna, type ModeloQuadro } from "@/domain/quadro";
+import { MODELOS_DE_QUADRO, documentosPendentes, ordenarPorPosicao, proximaPosicaoNaColuna, type ModeloQuadro } from "@/domain/quadro";
 import type { Cliente, Projeto, Tarefa } from "@/domain/tipos";
 import { criarCliente } from "../clientes";
 import { alterarTarefa, calcularPrazoDaTarefa } from "../prazos";
@@ -26,6 +26,7 @@ import {
   type ContextoAgente,
   ErroFerramenta,
   STATUS_PT,
+  TIPO_PT,
   carregarEspaco,
   diaFalado,
   hojeNoFuso,
@@ -40,6 +41,7 @@ import {
 import { PEDIR_SIM_REGISTRAR, confirmado, data, definir, type Ferramenta } from "./definicao";
 
 // Ferramentas jurídicas do agente (etapa 4): intimação, processo, prazos e audiências.
+// documentos_pendentes veio depois do piloto, com a marca Escriva.
 // Usam os mesmos services da tela. Processo com segredo de justiça aparece só com nome e número.
 
 const NADA_CRIADO = "Nada foi registrado.";
@@ -114,6 +116,26 @@ function encontrarProcesso(pedido: string, projetos: Projeto[]): Projeto {
   );
   if (consultivo) throw new ErroFerramenta(`${consultivo.name} é um caso consultivo: intimação só vale para processo. ${NADA_CRIADO}`);
   throw new ErroFerramenta(`Não achei processo parecido com "${texto}" na sua conta. ${NADA_CRIADO} ${OFERECER_CADASTRO}`);
+}
+
+/** Acha um processo ou caso consultivo não arquivado pelo número CNJ (exato) ou pelo nome. Só consulta. */
+function escolherCaso(pedido: string, visiveis: Projeto[]): Projeto {
+  const texto = pedido.trim();
+  const digitos = normalizarNumeroCnj(texto);
+  if (/^[\d\s.\-/]+$/.test(texto) && digitos.length >= 7) {
+    const achado = visiveis.find((p) => p.processo?.numeroCnj === digitos);
+    if (!achado) throw new ErroFerramenta(`Não achei o processo ${numeroCnjValido(digitos) ? formatarNumeroCnj(digitos) : texto} na sua conta.`);
+    return achado;
+  }
+  const achados = procurarPorNome(visiveis, texto, (p) => p.name);
+  if (!achados.length) throw new ErroFerramenta(`Não achei processo ou caso consultivo parecido com "${texto}" na sua conta.`);
+  if (achados.length > 1) throw new ErroFerramenta(`Achei mais de um caso parecido com "${texto}": ${achados.map((p) => `"${p.name}"`).join(", ")}. Qual deles?`);
+  return achados[0];
+}
+
+/** "a", "a e b", "a, b e c". */
+function juntar(itens: string[]): string {
+  return itens.length > 1 ? `${itens.slice(0, -1).join(", ")} e ${itens.at(-1)}` : (itens[0] ?? "");
 }
 
 type Situacao = SituacaoPrazo;
@@ -215,6 +237,91 @@ export function ferramentasJuridicas(): { leitura: Ferramenta[]; escrita: Ferram
             passou: new Date(t.horarioAudiencia!).getTime() < agora,
             link: linkDaTarefa(ctx, t),
           })),
+        },
+      };
+    },
+  });
+
+  const documentosPendentesDoCliente = definir({
+    nome: "documentos_pendentes",
+    titulo: "Documentos pendentes",
+    descricao:
+      'Documentos que o cliente ainda não entregou: itens de checklist marcados como "do cliente" e não marcados como feitos, em tarefas abertas de processos e casos consultivos não arquivados, agrupados por cliente. Use "cliente" ou "processo" quando a pessoa pedir um só. Processo com segredo de justiça aparece só com nome e número, sem o cliente, no grupo "Em segredo de justiça", e por isso não entra no filtro por cliente: para ele, peça pelo nome ou número do processo. Não entra no resumo das 8h.',
+    escrita: false,
+    confirmacao: false,
+    entrada: z.object({
+      cliente: z.string().trim().min(1).max(120).optional().describe("Nome do cliente."),
+      processo: z.string().trim().min(1).max(120).optional().describe("Número CNJ ou parte do nome do processo ou do caso consultivo."),
+    }),
+    async executar(ctx, args) {
+      const [e, clientes] = await Promise.all([carregarEspaco(ctx), ctx.repo.listarClientes()]);
+      const visiveis = e.projetos.filter((p) => !p.archivedAt);
+      const emSegredo = (p: Projeto) => Boolean(p.processo?.segredoJustica);
+      let casos = visiveis;
+      let filtro = "";
+
+      if (args.processo) {
+        const caso = escolherCaso(args.processo, visiveis);
+        casos = [caso];
+        filtro = ` em ${caso.name}`;
+      }
+      if (args.cliente) {
+        const achados = procurarPorNome(clientes, args.cliente, (c) => c.nome);
+        if (!achados.length) throw new ErroFerramenta(`Não achei cliente parecido com "${args.cliente}" na sua conta.`);
+        if (achados.length > 1) throw new ErroFerramenta(`Achei mais de um cliente parecido com "${args.cliente}": ${achados.map((c) => `"${c.nome}"`).join(", ")}. Qual deles?`);
+        const [cliente] = achados;
+        casos = casos.filter((p) => p.clienteId === cliente.id && !emSegredo(p));
+        filtro = `${filtro} de ${cliente.nome}`;
+      }
+
+      const porId = new Map(casos.map((p) => [p.id, p]));
+      const tarefas = new Map(e.tarefas.map((t) => [t.id, t]));
+      const pendentes = documentosPendentes(e.tarefas.filter((t) => porId.has(t.projectId)));
+      const nomeDoCliente = new Map(clientes.map((c) => [c.id, c.nome]));
+
+      type Grupo = { grupo: string; cliente: string | null; segredo_justica?: true; itens: { documento: string; processo: string; link: string; dados: Record<string, unknown> }[] };
+      const SEM_CLIENTE = "Sem cliente";
+      const SEGREDO = "Em segredo de justiça";
+      const grupos = new Map<string, Grupo>();
+      for (const d of pendentes) {
+        const p = porId.get(d.projectId)!;
+        const t = tarefas.get(d.tarefaId)!;
+        const link = linkDaTarefa(ctx, t);
+        const nomeCliente = p.clienteId ? (nomeDoCliente.get(p.clienteId) ?? null) : null;
+        const chave = emSegredo(p) ? SEGREDO : (nomeCliente ?? SEM_CLIENTE);
+        if (!grupos.has(chave)) {
+          grupos.set(chave, emSegredo(p) ? { grupo: SEGREDO, cliente: null, segredo_justica: true, itens: [] } : { grupo: chave, cliente: nomeCliente, itens: [] });
+        }
+        // Em segredo de justiça: nome e número do processo, sem cliente e sem o título da tarefa.
+        const dados = emSegredo(p)
+          ? { documento: d.texto, processo: processoCurto(p), link }
+          : { documento: d.texto, processo: { ...processoCurto(p), tipo: TIPO_PT[p.kind] }, tarefa: t.title, link };
+        grupos.get(chave)!.itens.push({ documento: d.texto, processo: p.name, link, dados });
+      }
+
+      // Clientes em ordem alfabética; "Sem cliente" e "Em segredo de justiça" no fim.
+      const peso = (g: Grupo) => (g.segredo_justica ? 2 : g.cliente === null ? 1 : 0);
+      const lista = [...grupos.values()].sort((a, b) => peso(a) - peso(b) || a.grupo.localeCompare(b.grupo, "pt-BR"));
+      for (const g of lista) g.itens.sort((a, b) => a.processo.localeCompare(b.processo, "pt-BR"));
+
+      const total = pendentes.length;
+      let mensagem = `Nenhum documento pendente${filtro || " de cliente"}.`;
+      if (total) {
+        const comNome = lista.filter((g) => g.cliente !== null).length;
+        const deQuantos = !args.cliente && comNome > 1 ? ` de ${plural(comNome, "cliente", "clientes")}` : "";
+        const [primeiro, ...outros] = lista;
+        const porCaso = new Map<string, string[]>();
+        for (const i of primeiro.itens) porCaso.set(i.processo, [...(porCaso.get(i.processo) ?? []), i.documento]);
+        const detalhe = [...porCaso].map(([caso, docs]) => `${juntar(docs)} (${caso})`).join("; ");
+        const resto = outros.length ? ` E mais ${plural(outros.reduce((n, g) => n + g.itens.length, 0), "documento", "documentos")} em outros grupos.` : "";
+        mensagem = `${plural(total, "documento pendente", "documentos pendentes")}${filtro}${deQuantos}. ${primeiro.grupo}: ${detalhe}.${resto}`;
+      }
+      return {
+        mensagem,
+        dados: {
+          total,
+          grupos: lista.map((g) => ({ grupo: g.grupo, cliente: g.cliente, ...(g.segredo_justica ? { segredo_justica: true } : {}), documentos: g.itens.map((i) => i.dados) })),
+          ...(args.cliente ? { observacao: "Processos em segredo de justiça não entram no filtro por cliente." } : {}),
         },
       };
     },
@@ -430,5 +537,5 @@ export function ferramentasJuridicas(): { leitura: Ferramenta[]; escrita: Ferram
     },
   });
 
-  return { leitura: [prazosProximos, audienciasProximas], escrita: [criarProcesso], comConfirmacao: [registrarIntimacao] };
+  return { leitura: [prazosProximos, audienciasProximas, documentosPendentesDoCliente], escrita: [criarProcesso], comConfirmacao: [registrarIntimacao] };
 }

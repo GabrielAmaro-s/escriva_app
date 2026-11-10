@@ -186,7 +186,7 @@ Motor de prazos. domain/prazos.ts com testes, tabela de feriados, tipos de taref
 Agente jurídico (versão enxuta para o piloto com 2 ou 3 advogados). Feito: registrar_intimacao, criar_processo, prazos_proximos e audiencias_proximas; mensagens no vocabulário jurídico; SOUL.md com os resumos de prazos e audiências; uma instância do nanobot por advogado na mesma VPS. Ficou para depois: documentos_pendentes, andamento_para_cliente, consultar_processo (DataJud) e um agente que atende vários números.
 Depois do piloto, nesta ordem:
 1. Campo "rito" (comum|juizado) em processo_detalhes, preenchido uma vez por processo, para o agente parar de perguntar "vara comum ou juizado?". Exige migração. Até lá, a palavra "Vara" no órgão não conta como pista, por causa dos juizados adjuntos em comarcas pequenas e das varas federais com JEF.
-2. documentos_pendentes no agente. Os documentos pendentes não entram no resumo das 8h.
+2. documentos_pendentes no agente (feito em 10/11/2026, com a marca Escriva). Os documentos pendentes não entram no resumo das 8h.
 DataJud. Consulta por número CNJ e aviso de movimentação nova (sem substituir a leitura das intimações).
 Andamento para o cliente. Texto em linguagem simples, depois um link de acompanhamento só de leitura, se fizer sentido.
 
@@ -207,7 +207,7 @@ Dia do Servidor de 2027 no TRF4 (e no TRT4, se houver): carregar quando o tribun
 Quarta-feira de Cinzas: só entra como expediente reduzido com ato do tribunal; até lá, o advogado pode cadastrá-la como feriado local.
 Ícones jurídicos: feitos na etapa 2 (tela) e na etapa 4 (o agente cria processo com a balança e caso consultivo com a maleta).
 Vocabulário das mensagens do agente: feito na etapa 4.
-Ferramentas do agente que ficaram fora da etapa 4: documentos_pendentes, andamento_para_cliente e consultar_processo (DataJud, etapa 5).
+Ferramentas do agente que ficaram fora da etapa 4: andamento_para_cliente e consultar_processo (DataJud, etapa 5). documentos_pendentes foi feita em 10/11/2026.
 Agente único para vários números: fora do piloto. No piloto, cada advogado tem a própria instância do nanobot.
 
 13. Ideias futuras
