@@ -29,7 +29,7 @@ export function TelaQuadro({ projetoId }: { projetoId: string }) {
   const colunas = api.colunasDe(projetoId);
 
   useEffect(() => {
-    if (projeto) document.title = `${projeto.name} | myPlan`;
+    if (projeto) document.title = `${projeto.name} | Tempestivo`;
   }, [projeto]);
 
   const definirAba = (a: "quadro" | "detalhes") => router.replace(`/projetos/${projetoId}${a === "detalhes" ? "?aba=detalhes" : ""}`, { scroll: false });

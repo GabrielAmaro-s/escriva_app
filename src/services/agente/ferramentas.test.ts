@@ -27,7 +27,7 @@ async function idDaTarefa(titulo: string) {
 
 beforeEach(() => {
   repo = criarRepositorioLocal({ dados: criarDadosDeExemplo(new Date(2026, 10, 4, 12)) });
-  ctx = { repo, fuso: "America/Sao_Paulo", urlApp: "https://myplan.teste", limiteItens: 10, agora: () => AGORA };
+  ctx = { repo, fuso: "America/Sao_Paulo", urlApp: "https://tempestivo.teste", limiteItens: 10, agora: () => AGORA };
 });
 
 describe("catálogo", () => {
@@ -84,7 +84,7 @@ describe("leitura", () => {
     const cobranca = (r.corpo.projetos as { nome: string; progresso: number; status: string; link: string }[]).find((p) => p.nome === "Cobrança de aluguéis")!;
     expect(r.erro).toBe(false);
     expect(cobranca).toMatchObject({ progresso: 44, status: "ativo", tarefas: "7 de 16" });
-    expect(cobranca.link).toMatch(/^https:\/\/myplan\.teste\/projetos\//);
+    expect(cobranca.link).toMatch(/^https:\/\/tempestivo\.teste\/projetos\//);
     const campanhas = await chamar("listar_projetos", { tipo: "campanha" });
     expect((campanhas.corpo.projetos as unknown[]).length).toBe(3);
   });

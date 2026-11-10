@@ -45,7 +45,7 @@ const INTIMACAO = {
 
 beforeEach(() => {
   repo = criarRepositorioLocal({ dados: criarDadosDeExemplo(new Date(2026, 10, 4, 12)) });
-  ctx = { repo, fuso: "America/Sao_Paulo", urlApp: "https://myplan.teste", limiteItens: 10, agora: () => AGORA };
+  ctx = { repo, fuso: "America/Sao_Paulo", urlApp: "https://tempestivo.teste", limiteItens: 10, agora: () => AGORA };
 });
 
 describe("catálogo", () => {

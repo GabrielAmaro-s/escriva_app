@@ -62,7 +62,7 @@ const data = z.string().nullable();
 const tom = z.enum(["violet", "blue", "green", "amber", "red", "pink", "gray"]);
 
 const esquemaExportacao = z.object({
-  versao: z.literal(VERSAO_EXPORTACAO, { error: "Este arquivo é de uma versão do myPlan que esta tela não reconhece." }),
+  versao: z.literal(VERSAO_EXPORTACAO, { error: "Este arquivo é de uma versão do Tempestivo que esta tela não reconhece." }),
   exportadoEm: z.string(),
   projetos: z.array(
     z.object({

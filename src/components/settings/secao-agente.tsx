@@ -67,7 +67,7 @@ export function SecaoAgente() {
     return (
       <>
         <p className="mb-2.5 mt-7 text-xs font-semibold text-ink-muted">Agente</p>
-        <p className="text-[12.5px] text-ink-muted">O agente pessoal precisa do Supabase: ele conversa com o servidor do myPlan, não com este navegador.</p>
+        <p className="text-[12.5px] text-ink-muted">O agente pessoal precisa do Supabase: ele conversa com o servidor do Tempestivo, não com este navegador.</p>
       </>
     );
   }

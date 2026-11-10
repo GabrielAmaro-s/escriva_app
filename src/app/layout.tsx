@@ -11,8 +11,9 @@ const fonteSans = IBM_Plex_Sans({ subsets: ["latin"], weight: ["400", "500", "60
 const fonteMono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--fonte-mono", display: "swap" });
 
 export const metadata: Metadata = {
-  title: "myPlan",
-  description: "Seus processos e casos consultivos, organizados em quadros simples.",
+  title: "Tempestivo",
+  description: "O assistente que não deixa o advogado autônomo perder prazo: calcula o vencimento mostrando como chegou na data e lembra antes de vencer.",
+  applicationName: "Tempestivo",
 };
 
 export const viewport: Viewport = {

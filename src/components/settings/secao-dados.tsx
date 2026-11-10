@@ -34,7 +34,7 @@ export function SecaoDados() {
       const url = URL.createObjectURL(new Blob([JSON.stringify(dados, null, 2)], { type: "application/json" }));
       const link = document.createElement("a");
       link.href = url;
-      link.download = `myplan-${hojeIso()}.json`;
+      link.download = `tempestivo-${hojeIso()}.json`;
       link.click();
       URL.revokeObjectURL(url);
       avisar({ texto: "Arquivo exportado", tom: "info" });

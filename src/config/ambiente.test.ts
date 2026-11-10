@@ -47,11 +47,11 @@ describe("ambiente", () => {
     const { ambientePublico, obterAmbienteServidor } = await carregar({
       ...SUPABASE,
       NODE_ENV: "development",
-      NEXT_PUBLIC_APP_URL: "https://myplan.exemplo.com/",
+      NEXT_PUBLIC_APP_URL: "https://tempestivo.exemplo.com/",
       MCP_SEGREDO_TOKENS: "x".repeat(40),
       MCP_VALIDADE_TOKEN_DIAS: "30",
     });
-    expect(ambientePublico).toMatchObject({ modoLocal: false, urlApp: "https://myplan.exemplo.com" });
+    expect(ambientePublico).toMatchObject({ modoLocal: false, urlApp: "https://tempestivo.exemplo.com" });
     expect(obterAmbienteServidor()).toMatchObject({ validadeTokenDias: 30, limiteItensPorPedido: 10, alertaSemHeartbeatMin: 60 });
   });
 });
