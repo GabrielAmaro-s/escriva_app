@@ -31,6 +31,42 @@ import type {
 /** Aviso mostrado junto de todo cálculo. Para tirar de todas as telas, troque por null. */
 export const AVISO_CONTAGEM_EM_VALIDACAO: string | null = "Contagem em validação. Confira o vencimento antes de usar.";
 
+// Situação de um prazo (tela e agente) -------------------------------------------------
+
+export type SituacaoPrazo = "fatal_vencido" | "vence_hoje" | "interno_vencido" | "interno_hoje" | "no_prazo";
+
+/** Cor do estado no manual da marca: fatal, interno ou no-prazo. A palavra vai sempre junto. */
+export type CorDoEstado = "fatal" | "interno" | "no-prazo";
+
+export function situacaoDoPrazo(t: { prazoFatal: string | null; dueOn: string | null }, hoje: string): SituacaoPrazo {
+  if (t.prazoFatal && t.prazoFatal < hoje) return "fatal_vencido";
+  if (t.prazoFatal === hoje) return "vence_hoje";
+  if (t.dueOn && t.dueOn < hoje) return "interno_vencido";
+  if (t.dueOn === hoje) return "interno_hoje";
+  return "no_prazo";
+}
+
+/** Selo do prazo: palavra, cor e, quando faz sentido, os dias até o fatal ("5 dias"). */
+export function seloDoPrazo(t: { prazoFatal: string | null; dueOn: string | null; completed: boolean }, hoje: string): { rotulo: string; cor: CorDoEstado; dias: string | null } {
+  if (t.completed) return { rotulo: "Cumprido", cor: "no-prazo", dias: null };
+  const s = situacaoDoPrazo(t, hoje);
+  const faltam = t.prazoFatal ? diasEntreDatas(hoje, t.prazoFatal) : null;
+  const dias = faltam !== null && faltam > 0 ? `${faltam} ${faltam === 1 ? "dia" : "dias"}` : null;
+  if (s === "fatal_vencido") return { rotulo: "Fatal vencido", cor: "fatal", dias: null };
+  if (s === "vence_hoje") return { rotulo: "Vence hoje", cor: "fatal", dias: null };
+  if (s === "interno_vencido") return { rotulo: "Interno vencido", cor: "interno", dias };
+  return { rotulo: "No prazo", cor: "no-prazo", dias };
+}
+
+/** Dias corridos entre duas datas AAAA-MM-DD (b - a). */
+export function diasEntreDatas(a: string, b: string): number {
+  const utc = (d: string) => {
+    const [ano, mes, dia] = d.split("-").map(Number);
+    return Date.UTC(ano, mes - 1, dia);
+  };
+  return Math.round((utc(b) - utc(a)) / 86_400_000);
+}
+
 export const MARGEM_PADRAO = 2;
 export const MENSAGEM_FERIADO_DUPLICADO = "Você já cadastrou um feriado nessa data.";
 export const MARGEM_MAXIMA = 30;

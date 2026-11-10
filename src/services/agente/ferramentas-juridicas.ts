@@ -15,7 +15,7 @@ import {
   numeroCnjValido,
   validarDetalhesProcesso,
 } from "@/domain/processo";
-import { AVISO_CONTAGEM_EM_VALIDACAO, REGRAS, ROTULO_MEIO, alteracaoDePrazo, formatarData, formatarDataCurta, regraSeguraDoProcesso, tribunalDoProcesso } from "@/domain/prazos";
+import { AVISO_CONTAGEM_EM_VALIDACAO, type SituacaoPrazo, REGRAS, diasEntreDatas, situacaoDoPrazo, ROTULO_MEIO, alteracaoDePrazo, formatarData, formatarDataCurta, regraSeguraDoProcesso, tribunalDoProcesso } from "@/domain/prazos";
 import { dadosProjetoVazios } from "@/domain/projeto";
 import { MODELOS_DE_QUADRO, ordenarPorPosicao, proximaPosicaoNaColuna, type ModeloQuadro } from "@/domain/quadro";
 import type { Cliente, Projeto, Tarefa } from "@/domain/tipos";
@@ -115,24 +115,8 @@ function encontrarProcesso(pedido: string, projetos: Projeto[]): Projeto {
   throw new ErroFerramenta(`Não encontrei processo parecido com "${texto}" na sua conta. ${NADA_CRIADO} Se ele ainda não está cadastrado, use criar_processo.`);
 }
 
-/** Dias entre duas datas AAAA-MM-DD (b - a). */
-function diasEntre(a: string, b: string): number {
-  const utc = (d: string) => {
-    const [ano, mes, dia] = d.split("-").map(Number);
-    return Date.UTC(ano, mes - 1, dia);
-  };
-  return Math.round((utc(b) - utc(a)) / 86_400_000);
-}
-
-type Situacao = "fatal_vencido" | "interno_vencido" | "vence_hoje" | "interno_hoje" | "no_prazo";
-
-function situacaoDoPrazo(t: Tarefa, hoje: string): Situacao {
-  if (t.prazoFatal && t.prazoFatal < hoje) return "fatal_vencido";
-  if (t.prazoFatal === hoje) return "vence_hoje";
-  if (t.dueOn && t.dueOn < hoje) return "interno_vencido";
-  if (t.dueOn === hoje) return "interno_hoje";
-  return "no_prazo";
-}
+type Situacao = SituacaoPrazo;
+const diasEntre = diasEntreDatas;
 
 function descreverSituacao(ctx: ContextoAgente, t: Tarefa, s: Situacao): string {
   if (s === "fatal_vencido") return `o prazo fatal venceu em ${formatarDataCurta(t.prazoFatal!)}`;

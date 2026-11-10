@@ -148,7 +148,7 @@ describe("escrita", () => {
         { titulo: "Publicar", prazo: "2026-11-06", etiquetas: ["Recurso"] },
       ],
     });
-    expect(r.corpo.mensagem).toBe("Criei 3 tarefas em Cobrança de aluguéis, prazo sexta.");
+    expect(r.corpo.mensagem).toBe("Criei 3 tarefas em Cobrança de aluguéis, prazo sexta, 06/11.");
     const tarefas = r.corpo.tarefas as { id: string; link: string }[];
     expect(tarefas[0].link).toMatch(/\/projetos\/[^?]+\?tarefa=/);
     const espaco = await repo.obterEspacoDeTrabalho();

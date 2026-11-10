@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  diasEntreDatas,
+  seloDoPrazo,
+  situacaoDoPrazo,
   regraSeguraDoProcesso,
   calcularPrazo,
   calcularPrazoDaIntimacao,
@@ -302,5 +305,27 @@ describe("regra segura do processo (agente)", () => {
 
   it("família vai sempre para vara: regra cível", () => {
     expect(regraSeguraDoProcesso({ area: "familia", orgao: "Vara de Família" })).toBe("civel");
+  });
+});
+
+describe("situação e selo do prazo", () => {
+  const hoje = "2026-11-10";
+  const t = (prazoFatal: string | null, dueOn: string | null, completed = false) => ({ prazoFatal, dueOn, completed });
+
+  it("situação: fatal vencido, vence hoje, interno vencido, interno hoje e no prazo", () => {
+    expect(situacaoDoPrazo(t("2026-11-09", "2026-11-05"), hoje)).toBe("fatal_vencido");
+    expect(situacaoDoPrazo(t("2026-11-10", "2026-11-06"), hoje)).toBe("vence_hoje");
+    expect(situacaoDoPrazo(t("2026-11-12", "2026-11-09"), hoje)).toBe("interno_vencido");
+    expect(situacaoDoPrazo(t("2026-11-12", "2026-11-10"), hoje)).toBe("interno_hoje");
+    expect(situacaoDoPrazo(t("2026-11-20", "2026-11-18"), hoje)).toBe("no_prazo");
+  });
+
+  it("selo: sempre com a palavra, nas cores fatal, interno e no-prazo, com os dias até o fatal", () => {
+    expect(seloDoPrazo(t("2026-11-09", null), hoje)).toEqual({ rotulo: "Fatal vencido", cor: "fatal", dias: null });
+    expect(seloDoPrazo(t("2026-11-10", null), hoje)).toEqual({ rotulo: "Vence hoje", cor: "fatal", dias: null });
+    expect(seloDoPrazo(t("2026-11-12", "2026-11-09"), hoje)).toEqual({ rotulo: "Interno vencido", cor: "interno", dias: "2 dias" });
+    expect(seloDoPrazo(t("2026-11-11", "2026-11-11"), hoje)).toEqual({ rotulo: "No prazo", cor: "no-prazo", dias: "1 dia" });
+    expect(seloDoPrazo(t("2026-11-09", null, true), hoje)).toEqual({ rotulo: "Cumprido", cor: "no-prazo", dias: null });
+    expect(diasEntreDatas("2026-12-31", "2027-01-02")).toBe(2);
   });
 });
