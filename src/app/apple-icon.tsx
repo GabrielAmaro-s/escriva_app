@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { ImageResponse } from "next/og";
 
-// Ícone da tela inicial do iPhone e do iPad: o símbolo oficial (docs/marca/logos/tempestivo-simbolo.svg).
+// Ícone da tela inicial do iPhone e do iPad: o símbolo oficial (docs/marca/logos/escriva-simbolo.svg).
 export const size = { width: 180, height: 180 };
 export const contentType = "image/png";
 

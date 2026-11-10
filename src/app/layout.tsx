@@ -11,9 +11,9 @@ const fonteSans = IBM_Plex_Sans({ subsets: ["latin"], weight: ["400", "500", "60
 const fonteMono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--fonte-mono", display: "swap" });
 
 export const metadata: Metadata = {
-  title: "Tempestivo",
-  description: "O assistente que não deixa o advogado autônomo perder prazo: calcula o vencimento mostrando como chegou na data e lembra antes de vencer.",
-  applicationName: "Tempestivo",
+  title: "Escriva",
+  description: "A assessora que não deixa o advogado autônomo perder prazo: calcula o vencimento mostrando como chegou na data e lembra antes de vencer.",
+  applicationName: "Escriva",
 };
 
 export const viewport: Viewport = {

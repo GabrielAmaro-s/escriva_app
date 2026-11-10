@@ -1,6 +1,6 @@
-Tempestivo: proposta da versão jurídica para o advogado autônomo
+Escriva: proposta da versão jurídica para o advogado autônomo
 
-Proposta para adaptar o myPlan, o gerenciador de projetos que deu origem ao produto, ao dia a dia do advogado que trabalha sozinho. O produto se chama **Tempestivo** ("tempestivo" é o ato praticado dentro do prazo); a marca está em docs/marca/.
+Proposta para adaptar o myPlan, o gerenciador de projetos que deu origem ao produto, ao dia a dia do advogado que trabalha sozinho. O produto se chama **Escriva** (de escrivã, quem cuidava das intimações e dos prazos no cartório; pronúncia es-CRI-va); a marca está em docs/marca/. Até 10/11/2026 se chamou Tempestivo, nome descartado porque já existe tempestivo.com.br no mesmo nicho.
 
 Base técnica: repositório GabrielAmaro-s/tempestivoapp (antes GabrielAmaro-s/myPlan); a arquitetura está em docs/ARQUITETURA.md.
 
@@ -27,7 +27,7 @@ O sistema sugere, o advogado confirma. Nenhum prazo fatal é gravado sem confirm
 Simples de alimentar. Criar um processo deve levar menos de um minuto; o resto se completa com o uso.
 Sigilo desde o início. Dados de clientes tratados como sensíveis em todas as decisões.
 Na dúvida, o prazo vence antes. Um feriado ou uma suspensão a mais empurra o vencimento para depois do real e pode fazer o advogado perder o prazo. Por isso, o motor e as cargas de feriados só tiram um dia da contagem quando há base clara, e entre duas leituras possíveis da regra ficam com a que vence antes.
-4. O que se aproveita do myPlan (a base do Tempestivo)
+4. O que se aproveita do myPlan (a base da Escriva)
 Hoje	Na versão jurídica
 Projeto (kind = project)	Processo, com dados em processo_detalhes (mesmo padrão de campaign_details)
 Campanha (kind = campaign)	Consultivo: contrato, parecer, notificação extrajudicial, inventário extrajudicial
@@ -186,7 +186,7 @@ Motor de prazos. domain/prazos.ts com testes, tabela de feriados, tipos de taref
 Agente jurídico (versão enxuta para o piloto com 2 ou 3 advogados). Feito: registrar_intimacao, criar_processo, prazos_proximos e audiencias_proximas; mensagens no vocabulário jurídico; SOUL.md com os resumos de prazos e audiências; uma instância do nanobot por advogado na mesma VPS. Ficou para depois: documentos_pendentes, andamento_para_cliente, consultar_processo (DataJud) e um agente que atende vários números.
 Depois do piloto, nesta ordem:
 1. Campo "rito" (comum|juizado) em processo_detalhes, preenchido uma vez por processo, para o agente parar de perguntar "vara comum ou juizado?". Exige migração. Até lá, a palavra "Vara" no órgão não conta como pista, por causa dos juizados adjuntos em comarcas pequenas e das varas federais com JEF.
-2. documentos_pendentes no agente. Os documentos pendentes não entram no resumo das 8h.
+2. documentos_pendentes no agente (feito em 10/11/2026, com a marca Escriva). Os documentos pendentes não entram no resumo das 8h.
 DataJud. Consulta por número CNJ e aviso de movimentação nova (sem substituir a leitura das intimações).
 Andamento para o cliente. Texto em linguagem simples, depois um link de acompanhamento só de leitura, se fizer sentido.
 
@@ -198,8 +198,8 @@ Sigilo profissional e LGPD. Mensagens passam pelo WhatsApp e pelo provedor de LL
 Feriados desatualizados. Uma tabela errada gera prazo errado. Revisão anual e cadastro de feriado local pelo próprio advogado.
 Concorrência. Astrea, ADVBOX, Projuris, EasyJur e CPJ já oferecem gestão completa. O diferencial é ser leve e centrado no WhatsApp, não ter mais funções.
 12. Pendências
-Nome do produto: definido, Tempestivo (marca em docs/marca/).
-Domínio: o app ainda responde em myplan-ashy.vercel.app. Trocar por um domínio do Tempestivo e, junto, atualizar NEXT_PUBLIC_APP_URL na Vercel, as Redirect URLs do Supabase e o TEMPESTIVO_MCP_URL das instâncias do agente.
+Nome do produto: definido, Escriva (marca em docs/marca/), no lugar de Tempestivo desde 10/11/2026.
+Domínio: o app ainda responde em myplan-ashy.vercel.app. Trocar por um domínio da Escriva e, junto, atualizar NEXT_PUBLIC_APP_URL na Vercel, as Redirect URLs do Supabase e o TEMPESTIVO_MCP_URL das instâncias do agente.
 Validação com advogados autônomos (dores, preço, uso do WhatsApp para trabalho).
 Revisão das regras de prazo por alguém da área antes de qualquer uso real (casos em docs/validacao-prazos.md).
 Feriados forenses do TJRS além da Data Magna: carregar só depois de conferir o ato do tribunal (etapa 3 deixou só o 20/09).
@@ -207,7 +207,7 @@ Dia do Servidor de 2027 no TRF4 (e no TRT4, se houver): carregar quando o tribun
 Quarta-feira de Cinzas: só entra como expediente reduzido com ato do tribunal; até lá, o advogado pode cadastrá-la como feriado local.
 Ícones jurídicos: feitos na etapa 2 (tela) e na etapa 4 (o agente cria processo com a balança e caso consultivo com a maleta).
 Vocabulário das mensagens do agente: feito na etapa 4.
-Ferramentas do agente que ficaram fora da etapa 4: documentos_pendentes, andamento_para_cliente e consultar_processo (DataJud, etapa 5).
+Ferramentas do agente que ficaram fora da etapa 4: andamento_para_cliente e consultar_processo (DataJud, etapa 5). documentos_pendentes foi feita em 10/11/2026.
 Agente único para vários números: fora do piloto. No piloto, cada advogado tem a própria instância do nanobot.
 
 13. Ideias futuras

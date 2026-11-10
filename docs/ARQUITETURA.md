@@ -1,6 +1,6 @@
-Tempestivo: arquitetura
+Escriva: arquitetura
 
-O Tempestivo é o assistente no WhatsApp que não deixa o advogado autônomo perder prazo, com um app para ver e organizar processos, prazos e clientes (ver PROPOSTA_JURIDICA.md). Nasceu do myPlan, um gerenciador pessoal de projetos e campanhas, e o código ainda guarda essa base. Um quadro Kanban por projeto, pensado para uma pessoa só, com um agente pessoal (nanobot) que cria tarefas e lembretes pelo WhatsApp.
+A Escriva é a assessora no WhatsApp que não deixa o advogado autônomo perder prazo, com um app para ver e organizar processos, prazos e clientes (ver PROPOSTA_JURIDICA.md). Nasceu do myPlan, um gerenciador pessoal de projetos e campanhas, e o código ainda guarda essa base. Um quadro Kanban por projeto, pensado para uma pessoa só, com um agente pessoal (nanobot) que cria tarefas e lembretes pelo WhatsApp.
 
 Vocabulário: no código e no banco os nomes continuam projeto (kind = project) e campanha (kind = campaign). Na interface, projeto aparece como processo e campanha como caso consultivo.
 
@@ -39,9 +39,9 @@ src/config/ambiente.ts valida com zod as variáveis públicas (NEXT_PUBLIC_*). s
 
 2. Páginas, rotas e componentes
 
-O visual segue a marca Tempestivo, em docs/marca/ (MANUAL_DA_MARCA.md e tokens.json):
+O visual segue a marca Escriva, em docs/marca/ (MANUAL_DA_MARCA.md e tokens.json):
 - cores: os tokens do tokens.json, com os mesmos nomes de variável, no src/app/globals.css, nos temas claro e escuro; o teste src/lib/contraste.test.ts confere o CSS contra o tokens.json e mede 4,5:1 em todo texto;
-- cor de destaque em Configurações: Petróleo (padrão, a cor da marca), Grafite ou Ameixa, cada uma com um valor por tema (src/lib/aparencia.ts, guardada em tempestivo-destaque);
+- cor de destaque em Configurações: Petróleo (padrão, a cor da marca), Grafite ou Ameixa, cada uma com um valor por tema (src/lib/aparencia.ts, guardada em tempestivo-destaque, chave da marca anterior);
 - fontes pelo next/font/google: Bricolage Grotesque nos títulos e no logotipo, IBM Plex Sans no texto e IBM Plex Mono (classe dado) em número CNJ, vencimentos, valores e memória do cálculo;
 - logotipo: src/components/layout/logotipo.tsx (símbolo oficial e o nome em Bricolage 600); src/app/icon.svg e src/app/apple-icon.tsx;
 - estados de prazo: src/components/ui/prazo.tsx (SeloPrazo, MemoriaCalculo com o vencimento grifado em marca-texto, AvisoValidacao em interno sobre interno-soft), a partir de situacaoDoPrazo e seloDoPrazo em domain/prazos.ts;
@@ -184,7 +184,7 @@ Registro: toda chamada grava em registro_agente a entrada, o resultado, o sucess
 Texto é dado: as descrições das ferramentas são fixas. Títulos, links, textos de lembretes e textos de intimação só aparecem como valores no JSON de resposta, e as instruções do servidor dizem isso ao agente.
 Vocabulário: as respostas falam em processo e caso consultivo (tipo "processo" ou "consultivo"); os nomes das ferramentas e das chaves de entrada não mudaram, e as entradas tipo aceitam também "projeto" e "campanha". As tarefas trazem o título real da coluna e o papel (a_fazer, em_andamento, aguardando, concluido), que continua sendo o código de entrada do mover_tarefa.
 Segredo de justiça: nas ferramentas jurídicas, processo com segredo_justica aparece só com nome e número (sem parte contrária, cliente, órgão nem texto da intimação). A descrição da tarefa continua guardando o texto original.
-Arquivos: services/agente/definicao.ts (tipo Ferramenta, definir e esquemas comuns), ferramentas.ts (catálogo) e ferramentas-juridicas.ts (as quatro da etapa 4).
+Arquivos: services/agente/definicao.ts (tipo Ferramenta, definir e esquemas comuns), ferramentas.ts (catálogo) e ferramentas-juridicas.ts (as quatro da etapa 4 e documentos_pendentes).
 Ferramenta	O que faz	Escrita	Confirmação
 listar_projetos	processos e casos consultivos com status, número, área e progresso	não	não
 ver_quadro	colunas, tarefas e etiquetas (por id ou nome aproximado)	não	não
@@ -193,6 +193,7 @@ resumir_projeto	progresso, atrasos, próximas entregas, coluna de espera pelo t�
 lembretes_proximos	pendentes das próximas N horas; atualiza o heartbeat	não	não
 prazos_proximos	prazos abertos com fatal ou interno até hoje + N dias, atrasados primeiro, em todos os casos não arquivados (status quando não é ativo)	não	não
 audiencias_proximas	audiências de hoje até hoje + N dias, com hora e local	não	não
+documentos_pendentes	documentos do cliente ainda não entregues (checklist com doCliente), por cliente; segredo de justiça num grupo próprio, sem o cliente	não	não
 criar_tarefas	uma ou várias (até MCP_LIMITE_ITENS_POR_PEDIDO)	sim	não
 atualizar_tarefa	título, descrição, prazo, prioridade, etiquetas	sim	não
 mover_tarefa	troca de coluna com a regra de Concluído	sim	não
@@ -224,7 +225,7 @@ ambiente;
 tokens e lembretes;
 filtro de usuário do repositório do agente;
 integração navegador → API → serviços, inclusive clientes, prazos, feriados e preferências, 409 para repetidos e 400 para inválidos;
-as 19 ferramentas com o repositório em memória, inclusive intimação de processo não cadastrado, número CNJ fora da conta, confirmação negada, prazo que atravessa o recesso, regra pela área e segredo de justiça;
+as 20 ferramentas com o repositório em memória, inclusive intimação de processo não cadastrado, número CNJ fora da conta, confirmação negada, prazo que atravessa o recesso, regra pela área e segredo de justiça;
 a rota MCP de verdade (401, escopo e chamada).
 
 npm run test:banco-local (opcional, fora do npm test) roda supabase/testes contra o Supabase local: migrações do zero, RLS com dois usuários, chaves compostas com a chave de serviço, exclusão de cliente, feriados (RLS com dois usuários e sem login), histórico gravado só pelo gatilho, lembretes automáticos, preferências e o repositório do app e do agente contra o banco. Precisa de npx supabase start; o script só aceita URL local.
@@ -237,6 +238,7 @@ Polimento. Reordenar projetos na página inicial, busca rápida (Ctrl+K), atalho
 Dados confiáveis (feito). Testes de domain/, exportar JSON, importar do navegador para a conta.
 Agente (feito). API no servidor, tokens, registro, lembretes, servidor MCP e configuração do nanobot.
 Marca Tempestivo (feito, sem migração). Nome, logotipo, cores, tipografia, estados de prazo e voz do agente, pela marca em docs/marca/. Compatibilidade: tokens myplan_, MYPLAN_FUSO_HORARIO e a chave myplan:v2 do navegador continuam aceitos. Relatório em docs/relatorios/marca-tempestivo.md.
+Marca Escriva (feito, sem migração). O nome Tempestivo foi descartado em 10/11/2026 (já existe tempestivo.com.br no mesmo nicho). Nome, logotipo, ícones, serverInfo do MCP e voz do agente, que fala de si no feminino. Continuam com o nome antigo: o prefixo tempestivo_ dos tokens, as variáveis TEMPESTIVO_*, as chaves do navegador, o projeto da Vercel e o domínio. Relatório em docs/relatorios/marca-escriva.md.
 Versão jurídica, etapa 4 (feito, sem migração). Agente jurídico enxuto para o piloto: registrar_intimacao, criar_processo, prazos_proximos, audiencias_proximas, vocabulário jurídico, SOUL.md novo e uma instância do nanobot por advogado na mesma VPS.
 Versão jurídica, etapa 3 (feito, migração 0005 aplicada em 09/11/2026). Motor de prazos, feriados por tribunal e locais, tipos de tarefa, prazo fatal, lembretes automáticos, histórico de prazos e documentos do cliente. A contagem está em validação com advogados (docs/validacao-prazos.md).
 Versão jurídica, etapa 2 (feito, migração 0004 aplicada em 09/11/2026). Clientes, detalhes do processo, consultivo com tipo de serviço, ícones jurídicos.

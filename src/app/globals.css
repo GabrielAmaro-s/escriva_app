@@ -2,7 +2,7 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* Tokens da marca Tempestivo ------------------------------------------------------
+/* Tokens da marca Escriva ---------------------------------------------------------
    Fonte da verdade: docs/marca/tokens.json (mesmos nomes de variável). O teste
    src/lib/contraste.test.ts confere que os valores daqui são os do tokens.json.
    --primary é a cor de destaque de Configurações: petróleo por padrão; as outras opções

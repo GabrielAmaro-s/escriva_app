@@ -27,7 +27,7 @@ export function TelaConfiguracoes() {
 
   return (
     <Pagina largura={680}>
-      <CabecalhoPagina titulo="Configurações" descricao="Ajuste a aparência, os prazos, seus dados e o agente do Tempestivo." />
+      <CabecalhoPagina titulo="Configurações" descricao="Ajuste a aparência, os prazos, seus dados e o agente da Escriva." />
       <div className="mt-6 rounded-[14px] border border-line bg-surface-raised px-[18px]">
         <LinhaConfiguracao titulo="Modo escuro" dica="Reduz o brilho da interface.">
           <button

@@ -6,7 +6,7 @@
 # Cada instância precisa de um gateway.port diferente no próprio config.json (18790, 18791...).
 
 [Unit]
-Description=nanobot gateway do Tempestivo (instância %i)
+Description=nanobot gateway da Escriva (instância %i)
 Wants=network-online.target
 After=network-online.target
 StartLimitIntervalSec=0

@@ -31,7 +31,7 @@ beforeEach(() => {
 });
 
 describe("catálogo", () => {
-  it("tem as 19 ferramentas com os nomes combinados", () => {
+  it("tem as 20 ferramentas com os nomes combinados", () => {
     expect(NOMES_DAS_FERRAMENTAS.sort()).toEqual(
       [
         "listar_projetos",
@@ -51,6 +51,7 @@ describe("catálogo", () => {
         "excluir_tarefa",
         "prazos_proximos",
         "audiencias_proximas",
+        "documentos_pendentes",
         "criar_processo",
         "registrar_intimacao",
       ].sort(),
@@ -70,6 +71,7 @@ describe("catálogo", () => {
       "lembretes_proximos",
       "prazos_proximos",
       "audiencias_proximas",
+      "documentos_pendentes",
     ]);
   });
 

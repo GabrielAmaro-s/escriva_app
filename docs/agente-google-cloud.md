@@ -1,6 +1,6 @@
-# Agente do Tempestivo numa VM do Google Cloud
+# Agente da Escriva numa VM do Google Cloud
 
-Passo a passo para subir o agente nanobot numa VM **e2-micro com Ubuntu 24.04** no Google Cloud, falando com o Tempestivo em produção e usando o Gemini como LLM. É a versão para o Google Cloud do "Passo a passo na VPS" do [agente/README.md](../agente/README.md), com o que muda nessa nuvem: o OS Login, o firewall da VPC, a memória de 1 GB e o provedor Gemini.
+Passo a passo para subir o agente nanobot numa VM **e2-micro com Ubuntu 24.04** no Google Cloud, falando com a Escriva em produção e usando o Gemini como LLM. É a versão para o Google Cloud do "Passo a passo na VPS" do [agente/README.md](../agente/README.md), com o que muda nessa nuvem: o OS Login, o firewall da VPC, a memória de 1 GB e o provedor Gemini.
 
 | Item | Valor |
 |---|---|
@@ -373,8 +373,8 @@ Se o gateway aparecer em `0.0.0.0`, pare aqui e confira `gateway.host` no `confi
 ## Passo 6. Parear o WhatsApp e testar em primeiro plano
 
 No WhatsApp do número do agente (o ideal é um chip só para isso):
-- **Nome do perfil:** Tempestivo.
-- **Foto:** o símbolo `docs/marca/logos/tempestivo-simbolo.svg`, exportado em PNG 640x640.
+- **Nome do perfil:** Escriva.
+- **Foto:** o símbolo `docs/marca/logos/escriva-simbolo.svg`, exportado em PNG 640x640.
 
 Como `nanobot`:
 
@@ -457,12 +457,12 @@ Mande pelo WhatsApp este texto de exemplo (fictício):
 1. **Pede o "sim" antes de gravar.**
    - O agente mostra o processo, o ato, o prazo fatal calculado e a memória de cálculo, e termina com "Responda *sim* para registrar."
    - Se perguntar "vara comum ou juizado?", responda "vara comum".
-2. **Nada gravado antes do "sim".** No Tempestivo, a tarefa **não** existe e **Configurações > Agente > Atividade** não mostra registro.
+2. **Nada gravado antes do "sim".** Na Escriva, a tarefa **não** existe e **Configurações > Agente > Atividade** não mostra registro.
 3. **Grava com o "sim".**
    - Responda *sim*. O agente confirma o registro.
    - A tarefa aparece no quadro com o selo do prazo, e a Atividade mostra a chamada com "Desfazer".
 4. **Lembrete agendado.**
-   - Peça "me lembra disso dois dias antes do prazo interno". O lembrete aparece na tarefa no Tempestivo.
+   - Peça "me lembra disso dois dias antes do prazo interno". O lembrete aparece na tarefa na Escriva.
    - Na VM, como `nanobot`, `nanobot cron list` mostra o agendamento. Se o comando tiver outro nome na sua versão, veja `nanobot --help`.
    - O HEARTBEAT confere os lembretes a cada 15 minutos.
 5. **Limpeza.** Use "Desfazer" na Atividade ou apague a tarefa de teste, para o exemplo não ficar no quadro.

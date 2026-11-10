@@ -4,7 +4,7 @@ import { AVISO_CONTAGEM_EM_VALIDACAO, seloDoPrazo, type CorDoEstado } from "@/do
 import { hojeIso } from "@/domain/quadro";
 import { classes } from "@/lib/classes";
 
-// Peças de prazo da marca Tempestivo (docs/marca/exemplos/SeloPrazo e MemoriaCalculo).
+// Peças de prazo da marca Escriva (docs/marca/exemplos/SeloPrazo e MemoriaCalculo).
 
 const COR_DO_SELO: Record<CorDoEstado, string> = {
   fatal: "bg-fatal-soft text-fatal",

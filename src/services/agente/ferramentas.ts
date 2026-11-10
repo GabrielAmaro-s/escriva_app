@@ -35,7 +35,7 @@ import {
 import { PEDIR_SIM, confirmado, data, definir, type Ferramenta } from "./definicao";
 import { ferramentasJuridicas } from "./ferramentas-juridicas";
 
-// As ferramentas do servidor MCP do Tempestivo.
+// As ferramentas do servidor MCP da Escriva.
 // As descrições são fixas: nenhum texto vindo de tarefas, links ou mensagens entra nelas.
 
 export type { Ferramenta, ResultadoFerramenta } from "./definicao";
@@ -184,7 +184,7 @@ export function criarFerramentas(config: { limiteItens: number }): Ferramenta[] 
       nome: "lembretes_proximos",
       titulo: "Lembretes próximos",
       descricao:
-        "Lembretes pendentes das próximas N horas (padrão 1), incluindo os atrasados. Chame a cada heartbeat: a chamada também avisa ao Tempestivo que o agente está ativo.",
+        "Lembretes pendentes das próximas N horas (padrão 1), incluindo os atrasados. Chame a cada heartbeat: a chamada também avisa ao app que o agente está ativo.",
       escrita: false,
       confirmacao: false,
       entrada: z.object({ horas: z.number().min(0.25).max(168).default(1) }),
@@ -369,7 +369,7 @@ export function criarFerramentas(config: { limiteItens: number }): Ferramenta[] 
       nome: "criar_lembrete",
       titulo: "Criar lembrete",
       descricao:
-        'Cria um lembrete com data e hora, ligado ou não a uma tarefa. "quando" em ISO; sem fuso, vale o horário local do Tempestivo (ex.: 2026-11-07T15:00). Depois de criar, agende o envio e chame marcar_lembrete com status "agendado".',
+        'Cria um lembrete com data e hora, ligado ou não a uma tarefa. "quando" em ISO; sem fuso, vale o horário local da Escriva (ex.: 2026-11-07T15:00). Depois de criar, agende o envio e chame marcar_lembrete com status "agendado".',
       escrita: true,
       confirmacao: false,
       entrada: z.object({
@@ -641,6 +641,6 @@ export function criarFerramentas(config: { limiteItens: number }): Ferramenta[] 
   ];
 }
 
-/** Nomes das 19 ferramentas, na ordem em que aparecem para o agente. */
+/** Nomes das 20 ferramentas, na ordem em que aparecem para o agente. */
 export const NOMES_DAS_FERRAMENTAS = criarFerramentas({ limiteItens: 10 }).map((f) => f.nome);
 
