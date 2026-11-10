@@ -108,7 +108,7 @@ src/
 └── data/         repositório: Supabase, API ou local
 supabase/         migrações SQL com RLS e config do CLI
 scripts/          atalhos do Supabase CLI que leem o .env.local
-agente/           configuração do agente pessoal (nanobot)
+agente/           agente no WhatsApp (nanobot): configuração, SOUL.md e o guia do piloto (uma instância por advogado)
 docs/             arquitetura, modelo de dados e etapas
 ```
 

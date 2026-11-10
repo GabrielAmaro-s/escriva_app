@@ -173,27 +173,34 @@ src/app/api/mcp/route.ts usa mcp-handler 2.x com @modelcontextprotocol/server 2.
 
 Autenticação: Authorization: Bearer myplan_.... validarToken confere o hash, a revogação e a validade. Token inválido, expirado ou revogado recebe 401 (via withMcpAuth). Cada requisição atualiza ultimo_uso_em.
 Isolamento: o token traz o userId. As ferramentas usam criarRepositorioDoAgente(userId), um cliente admin embrulhado que põe user_id = userId em toda leitura, alteração e exclusão, e user_id: userId em toda inserção. O teste contexto-agente.test.ts passa por cada método do repositório e confere que toda gravação em clientes e processo_detalhes leva user_id explícito (no agente, auth.uid() é nulo). A única consulta sem esse filtro é buscarTokenPorHash, que descobre a quem o token pertence. Em feriados, a leitura é user_id nulo (carga geral) ou o do usuário; gravações e exclusões continuam presas ao usuário.
-Escopo: o mcp-handler cria um servidor por requisição. O token validado passa para a montagem por AsyncLocalStorage, e um token de leitura só recebe as 5 ferramentas sem escrita.
+Escopo: o mcp-handler cria um servidor por requisição. O token validado passa para a montagem por AsyncLocalStorage, e um token de leitura só recebe as 7 ferramentas sem escrita.
 Registro: toda chamada grava em registro_agente a entrada, o resultado, o sucesso e o desfazer. A tela de Configurações lista e desfaz.
-Texto é dado: as descrições das ferramentas são fixas. Títulos, links e textos de lembretes só aparecem como valores no JSON de resposta, e as instruções do servidor dizem isso ao agente.
+Texto é dado: as descrições das ferramentas são fixas. Títulos, links, textos de lembretes e textos de intimação só aparecem como valores no JSON de resposta, e as instruções do servidor dizem isso ao agente.
+Vocabulário: as respostas falam em processo e caso consultivo (tipo "processo" ou "consultivo"); os nomes das ferramentas e das chaves de entrada não mudaram, e as entradas tipo aceitam também "projeto" e "campanha". As tarefas trazem o título real da coluna e o papel (a_fazer, em_andamento, aguardando, concluido), que continua sendo o código de entrada do mover_tarefa.
+Segredo de justiça: nas ferramentas jurídicas, processo com segredo_justica aparece só com nome e número (sem parte contrária, cliente, órgão nem texto da intimação). A descrição da tarefa continua guardando o texto original.
+Arquivos: services/agente/definicao.ts (tipo Ferramenta, definir e esquemas comuns), ferramentas.ts (catálogo) e ferramentas-juridicas.ts (as quatro da etapa 4).
 Ferramenta	O que faz	Escrita	Confirmação
-listar_projetos	projetos e campanhas com status e progresso	não	não
+listar_projetos	processos e casos consultivos com status, número, área e progresso	não	não
 ver_quadro	colunas, tarefas e etiquetas (por id ou nome aproximado)	não	não
-buscar_tarefas	filtro por texto, projeto, prioridade, etiqueta, prazo	não	não
-resumir_projeto	progresso, atrasos, próximas entregas, Aguardando	não	não
+buscar_tarefas	filtro por texto, processo, prioridade, etiqueta, prazo	não	não
+resumir_projeto	progresso, atrasos, próximas entregas, coluna de espera pelo título real	não	não
 lembretes_proximos	pendentes das próximas N horas; atualiza o heartbeat	não	não
+prazos_proximos	prazos abertos com fatal ou interno até hoje + N dias, atrasados primeiro, em todos os casos não arquivados (status quando não é ativo)	não	não
+audiencias_proximas	audiências de hoje até hoje + N dias, com hora e local	não	não
 criar_tarefas	uma ou várias (até MCP_LIMITE_ITENS_POR_PEDIDO)	sim	não
 atualizar_tarefa	título, descrição, prazo, prioridade, etiquetas	sim	não
 mover_tarefa	troca de coluna com a regra de Concluído	sim	não
 adicionar_checklist	subtarefas	sim	não
 criar_lembrete	lembrete com data e hora, origem = agente	sim	não
 marcar_lembrete	agendado ou enviado (com quando_esperado)	sim	não
-criar_projeto	projeto ou campanha com as colunas do modelo de quadro (parâmetro opcional modelo; consultivo só para campanha)	sim	não
+criar_projeto	caso consultivo ou processo simples, com as colunas do modelo de quadro (consultivo só para caso consultivo)	sim	não
+criar_processo	processo com nome, número CNJ, área, órgão, modelo e cliente (cadastrado pelo nome se não existir)	sim	não
 sugerir_prioridades	propõe prioridades e ordem pelo prazo	sim	sim
 concluir_em_lote	fecha várias tarefas	sim	sim
 excluir_tarefa	remove uma tarefa ou um lembrete	sim	sim
+registrar_intimacao	calcula o prazo da intimação (processo pelo número CNJ ou nome) e, com o "sim" e o prazo_fatal_esperado da prévia, cria o prazo com lembretes automáticos; pede a regra quando o processo não deixa claro se é vara comum ou juizado	sim	sim
 
-Com confirmação, confirmado=false (o padrão) só devolve a prévia e a pergunta, e confirmado=true aplica. As respostas de escrita trazem uma mensagem curta para o WhatsApp e o link (NEXT_PUBLIC_APP_URL/projetos/<id>?tarefa=<id>). Datas de prazo usam AAAA-MM-DD. Horários usam ISO no fuso MYPLAN_FUSO_HORARIO.
+Com confirmação, confirmado=false (o padrão) só devolve a prévia e a pergunta, e confirmado=true aplica. Em registrar_intimacao, confirmado=true também exige prazo_fatal_esperado igual ao da prévia; se o recálculo mudar, volta uma prévia nova e nada é criado (o mesmo princípio do quando_esperado dos lembretes). Regra de contagem que o processo permite afirmar (regraSeguraDoProcesso): penal e trabalhista pela área, juizado quando o órgão diz Juizado, cível na família; nos outros casos a ferramenta pergunta "vara comum ou juizado?". As respostas de escrita trazem uma mensagem curta para o WhatsApp e o link (NEXT_PUBLIC_APP_URL/projetos/<id>?tarefa=<id>). Datas de prazo usam AAAA-MM-DD. Horários usam ISO no fuso MYPLAN_FUSO_HORARIO.
 
 O agente (nanobot numa VPS, WhatsApp) está documentado em agente/README.md.
 
@@ -211,7 +218,7 @@ ambiente;
 tokens e lembretes;
 filtro de usuário do repositório do agente;
 integração navegador → API → serviços, inclusive clientes, prazos, feriados e preferências, 409 para repetidos e 400 para inválidos;
-as 15 ferramentas com o repositório em memória;
+as 19 ferramentas com o repositório em memória, inclusive intimação de processo não cadastrado, número CNJ fora da conta, confirmação negada, prazo que atravessa o recesso, regra pela área e segredo de justiça;
 a rota MCP de verdade (401, escopo e chamada).
 
 npm run test:banco-local (opcional, fora do npm test) roda supabase/testes contra o Supabase local: migrações do zero, RLS com dois usuários, chaves compostas com a chave de serviço, exclusão de cliente, feriados (RLS com dois usuários e sem login), histórico gravado só pelo gatilho, lembretes automáticos, preferências e o repositório do app e do agente contra o banco. Precisa de npx supabase start; o script só aceita URL local.
@@ -223,6 +230,7 @@ Novo design (feito). Visão geral, Campanhas, Tarefas e Configurações; desfaze
 Polimento. Reordenar projetos na página inicial, busca rápida (Ctrl+K), atalhos de teclado no quadro.
 Dados confiáveis (feito). Testes de domain/, exportar JSON, importar do navegador para a conta.
 Agente (feito). API no servidor, tokens, registro, lembretes, servidor MCP e configuração do nanobot.
+Versão jurídica, etapa 4 (feito, sem migração). Agente jurídico enxuto para o piloto: registrar_intimacao, criar_processo, prazos_proximos, audiencias_proximas, vocabulário jurídico, SOUL.md novo e uma instância do nanobot por advogado na mesma VPS.
 Versão jurídica, etapa 3 (feito, migração 0005 aplicada em 09/11/2026). Motor de prazos, feriados por tribunal e locais, tipos de tarefa, prazo fatal, lembretes automáticos, histórico de prazos e documentos do cliente. A contagem está em validação com advogados (docs/validacao-prazos.md).
 Versão jurídica, etapa 2 (feito, migração 0004 aplicada em 09/11/2026). Clientes, detalhes do processo, consultivo com tipo de serviço, ícones jurídicos.
 Versão jurídica, etapa 1 (feito). Vocabulário jurídico na interface, rotas /hoje, /consultivo e /prazos, modelos de quadro por área e dados de exemplo jurídicos. As próximas etapas estão em PROPOSTA_JURIDICA.md.
