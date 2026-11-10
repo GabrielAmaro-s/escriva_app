@@ -5,6 +5,8 @@ import { colunasDoModelo } from "@/domain/quadro";
 import { clienteVazio } from "@/domain/cliente";
 import { detalhesProcessoVazios } from "@/domain/processo";
 import { dadosProjetoVazios } from "@/domain/projeto";
+import { alteracaoDePrazo } from "@/domain/prazos";
+import { alterarTarefa, calcularPrazoDaTarefa } from "@/services/prazos";
 
 // Teste de integração do caminho navegador -> /api -> services -> repositório.
 // O Supabase é trocado por um repositório em memória; todo o resto é o código real.
@@ -25,6 +27,10 @@ const ROTAS: [RegExp, string[], () => Promise<unknown>][] = [
   [/^\/api\/espaco-de-trabalho$/, [], () => import("./espaco-de-trabalho/route")],
   [/^\/api\/tarefas$/, [], () => import("./tarefas/route")],
   [/^\/api\/tarefas\/([^/]+)$/, ["id"], () => import("./tarefas/[id]/route")],
+  [/^\/api\/tarefas\/([^/]+)\/alteracoes$/, ["id"], () => import("./tarefas/[id]/alteracoes/route")],
+  [/^\/api\/feriados$/, [], () => import("./feriados/route")],
+  [/^\/api\/feriados\/([^/]+)$/, ["id"], () => import("./feriados/[id]/route")],
+  [/^\/api\/preferencias$/, [], () => import("./preferencias/route")],
   [/^\/api\/etiquetas$/, [], () => import("./etiquetas/route")],
   [/^\/api\/etiquetas\/([^/]+)$/, ["id"], () => import("./etiquetas/[id]/route")],
   [/^\/api\/lembretes$/, [], () => import("./lembretes/route")],
@@ -185,5 +191,48 @@ describe("clientes e processos pela API", () => {
     const [projeto] = await http.listarProjetos();
     const cnj = await bruto(`/api/projetos/${projeto.id}`, "PATCH", { processo: { ...detalhesProcessoVazios(), numeroCnj: "123" } });
     expect(cnj.status).toBe(400);
+  });
+});
+
+describe("prazos, feriados e preferências pela API", () => {
+  async function bruto(caminho: string, metodo: string, corpo?: unknown) {
+    const r = await fetch(caminho, { method: metodo, headers: { "Content-Type": "application/json" }, body: corpo === undefined ? undefined : JSON.stringify(corpo) });
+    return { status: r.status, corpo: r.status === 204 ? null : ((await r.json()) as Record<string, unknown>) };
+  }
+  const ctx = { fuso: "America/Sao_Paulo", agora: new Date("2026-11-10T12:00:00Z") };
+
+  it("a tela grava um prazo pelo service: tarefa, lembretes automáticos e histórico voltam pela API", async () => {
+    const projeto = await http.criarProjeto({ ...dadosProjetoVazios(), name: "Processo com prazo" }, colunasDoModelo("civel"));
+    const quadro = (await http.obterQuadro(projeto.id))!;
+    const tarefa = await http.criarTarefa({ projectId: projeto.id, columnId: quadro.colunas[0].id, title: "Contestação" });
+    const { contagem, prazoInterno } = await calcularPrazoDaTarefa(http, projeto.id, { inicio: "2026-11-09", meio: "dje", dias: 15, regra: "civel" });
+    const salva = await alterarTarefa(http, tarefa, alteracaoDePrazo(contagem, prazoInterno), ctx);
+    expect(salva).toMatchObject({ tipo: "prazo", prazoFatal: "2026-12-02", dueOn: "2026-11-30", contagem: { vencimento: "2026-12-02" } });
+    expect((await http.listarLembretes({ tarefaId: tarefa.id })).map((l) => l.automatico)).toEqual(["d-3", "d-1", "dia"]);
+    expect((await http.listarAlteracoesDaTarefa(tarefa.id)).map((a) => a.campo).sort()).toEqual(["due_on", "prazo_fatal"]);
+    const tipo = await alterarTarefa(http, salva, { tipo: "providencia" }, ctx);
+    expect(tipo).toMatchObject({ tipo: "providencia", prazoFatal: null, contagem: null });
+  });
+
+  it("tipo desconhecido responde 400", async () => {
+    const projeto = await http.criarProjeto({ ...dadosProjetoVazios(), name: "Processo 400" }, colunasDoModelo("civel"));
+    const tarefa = await http.criarTarefa({ projectId: projeto.id, columnId: (await http.obterQuadro(projeto.id))!.colunas[0].id, title: "T" });
+    expect((await bruto(`/api/tarefas/${tarefa.id}`, "PATCH", { tipo: "outro" })).status).toBe(400);
+  });
+
+  it("feriado local: cria, lista com a carga dos tribunais, recusa repetido (409) e inválido (400), exclui", async () => {
+    const f = await http.criarFeriado({ data: "2026-02-02", descricao: "Navegantes" });
+    expect((await http.listarFeriados()).some((x) => x.tribunal === "TJRS" && x.userId === null)).toBe(true);
+    expect(await bruto("/api/feriados", "POST", { data: "2026-02-02", descricao: "De novo" })).toEqual({ status: 409, corpo: { erro: "Você já cadastrou um feriado nessa data." } });
+    expect((await bruto("/api/feriados", "POST", { data: "2026-02-30", descricao: "X" })).status).toBe(400);
+    await http.excluirFeriado(f.id);
+    expect((await http.listarFeriados()).some((x) => x.id === f.id)).toBe(false);
+  });
+
+  it("preferências: margem padrão 2, grava e recusa fora do limite", async () => {
+    expect(await http.obterPreferencias()).toEqual({ margemPrazoInterno: 2 });
+    expect(await http.salvarPreferencias({ margemPrazoInterno: 4 })).toEqual({ margemPrazoInterno: 4 });
+    expect((await bruto("/api/preferencias", "PATCH", { margemPrazoInterno: 40 })).status).toBe(400);
+    await http.salvarPreferencias({ margemPrazoInterno: 2 });
   });
 });

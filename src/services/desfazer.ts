@@ -1,15 +1,22 @@
 import type { Desfazer } from "@/domain/tipos";
 import type { Repositorio } from "@/data/repositorio";
+import { sincronizarLembretesAutomaticos, type ContextoPrazos } from "./prazos";
 
-/** Reverte uma ação do agente a partir do que ficou guardado em registro_agente.desfazer. */
-export async function aplicarDesfazer(repo: Repositorio, desfazer: Desfazer): Promise<string> {
+/**
+ * Reverte uma ação do agente a partir do que ficou guardado em registro_agente.desfazer.
+ * Com `ctx`, as tarefas recriadas ou restauradas também recuperam os lembretes automáticos.
+ */
+export async function aplicarDesfazer(repo: Repositorio, desfazer: Desfazer, ctx?: ContextoPrazos): Promise<string> {
   switch (desfazer.tipo) {
     case "excluir_tarefas":
       for (const id of desfazer.ids) await repo.excluirTarefa(id).catch(() => undefined);
       return desfazer.ids.length === 1 ? "Tarefa removida." : `${desfazer.ids.length} tarefas removidas.`;
 
     case "restaurar_tarefas":
-      for (const { id, alteracao } of desfazer.tarefas) await repo.atualizarTarefa(id, alteracao);
+      for (const { id, alteracao } of desfazer.tarefas) {
+        const tarefa = await repo.atualizarTarefa(id, alteracao);
+        if (ctx) await sincronizarLembretesAutomaticos(repo, tarefa, ctx);
+      }
       return desfazer.tarefas.length === 1 ? "Tarefa restaurada." : `${desfazer.tarefas.length} tarefas restauradas.`;
 
     case "recriar_tarefa": {
@@ -20,11 +27,18 @@ export async function aplicarDesfazer(repo: Repositorio, desfazer: Desfazer): Pr
         title: t.title,
         description: t.description,
         dueOn: t.dueOn,
+        // Registros gravados antes da etapa 3 não têm estes campos.
+        tipo: t.tipo ?? "providencia",
+        prazoFatal: t.prazoFatal ?? null,
+        contagem: t.contagem ?? null,
+        localAudiencia: t.localAudiencia ?? null,
+        horarioAudiencia: t.horarioAudiencia ?? null,
         priority: t.priority,
         labelIds: t.labelIds,
         position: t.position,
       });
-      await repo.atualizarTarefa(nova.id, { checklist: t.checklist, links: t.links, completed: t.completed, completedAt: t.completedAt });
+      const recriada = await repo.atualizarTarefa(nova.id, { checklist: t.checklist, links: t.links, completed: t.completed, completedAt: t.completedAt });
+      if (ctx) await sincronizarLembretesAutomaticos(repo, recriada, ctx);
       return "Tarefa recriada.";
     }
 

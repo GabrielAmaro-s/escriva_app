@@ -1,8 +1,9 @@
 "use client";
 
-import { BellIcon, CalendarBlankIcon, CheckIcon, CheckSquareIcon, DotsThreeIcon, FlagIcon } from "@phosphor-icons/react";
+import { BellIcon, CalendarBlankIcon, CheckIcon, CheckSquareIcon, DotsThreeIcon, FlagIcon, GavelIcon, WarningOctagonIcon } from "@phosphor-icons/react";
 import { forwardRef, type HTMLAttributes } from "react";
 import { Pilula } from "@/components/ui/pecas";
+import { formatarDataHora } from "@/domain/datas";
 import { COR_PRIORIDADE, ROTULO_PRIORIDADE, corDoPrazo, formatarData, progressoDoChecklist } from "@/domain/quadro";
 import type { Etiqueta, Tarefa } from "@/domain/tipos";
 import { classes } from "@/lib/classes";
@@ -25,7 +26,9 @@ export const CartaoTarefa = forwardRef<HTMLDivElement, PropsCartaoTarefa>(functi
   const etiquetas = concluida ? [] : tarefa.labelIds.map((id) => etiquetasPorId.get(id)).filter((l): l is Etiqueta => Boolean(l));
   const checklist = progressoDoChecklist(tarefa);
   const sinalizada = tarefa.priority !== "low";
-  const temMetadados = !concluida && (tarefa.dueOn || checklist.total > 0 || sinalizada || temLembrete);
+  const fatal = tarefa.tipo === "prazo" ? tarefa.prazoFatal : null;
+  const audiencia = tarefa.tipo === "audiencia" ? tarefa.horarioAudiencia : null;
+  const temMetadados = !concluida && (tarefa.dueOn || fatal || audiencia || checklist.total > 0 || sinalizada || temLembrete);
 
   return (
     <div
@@ -76,9 +79,25 @@ export const CartaoTarefa = forwardRef<HTMLDivElement, PropsCartaoTarefa>(functi
       {temMetadados && (
         <div className="flex items-center gap-3 text-[11.5px] text-ink3">
           {tarefa.dueOn && (
-            <span className="inline-flex items-center gap-[5px]" style={{ color: corDoPrazo(tarefa.dueOn, concluida) }}>
+            <span
+              className="inline-flex items-center gap-[5px]"
+              style={{ color: corDoPrazo(tarefa.dueOn, concluida) }}
+              title={fatal ? "Prazo interno" : undefined}
+            >
               <CalendarBlankIcon size={13} />
               {formatarData(tarefa.dueOn)}
+            </span>
+          )}
+          {fatal && (
+            <span className="inline-flex items-center gap-[5px] font-semibold text-s-red" title="Prazo fatal">
+              <WarningOctagonIcon size={13} weight="fill" />
+              Fatal {formatarData(fatal)}
+            </span>
+          )}
+          {audiencia && (
+            <span className="inline-flex items-center gap-[5px]" title="Audiência">
+              <GavelIcon size={13} />
+              {formatarDataHora(audiencia)}
             </span>
           )}
           {checklist.total > 0 && (

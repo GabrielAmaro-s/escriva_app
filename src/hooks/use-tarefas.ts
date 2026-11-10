@@ -2,11 +2,15 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { obterRepositorio } from "@/data";
+import { fusoDoAparelho } from "@/domain/datas";
+import { ajustarAlteracaoAoTipo } from "@/domain/prazos";
 import { alteracaoAoAlternarConclusao, alteracaoAoMudarColuna, posicaoNoTopo, proximaPosicaoNaColuna } from "@/domain/quadro";
 import { TONS_PROJETO } from "@/domain/projeto";
 import type { AlteracaoTarefa, Coluna, Etiqueta, Tarefa } from "@/domain/tipos";
+import { alterarTarefa as alterarTarefaServico, mexeNosLembretes, sincronizarLembretesAutomaticos } from "@/services/prazos";
 import { adicionarTarefa as adicionarTarefaServico } from "@/services/tarefas";
 import { useAviso } from "@/components/ui/aviso";
+import { useLembretes } from "./use-lembretes";
 import { useProjetos } from "./use-projetos";
 
 const mensagem = (e: unknown) => (e instanceof Error ? e.message : "Algo deu errado. Tente de novo.");
@@ -22,6 +26,7 @@ export function useTarefas(projetoId?: string) {
   const repo = obterRepositorio();
   const avisar = useAviso();
   const { sincronizarContagens } = useProjetos();
+  const { recarregar: recarregarLembretes } = useLembretes();
   const [status, setStatus] = useState<"carregando" | "pronto" | "ausente" | "erro">("carregando");
   const [tarefas, setTarefas] = useState<Tarefa[]>([]);
   const [colunas, setColunas] = useState<Coluna[]>([]);
@@ -72,15 +77,21 @@ export function useTarefas(projetoId?: string) {
       clearTimeout(item.temporizador);
       pendentes.current.delete(id);
       const anterior = fila.current.get(id) ?? Promise.resolve();
+      // O service limpa os campos que não valem para o tipo e acerta os lembretes automáticos.
       const proxima = anterior
-        .then(() => repo.atualizarTarefa(id, item.alteracao))
+        .then(() =>
+          item.reverter ? alterarTarefaServico(repo, item.reverter, item.alteracao, { fuso: fusoDoAparelho() }) : repo.atualizarTarefa(id, item.alteracao),
+        )
+        .then(() => {
+          if (mexeNosLembretes(item.alteracao)) recarregarLembretes();
+        })
         .catch((e) => {
           if (item.reverter) setTarefas((lista) => lista.map((t) => (t.id === id ? item.reverter! : t)));
           avisar({ texto: mensagem(e), tom: "erro" });
         });
       fila.current.set(id, proxima);
     },
-    [repo, avisar],
+    [repo, avisar, recarregarLembretes],
   );
 
   /** Junta edições em sequência (digitação, por exemplo) numa única gravação. */
@@ -123,7 +134,8 @@ export function useTarefas(projetoId?: string) {
         lista.map((t) => {
           if (t.id !== id) return t;
           antes = t;
-          return { ...t, ...alteracao };
+          // Trocar o tipo limpa na tela os campos que não valem mais (o service faz o mesmo ao gravar).
+          return { ...t, ...ajustarAlteracaoAoTipo(t, alteracao) };
         }),
       );
       persistir(id, alteracao, antes);
@@ -184,6 +196,11 @@ export function useTarefas(projetoId?: string) {
           title: `${tarefa.title} (cópia)`.slice(0, 200),
           description: tarefa.description,
           dueOn: tarefa.dueOn,
+          tipo: tarefa.tipo,
+          prazoFatal: tarefa.prazoFatal,
+          contagem: tarefa.contagem,
+          localAudiencia: tarefa.localAudiencia,
+          horarioAudiencia: tarefa.horarioAudiencia,
           priority: tarefa.priority,
           labelIds: tarefa.labelIds,
           position: tarefa.position + 0.5,
@@ -195,12 +212,14 @@ export function useTarefas(projetoId?: string) {
           completedAt: tarefa.completedAt,
         });
         setTarefas((lista) => [...lista, completa]);
+        await sincronizarLembretesAutomaticos(repo, completa, { fuso: fusoDoAparelho() });
+        recarregarLembretes();
         avisar({ texto: "Tarefa duplicada", tom: "info" });
       } catch (e) {
         avisar({ texto: mensagem(e), tom: "erro" });
       }
     },
-    [repo, tarefas, avisar],
+    [repo, tarefas, avisar, recarregarLembretes],
   );
 
   /** Some da tela na hora; só apaga de vez se o aviso não for desfeito. */

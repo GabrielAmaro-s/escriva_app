@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { CabecalhoPagina, OpcoesFiltro, Pagina } from "@/components/ui/pecas";
-import type { Projeto, Tarefa } from "@/domain/tipos";
+import type { Projeto, Tarefa, TipoTarefa } from "@/domain/tipos";
 import { useProjetos } from "@/hooks/use-projetos";
 import { useTarefas } from "@/hooks/use-tarefas";
 import { ListaTarefas } from "./lista-tarefas";
@@ -25,10 +25,11 @@ export function TelaPrazos() {
   const estado = useProjetos();
   const api = useTarefas();
   const [filtro, setFiltro] = useState<"abertas" | "concluidas">("abertas");
+  const [tipo, setTipo] = useState<"todos" | TipoTarefa>("todos");
   const [tarefaAberta, setTarefaAberta] = useState<string | null>(null);
   const projetosPorId = useMemo(() => new Map(estado.projetos.map((p) => [p.id, p])), [estado.projetos]);
 
-  const linhas =
+  const todas =
     filtro === "abertas"
       ? tarefasAbertas(api.tarefas, projetosPorId)
       : api.tarefas
@@ -37,12 +38,13 @@ export function TelaPrazos() {
             return t.completed && p && p.status !== "done" && !p.archivedAt;
           })
           .sort((a, b) => (b.completedAt ?? "").localeCompare(a.completedAt ?? ""));
+  const linhas = tipo === "todos" ? todas : todas.filter((t) => t.tipo === tipo);
   const carregando = api.status === "carregando" || estado.carregando;
 
   return (
     <Pagina largura={880}>
       <CabecalhoPagina titulo="Prazos e tarefas" descricao="Todos os prazos e tarefas em um só lugar, ordenados pelo vencimento." />
-      <div className="mt-[22px]">
+      <div className="mt-[22px] flex flex-wrap gap-2.5">
         <OpcoesFiltro
           rotulo="Filtrar prazos e tarefas"
           valor={filtro}
@@ -50,6 +52,17 @@ export function TelaPrazos() {
           opcoes={[
             { valor: "abertas", rotulo: "Abertas" },
             { valor: "concluidas", rotulo: "Concluídas" },
+          ]}
+        />
+        <OpcoesFiltro
+          rotulo="Filtrar por tipo"
+          valor={tipo}
+          aoMudar={setTipo}
+          opcoes={[
+            { valor: "todos", rotulo: "Todos" },
+            { valor: "prazo", rotulo: "Prazos" },
+            { valor: "audiencia", rotulo: "Audiências" },
+            { valor: "providencia", rotulo: "Providências" },
           ]}
         />
       </div>

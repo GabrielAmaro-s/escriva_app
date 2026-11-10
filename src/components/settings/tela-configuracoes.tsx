@@ -11,6 +11,7 @@ import { classes } from "@/lib/classes";
 import { LinhaConfiguracao } from "./linha-configuracao";
 import { SecaoAgente } from "./secao-agente";
 import { SecaoDados } from "./secao-dados";
+import { SecaoPrazos } from "./secao-prazos";
 
 export function TelaConfiguracoes() {
   const { resolvedTheme, setTheme } = useTheme();
@@ -26,7 +27,7 @@ export function TelaConfiguracoes() {
 
   return (
     <Pagina largura={680}>
-      <CabecalhoPagina titulo="Configurações" descricao="Ajuste a aparência, seus dados e o agente do myPlan." />
+      <CabecalhoPagina titulo="Configurações" descricao="Ajuste a aparência, os prazos, seus dados e o agente do myPlan." />
       <div className="mt-6 rounded-[14px] border border-line bg-surface px-[18px]">
         <LinhaConfiguracao titulo="Modo escuro" dica="Reduz o brilho da interface.">
           <button
@@ -81,6 +82,7 @@ export function TelaConfiguracoes() {
           </LinhaConfiguracao>
         )}
       </div>
+      <SecaoPrazos />
       <SecaoDados />
       <SecaoAgente />
       {!supabaseConfigurado && (

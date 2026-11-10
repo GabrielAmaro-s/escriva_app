@@ -61,6 +61,35 @@ export const esquemaNovoProjeto = z.object({
 
 export const esquemaAlteracaoProjeto = esquemaDadosProjeto.partial().extend({ archivedAt: z.string().nullable().optional() });
 
+// Etapa 3: tipo da tarefa, prazo fatal, contagem e audiência.
+const tipoTarefa = z.enum(["prazo", "providencia", "audiencia"]);
+const contagem = z.object({
+  inicio: data.unwrap(),
+  meio: z.enum(["dje", "portal", "pessoal"]),
+  dias: z.number().int().min(1).max(365),
+  regra: z.enum(["civel", "trabalhista", "juizado", "penal"]),
+  unidade: z.enum(["uteis", "corridos"]),
+  emDobro: z.boolean(),
+  suspenderNoRecesso: z.boolean(),
+  tribunal: z.string().max(10).nullable(),
+  margem: z.number().int().min(0).max(30),
+  comeco: data.unwrap(),
+  vencimento: data.unwrap(),
+  excluidos: z.array(z.object({ data: data.unwrap(), ate: data.unwrap().optional(), motivo: z.string().max(200) })).max(400),
+  memoria: z.string().max(4000),
+});
+const instanteOuNulo = z
+  .string()
+  .refine((v) => !Number.isNaN(new Date(v).getTime()), { error: "Data e hora inválidas." })
+  .nullable();
+const camposDoTipo = {
+  tipo: tipoTarefa,
+  prazoFatal: data,
+  contagem: contagem.nullable(),
+  localAudiencia: z.string().max(200).nullable(),
+  horarioAudiencia: instanteOuNulo,
+};
+
 export const esquemaNovaTarefa = z.object({
   projectId: z.uuid({ error: "Projeto inválido." }),
   columnId: z.uuid({ error: "Coluna inválida." }),
@@ -70,6 +99,7 @@ export const esquemaNovaTarefa = z.object({
   priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
   labelIds: z.array(z.string()).max(50).optional(),
   position: z.number().optional(),
+  ...z.object(camposDoTipo).partial().shape,
 });
 
 export const esquemaAlteracaoTarefa = z
@@ -80,11 +110,12 @@ export const esquemaAlteracaoTarefa = z
     dueOn: data,
     priority: z.enum(["low", "medium", "high", "urgent"]),
     labelIds: z.array(z.string()).max(50),
-    checklist: z.array(z.object({ id: z.string(), text: z.string().max(500), done: z.boolean() })).max(200),
+    checklist: z.array(z.object({ id: z.string(), text: z.string().max(500), done: z.boolean(), doCliente: z.boolean().optional() })).max(200),
     links: z.array(z.object({ id: z.string(), url: z.string().max(2000), title: z.string().max(200).nullable() })).max(100),
     completed: z.boolean(),
     completedAt: z.string().nullable(),
     position: z.number(),
+    ...camposDoTipo,
   })
   .partial();
 
@@ -97,6 +128,7 @@ export const esquemaNovoLembrete = z.object({
   quando: instante,
   tarefaId: z.uuid().nullable().optional(),
   projetoId: z.uuid().nullable().optional(),
+  automatico: z.enum(["d-3", "d-1", "dia"]).nullable().optional(),
 });
 
 export const esquemaAlteracaoLembrete = z
@@ -111,3 +143,13 @@ export const esquemaNovoToken = z.object({
   nome: z.string().max(60),
   escopo: z.enum(["leitura", "escrita"]),
 });
+
+export const esquemaNovoFeriado = z.object({
+  data: data.unwrap(),
+  ate: data.optional(),
+  tribunal: z.string().max(10).nullable().optional(),
+  tipo: z.enum(["feriado", "suspensao", "expediente_reduzido"]).optional(),
+  descricao: z.string().max(120),
+});
+
+export const esquemaPreferencias = z.object({ margemPrazoInterno: z.number().int().min(0).max(30) });

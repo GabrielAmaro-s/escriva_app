@@ -1,6 +1,9 @@
+import { somarDias } from "@/domain/datas";
+import { alteracaoDePrazo, montarContagem, tribunalDoProcesso } from "@/domain/prazos";
 import { detalhesProcessoVazios } from "@/domain/processo";
 import { type ModeloQuadro, colunasDoModelo, novoId } from "@/domain/quadro";
 import type { Cliente, Coluna, DetalhesProcesso, Etiqueta, IconeProjeto, PrioridadeTarefa, StatusProjeto, Tarefa, TipoColuna, Tom } from "@/domain/tipos";
+import { FERIADOS_DOS_TRIBUNAIS } from "./feriados-tribunais";
 import type { ArmazenamentoLocal } from "./repositorio-local";
 
 // Dados de exemplo do modo local: casos jurídicos fictícios e genéricos, sem pessoas reais.
@@ -186,6 +189,11 @@ export function criarDadosDeExemplo(hoje = new Date()): ArmazenamentoLocal {
         title: titulo,
         description: descricao ?? null,
         dueOn: mover(prazo),
+        tipo: "providencia",
+        prazoFatal: null,
+        contagem: null,
+        localAudiencia: null,
+        horarioAudiencia: null,
         priority: PRIORIDADE[prio ?? "low"],
         labelIds: (tags ? tags.split(",") : []).map(etiquetaPara),
         checklist: (checklist ?? []).map(([text, feito]) => ({ id: novoId(), text, done: Boolean(feito) })),
@@ -200,6 +208,22 @@ export function criarDadosDeExemplo(hoje = new Date()): ArmazenamentoLocal {
         tarefa.links = [
           { id: novoId(), url: "", title: "Contrato de locação" },
           { id: novoId(), url: "", title: "Modelo de petição inicial" },
+        ];
+      }
+      // Etapa 3: um prazo com memória do cálculo e documentos do cliente no checklist.
+      if (titulo === "Rol de testemunhas" && tarefa.dueOn) {
+        const { contagem, prazoInterno } = montarContagem(
+          { inicio: somarDias(tarefa.dueOn, -14), meio: "portal", dias: 5, regra: "trabalhista", margem: 2 },
+          FERIADOS_DOS_TRIBUNAIS,
+          tribunalDoProcesso(dados.processos![id]),
+        );
+        Object.assign(tarefa, alteracaoDePrazo(contagem, prazoInterno));
+      }
+      if (titulo === "Juntar holerites e CTPS") {
+        tarefa.checklist = [
+          { id: novoId(), text: "Holerites dos últimos 12 meses", done: false, doCliente: true },
+          { id: novoId(), text: "CTPS", done: false, doCliente: true },
+          { id: novoId(), text: "Conferir as horas extras nos holerites", done: false },
         ];
       }
       dados.tasks.push(tarefa);

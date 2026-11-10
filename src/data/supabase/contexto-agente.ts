@@ -24,10 +24,15 @@ export function criarClienteDoUsuario(admin: Pick<SupabaseClient, "from">, userI
     return resto;
   };
 
+  // O userId entra num filtro em texto (or) abaixo: só um uuid passa.
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)) throw new Error("Contexto do agente com usuário inválido.");
+
   const from = (tabela: string) => {
     const consulta = admin.from(tabela);
     return {
-      select: (...args: Parameters<typeof consulta.select>) => consulta.select(...args).eq("user_id", userId),
+      // Feriados: a carga geral (user_id nulo) vale para todos, então a leitura inclui ela.
+      select: (...args: Parameters<typeof consulta.select>) =>
+        tabela === "feriados" ? consulta.select(...args).or(`user_id.is.null,user_id.eq.${userId}`) : consulta.select(...args).eq("user_id", userId),
       insert: (valores: Parameters<typeof consulta.insert>[0], opcoes?: Parameters<typeof consulta.insert>[1]) => consulta.insert(comDono(valores), opcoes),
       upsert: (valores: Parameters<typeof consulta.upsert>[0], opcoes?: Parameters<typeof consulta.upsert>[1]) => consulta.upsert(comDono(valores), opcoes),
       update: (valores: Record<string, unknown>, opcoes?: Parameters<typeof consulta.update>[1]) =>

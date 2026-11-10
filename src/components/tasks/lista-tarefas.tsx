@@ -1,6 +1,6 @@
 "use client";
 
-import { FlagIcon } from "@phosphor-icons/react";
+import { FlagIcon, GavelIcon } from "@phosphor-icons/react";
 import { Marcador } from "@/components/ui/pecas";
 import { COR_PRIORIDADE, ROTULO_PRIORIDADE, corDoPrazo, formatarData } from "@/domain/quadro";
 import type { Projeto, Tarefa } from "@/domain/tipos";
@@ -59,9 +59,15 @@ export function ListaTarefas({
                     </p>
                   )}
                 </div>
+                {t.tipo === "audiencia" && <GavelIcon size={13} className="shrink-0 text-ink3" aria-label="Audiência" />}
                 {t.dueOn && (
-                  <span className="whitespace-nowrap text-xs" style={{ color: corDoPrazo(t.dueOn, t.completed) }}>
+                  <span className="whitespace-nowrap text-xs" style={{ color: corDoPrazo(t.dueOn, t.completed) }} title={t.prazoFatal ? "Prazo interno" : undefined}>
                     {formatarData(t.dueOn)}
+                  </span>
+                )}
+                {t.tipo === "prazo" && t.prazoFatal && (
+                  <span className={classes("whitespace-nowrap text-xs font-semibold", t.completed ? "text-ink3" : "text-s-red")} title="Prazo fatal">
+                    Fatal {formatarData(t.prazoFatal)}
                   </span>
                 )}
                 <span

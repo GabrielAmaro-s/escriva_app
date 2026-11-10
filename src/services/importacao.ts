@@ -1,13 +1,17 @@
 import { z } from "zod";
 import { ordenarPorPosicao } from "@/domain/quadro";
 import { validarDadosCliente } from "@/domain/cliente";
+import { ErroDeConflito } from "@/domain/erros";
+import { ajustarAlteracaoAoTipo } from "@/domain/prazos";
 import { validarDadosProjeto } from "@/domain/projeto";
-import type { Cliente, Coluna, DetalhesCampanha, DetalhesProcesso, Etiqueta, Projeto, Tarefa } from "@/domain/tipos";
+import type { Cliente, Coluna, ContagemPrazo, DadosNovoFeriado, DetalhesCampanha, DetalhesProcesso, Etiqueta, Projeto, Tarefa } from "@/domain/tipos";
 import type { Repositorio } from "@/data/repositorio";
+import { criarFeriadoLocal } from "./prazos";
 
 // Exportar e importar todos os dados de uma conta (ou do navegador) em JSON.
 // Clientes, detalhes do processo e tipo de serviço entraram na etapa 2 como campos opcionais:
-// arquivos exportados antes continuam válidos.
+// arquivos exportados antes continuam válidos. Na etapa 3 entraram, também opcionais, o tipo da
+// tarefa, o prazo fatal, a contagem, a audiência, o "documento do cliente" no checklist e os feriados locais.
 
 export const VERSAO_EXPORTACAO = 1;
 
@@ -20,8 +24,12 @@ export interface DadosExportados {
   processos?: (DetalhesProcesso & { projectId: string })[];
   colunas: Coluna[];
   etiquetas: Etiqueta[];
-  tarefas: Tarefa[];
+  tarefas: (Omit<Tarefa, CamposDaEtapa3> & Partial<Pick<Tarefa, CamposDaEtapa3>>)[];
+  /** Só os feriados locais (a carga dos tribunais vem com o sistema). */
+  feriados?: DadosNovoFeriado[];
 }
+
+type CamposDaEtapa3 = "tipo" | "prazoFatal" | "contagem" | "localAudiencia" | "horarioAudiencia";
 
 export interface ResumoImportacao {
   clientes: number;
@@ -33,7 +41,7 @@ export interface ResumoImportacao {
 }
 
 export async function exportarDados(repo: Repositorio, agora = new Date()): Promise<DadosExportados> {
-  const [projetos, espaco, clientes] = await Promise.all([repo.listarProjetos(), repo.obterEspacoDeTrabalho(), repo.listarClientes()]);
+  const [projetos, espaco, clientes, feriados] = await Promise.all([repo.listarProjetos(), repo.obterEspacoDeTrabalho(), repo.listarClientes(), repo.listarFeriados()]);
   return {
     versao: VERSAO_EXPORTACAO,
     exportadoEm: agora.toISOString(),
@@ -44,6 +52,7 @@ export async function exportarDados(repo: Repositorio, agora = new Date()): Prom
     colunas: espaco.colunas,
     etiquetas: espaco.etiquetas,
     tarefas: espaco.tarefas,
+    feriados: feriados.filter((f) => f.userId !== null).map(({ data, ate, tribunal, tipo, descricao }) => ({ data, ate, tribunal, tipo, descricao })),
   };
 }
 
@@ -125,15 +134,31 @@ const esquemaExportacao = z.object({
       dueOn: data,
       priority: z.enum(["low", "medium", "high", "urgent"]),
       labelIds: z.array(z.string()),
-      checklist: z.array(z.object({ id: z.string(), text: z.string(), done: z.boolean() })),
+      checklist: z.array(z.object({ id: z.string(), text: z.string(), done: z.boolean(), doCliente: z.boolean().optional() })),
       links: z.array(z.object({ id: z.string(), url: z.string(), title: z.string().nullable() })),
       completed: z.boolean(),
       completedAt: data,
       position: z.number(),
       createdAt: z.string(),
       updatedAt: z.string(),
+      tipo: z.enum(["prazo", "providencia", "audiencia"]).optional(),
+      prazoFatal: data.optional(),
+      contagem: z.custom<ContagemPrazo>((v) => typeof v === "object" && v !== null && typeof (v as ContagemPrazo).vencimento === "string").nullable().optional(),
+      localAudiencia: z.string().max(200).nullable().optional(),
+      horarioAudiencia: data.optional(),
     }),
   ),
+  feriados: z
+    .array(
+      z.object({
+        data: z.string(),
+        ate: data.optional(),
+        tribunal: z.string().nullable().optional(),
+        tipo: z.enum(["feriado", "suspensao", "expediente_reduzido"]).optional(),
+        descricao: z.string(),
+      }),
+    )
+    .optional(),
 });
 
 export function lerArquivoExportado(entrada: unknown): DadosExportados {
@@ -221,6 +246,16 @@ export async function importarDados(repo: Repositorio, entrada: unknown): Promis
         title: t.title.slice(0, 200) || "Sem título",
         description: t.description,
         dueOn: t.dueOn,
+        ...ajustarAlteracaoAoTipo(
+          { tipo: "providencia", prazoFatal: null, contagem: null, localAudiencia: null, horarioAudiencia: null },
+          {
+            tipo: t.tipo ?? "providencia",
+            prazoFatal: t.prazoFatal ?? null,
+            contagem: t.contagem ?? null,
+            localAudiencia: t.localAudiencia ?? null,
+            horarioAudiencia: t.horarioAudiencia ?? null,
+          },
+        ),
         priority: t.priority,
         labelIds: t.labelIds.map((id) => novaEtiqueta.get(id)).filter((id): id is string => Boolean(id)),
         position: t.position,
@@ -232,6 +267,15 @@ export async function importarDados(repo: Repositorio, entrada: unknown): Promis
         completedAt: t.completedAt,
       });
       resumo.tarefas += 1;
+    }
+  }
+
+  // Feriados locais: o que já existe na conta (mesma data e tribunal) fica como está.
+  for (const f of dados.feriados ?? []) {
+    try {
+      await criarFeriadoLocal(repo, f);
+    } catch (e) {
+      if (!(e instanceof ErroDeConflito)) throw new Error(`Feriado de ${f.data}: ${e instanceof Error ? e.message : "inválido"}`);
     }
   }
 

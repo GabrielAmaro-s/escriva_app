@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { criarDadosDeExemplo } from "@/data/local/exemplo";
 import { armazenamentoVazio, criarRepositorioLocal } from "@/data/local/repositorio-local";
 import type { Repositorio } from "@/data/repositorio";
+import { montarContagem } from "@/domain/prazos";
 import { dadosProjetoVazios } from "@/domain/projeto";
 import { descreverResumo, exportarDados, importarDados, lerArquivoExportado } from "./importacao";
 
@@ -113,5 +114,46 @@ describe("exportar e importar", () => {
     const resumo = await importarDados(destino, await exportarDados(origem));
     expect(resumo.clientes).toBe(0);
     expect((await destino.listarProjetos())[0].clienteId).toBe(jaExiste.id);
+  });
+});
+
+describe("exportar e importar: prazos (etapa 3)", () => {
+  it("leva tipo, prazo fatal, contagem, audiência, documento do cliente e feriados locais", async () => {
+    const origem = criarRepositorioLocal({ dados: armazenamentoVazio() });
+    const p = await origem.criarProjeto({ ...dadosProjetoVazios(), name: "Processo" }, [{ title: "A fazer", kind: "todo" }]);
+    const coluna = (await origem.obterQuadro(p.id))!.colunas[0].id;
+    const { contagem, prazoInterno } = montarContagem({ inicio: "2026-11-09", meio: "dje", dias: 15, regra: "civel", margem: 2 }, [], "TJRS");
+    const prazo = await origem.criarTarefa({ projectId: p.id, columnId: coluna, title: "Contestação", tipo: "prazo", prazoFatal: contagem.vencimento, contagem, dueOn: prazoInterno });
+    await origem.atualizarTarefa(prazo.id, { checklist: [{ id: "i1", text: "Procuração", done: false, doCliente: true }] });
+    await origem.criarTarefa({ projectId: p.id, columnId: coluna, title: "Audiência", tipo: "audiencia", horarioAudiencia: "2026-12-03T17:00:00.000Z", localAudiencia: "Sala 3" });
+    await origem.criarFeriado({ data: "2026-02-02", descricao: "Navegantes", tipo: "feriado" });
+
+    const destino = criarRepositorioLocal({ dados: armazenamentoVazio() });
+    await importarDados(destino, JSON.parse(JSON.stringify(await exportarDados(origem))));
+    // De novo: o feriado repetido é ignorado, sem erro.
+    await importarDados(destino, JSON.parse(JSON.stringify(await exportarDados(origem))));
+
+    const tarefas = (await destino.obterEspacoDeTrabalho()).tarefas;
+    expect(tarefas.find((t) => t.title === "Contestação")).toMatchObject({
+      tipo: "prazo",
+      prazoFatal: "2026-12-02",
+      dueOn: "2026-11-30",
+      contagem: { vencimento: "2026-12-02", memoria: contagem.memoria },
+      checklist: [{ text: "Procuração", doCliente: true }],
+    });
+    expect(tarefas.find((t) => t.title === "Audiência")).toMatchObject({ tipo: "audiencia", horarioAudiencia: "2026-12-03T17:00:00.000Z", localAudiencia: "Sala 3" });
+    expect((await destino.listarFeriados()).filter((f) => f.userId !== null).map((f) => [f.data, f.descricao])).toEqual([["2026-02-02", "Navegantes"]]);
+  });
+
+  it("arquivo sem os campos novos vira providência", async () => {
+    const origem = criarRepositorioLocal({ dados: armazenamentoVazio() });
+    const p = await origem.criarProjeto({ ...dadosProjetoVazios(), name: "Antigo" }, [{ title: "A fazer", kind: "todo" }]);
+    await origem.criarTarefa({ projectId: p.id, columnId: (await origem.obterQuadro(p.id))!.colunas[0].id, title: "T" });
+    const arquivo = JSON.parse(JSON.stringify(await exportarDados(origem)));
+    delete arquivo.feriados;
+    for (const t of arquivo.tarefas) for (const c of ["tipo", "prazoFatal", "contagem", "localAudiencia", "horarioAudiencia"]) delete t[c];
+    const destino = criarRepositorioLocal({ dados: armazenamentoVazio() });
+    await importarDados(destino, arquivo);
+    expect((await destino.obterEspacoDeTrabalho()).tarefas[0]).toMatchObject({ tipo: "providencia", prazoFatal: null, contagem: null });
   });
 });

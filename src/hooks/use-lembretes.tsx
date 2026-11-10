@@ -12,8 +12,9 @@ interface EstadoLembretes {
   ativos: Lembrete[];
   carregando: boolean;
   tarefasComLembrete: Set<string>;
+  /** Lembrete feito à mão da tarefa (os automáticos ficam de fora). */
   lembreteDaTarefa(tarefaId: string): Lembrete | undefined;
-  /** Cria, remarca ou cancela (quando = null) o lembrete de uma tarefa. */
+  /** Cria, remarca ou cancela (quando = null) o lembrete feito à mão de uma tarefa. */
   definirLembreteDaTarefa(tarefa: Tarefa, quando: string | null): Promise<void>;
   recarregar(): void;
 }
@@ -48,11 +49,12 @@ export function ProvedorLembretes({ children }: { children: ReactNode }) {
     setAtivos((lista) => ordenarPorQuando([...lista.filter((x) => x.id !== l.id), ...(STATUS_ATIVOS.includes(l.status) ? [l] : [])]));
   }, []);
 
-  const lembreteDaTarefa = useCallback((tarefaId: string) => ativos.find((l) => l.tarefaId === tarefaId), [ativos]);
+  // O campo "Lembrete" da tarefa é o feito à mão; os automáticos (D-3, D-1, no dia) seguem o prazo.
+  const lembreteDaTarefa = useCallback((tarefaId: string) => ativos.find((l) => l.tarefaId === tarefaId && !l.automatico), [ativos]);
 
   const definirLembreteDaTarefa = useCallback(
     async (tarefa: Tarefa, quando: string | null) => {
-      const atual = ativos.find((l) => l.tarefaId === tarefa.id);
+      const atual = ativos.find((l) => l.tarefaId === tarefa.id && !l.automatico);
       try {
         if (!quando) {
           if (atual) substituir(await servico.cancelarLembrete(repo, atual.id));

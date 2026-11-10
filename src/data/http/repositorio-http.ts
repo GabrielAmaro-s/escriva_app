@@ -1,4 +1,17 @@
-import type { Cliente, EspacoDeTrabalho, Etiqueta, Lembrete, Projeto, Quadro, RegistroAgente, Tarefa, TokenAgente } from "@/domain/tipos";
+import type {
+  AlteracaoRegistrada,
+  Cliente,
+  EspacoDeTrabalho,
+  Etiqueta,
+  Feriado,
+  Lembrete,
+  Preferencias,
+  Projeto,
+  Quadro,
+  RegistroAgente,
+  Tarefa,
+  TokenAgente,
+} from "@/domain/tipos";
 import { chamarApi } from "@/lib/chamar-api";
 import type { Repositorio } from "../repositorio";
 
@@ -50,6 +63,13 @@ export function criarRepositorioHttp(): Repositorio {
     criarLembrete: (dados) => chamarApi<Lembrete>("/api/lembretes", { metodo: "POST", corpo: dados }),
     atualizarLembrete: (id, alteracao) => chamarApi<Lembrete>(`/api/lembretes/${id}`, { metodo: "PATCH", corpo: alteracao }),
     excluirLembrete: (id) => chamarApi<void>(`/api/lembretes/${id}`, { metodo: "DELETE" }),
+
+    listarFeriados: () => chamarApi<Feriado[]>("/api/feriados"),
+    criarFeriado: (dados) => chamarApi<Feriado>("/api/feriados", { metodo: "POST", corpo: dados }),
+    excluirFeriado: (id) => chamarApi<void>(`/api/feriados/${id}`, { metodo: "DELETE" }),
+    listarAlteracoesDaTarefa: (tarefaId) => chamarApi<AlteracaoRegistrada[]>(`/api/tarefas/${tarefaId}/alteracoes`),
+    obterPreferencias: () => chamarApi<Preferencias>("/api/preferencias"),
+    salvarPreferencias: (preferencias) => chamarApi<Preferencias>("/api/preferencias", { metodo: "PATCH", corpo: preferencias }),
 
     listarTokensAgente: () => chamarApi<TokenAgente[]>("/api/agente/tokens"),
     // O hash depende do segredo do servidor: a tela usa POST /api/agente/tokens.

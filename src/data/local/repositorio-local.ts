@@ -1,19 +1,24 @@
 import { MENSAGEM_CLIENTE_DUPLICADO } from "@/domain/cliente";
 import { ErroDeConflito } from "@/domain/erros";
+import { MARGEM_PADRAO, MENSAGEM_FERIADO_DUPLICADO } from "@/domain/prazos";
 import { MENSAGEM_PROCESSO_DUPLICADO } from "@/domain/processo";
 import { novoId, posicaoEntre } from "@/domain/quadro";
 import type {
   AlteracaoLembrete,
+  AlteracaoRegistrada,
   AlteracaoTarefa,
   Cliente,
   Coluna,
   DadosCliente,
   DetalhesProcesso,
+  DadosNovoFeriado,
   DadosNovoLembrete,
   DadosNovoRegistro,
   DadosNovoToken,
+  Feriado,
   FiltroLembretes,
   Lembrete,
+  Preferencias,
   RegistroAgente,
   TokenAgente,
   DadosNovaColuna,
@@ -28,6 +33,7 @@ import type {
 } from "@/domain/tipos";
 import type { Repositorio } from "../repositorio";
 import { criarDadosDeExemplo } from "./exemplo";
+import { FERIADOS_DOS_TRIBUNAIS } from "./feriados-tribunais";
 
 /**
  * Repositório no navegador (localStorage). Usado quando o Supabase não está
@@ -45,7 +51,8 @@ export interface ArmazenamentoLocal {
   campaigns: Record<string, DetalhesCampanha>;
   columns: Coluna[];
   labels: Etiqueta[];
-  tasks: Tarefa[];
+  /** Tarefas salvas antes da etapa 3 não têm tipo, prazo fatal nem audiência. */
+  tasks: TarefaGuardada[];
   // Campos novos (opcionais para continuar lendo o que já estava salvo)
   lembretes?: Lembrete[];
   tokens?: (TokenAgente & { hash: string })[];
@@ -53,6 +60,25 @@ export interface ArmazenamentoLocal {
   heartbeat?: string | null;
   clientes?: Cliente[];
   processos?: Record<string, DetalhesProcesso>;
+  /** Só os feriados locais da pessoa; a carga dos tribunais vem de feriados-tribunais.ts. */
+  feriados?: Feriado[];
+  alteracoes?: AlteracaoRegistrada[];
+  preferencias?: Preferencias;
+}
+
+export type TarefaGuardada = Omit<Tarefa, "tipo" | "prazoFatal" | "contagem" | "localAudiencia" | "horarioAudiencia"> &
+  Partial<Pick<Tarefa, "tipo" | "prazoFatal" | "contagem" | "localAudiencia" | "horarioAudiencia">>;
+
+/** Tarefa com os campos da etapa 3 preenchidos (como os defaults da migração 0005). */
+export function completarTarefa(t: TarefaGuardada): Tarefa {
+  return {
+    ...t,
+    tipo: t.tipo ?? "providencia",
+    prazoFatal: t.prazoFatal ?? null,
+    contagem: t.contagem ?? null,
+    localAudiencia: t.localAudiencia ?? null,
+    horarioAudiencia: t.horarioAudiencia ?? null,
+  };
 }
 
 export function armazenamentoVazio(): ArmazenamentoLocal {
@@ -151,6 +177,22 @@ export function criarRepositorioLocal(opcoes: OpcoesRepositorioLocal = {}): Repo
     const repetido = Object.entries(s.processos ?? {}).some(([id, d]) => id !== projetoId && d.numeroCnj === numero && s.projects.some((p) => p.id === id));
     if (repetido) throw new ErroDeConflito(MENSAGEM_PROCESSO_DUPLICADO);
   };
+  // Os checks de tasks da 0005.
+  const conferirTarefa = (t: Tarefa) => {
+    if (t.prazoFatal && t.tipo !== "prazo") throw new Error("Só tarefas do tipo prazo têm prazo fatal.");
+    if ((t.localAudiencia || t.horarioAudiencia) && t.tipo !== "audiencia") throw new Error("Local e horário só valem para audiência.");
+  };
+  // Como o gatilho tasks_registrar_prazo: cada mudança no prazo interno ou fatal vira uma linha do histórico.
+  const registrarPrazos = (s: ArmazenamentoLocal, id: string, antes: Tarefa | null, depois: Tarefa) => {
+    const campos = [
+      ["due_on", antes?.dueOn ?? null, depois.dueOn],
+      ["prazo_fatal", antes?.prazoFatal ?? null, depois.prazoFatal],
+    ] as const;
+    for (const [campo, de, para] of campos) {
+      if (de === para) continue;
+      (s.alteracoes ??= []).push({ id: novoId(), entidadeId: id, campo, antes: de, depois: para, origem: "app", criadoEm: agora() });
+    }
+  };
   const conferirDocumento = (s: ArmazenamentoLocal, clienteId: string | null, documento: string | null | undefined) => {
     if (documento && (s.clientes ?? []).some((c) => c.id !== clienteId && c.documento === documento)) throw new ErroDeConflito(MENSAGEM_CLIENTE_DUPLICADO);
   };
@@ -235,14 +277,14 @@ export function criarRepositorioLocal(opcoes: OpcoesRepositorioLocal = {}): Repo
       return structuredClone({
         projeto: hidratar(s, p),
         colunas: s.columns.filter((c) => c.projectId === projetoId),
-        tarefas: s.tasks.filter((t) => t.projectId === projetoId),
+        tarefas: s.tasks.filter((t) => t.projectId === projetoId).map(completarTarefa),
         etiquetas: s.labels.filter((l) => l.projectId === projetoId),
       });
     },
 
     async obterEspacoDeTrabalho() {
       const s = banco();
-      return structuredClone({ colunas: s.columns, tarefas: s.tasks, etiquetas: s.labels });
+      return structuredClone({ colunas: s.columns, tarefas: s.tasks.map(completarTarefa), etiquetas: s.labels });
     },
 
     async criarTarefa(entrada: DadosNovaTarefa) {
@@ -256,6 +298,11 @@ export function criarRepositorioLocal(opcoes: OpcoesRepositorioLocal = {}): Repo
         title: entrada.title,
         description: entrada.description ?? null,
         dueOn: entrada.dueOn ?? null,
+        tipo: entrada.tipo ?? "providencia",
+        prazoFatal: entrada.prazoFatal ?? null,
+        contagem: entrada.contagem ?? null,
+        localAudiencia: entrada.localAudiencia ?? null,
+        horarioAudiencia: entrada.horarioAudiencia ?? null,
         priority: entrada.priority ?? "medium",
         labelIds: entrada.labelIds ?? [],
         checklist: [],
@@ -266,7 +313,9 @@ export function criarRepositorioLocal(opcoes: OpcoesRepositorioLocal = {}): Repo
         createdAt: agora(),
         updatedAt: agora(),
       };
+      conferirTarefa(tarefa);
       s.tasks.push(tarefa);
+      registrarPrazos(s, tarefa.id, null, tarefa);
       gravar();
       return structuredClone(tarefa);
     },
@@ -275,9 +324,13 @@ export function criarRepositorioLocal(opcoes: OpcoesRepositorioLocal = {}): Repo
       const s = banco();
       const t = s.tasks.find((x) => x.id === id);
       if (!t) throw new Error("Tarefa não encontrada.");
-      Object.assign(t, structuredClone(alteracao), { updatedAt: agora() });
+      const antes = completarTarefa(t);
+      const depois = completarTarefa({ ...antes, ...structuredClone(alteracao) });
+      conferirTarefa(depois);
+      Object.assign(t, depois, { updatedAt: agora() });
+      registrarPrazos(s, id, antes, depois);
       gravar();
-      return structuredClone(t);
+      return structuredClone(completarTarefa(t));
     },
 
     async excluirTarefa(id) {
@@ -355,8 +408,14 @@ export function criarRepositorioLocal(opcoes: OpcoesRepositorioLocal = {}): Repo
         origem: entrada.origem ?? "app",
         agendadoEm: null,
         enviadoEm: null,
+        automatico: entrada.automatico ?? null,
         criadoEm: agora(),
       };
+      // Como o índice lembretes_automatico_idx: um D-3, D-1 ou "dia" ativo por tarefa.
+      const ativoIgual = (s.lembretes ?? []).some(
+        (l) => lembrete.automatico && l.tarefaId === lembrete.tarefaId && l.automatico === lembrete.automatico && ["pendente", "agendado"].includes(l.status),
+      );
+      if (ativoIgual) throw new Error("Já existe esse lembrete automático para a tarefa.");
       (s.lembretes ??= []).push(lembrete);
       gravar();
       return structuredClone(lembrete);
@@ -374,6 +433,50 @@ export function criarRepositorioLocal(opcoes: OpcoesRepositorioLocal = {}): Repo
       const s = banco();
       s.lembretes = (s.lembretes ?? []).filter((l) => l.id !== id);
       gravar();
+    },
+
+    async listarFeriados() {
+      return structuredClone([...FERIADOS_DOS_TRIBUNAIS, ...(banco().feriados ?? [])].sort((a, b) => a.data.localeCompare(b.data)));
+    },
+
+    async criarFeriado(entrada: DadosNovoFeriado) {
+      const s = banco();
+      const feriado: Feriado = {
+        id: novoId(),
+        userId: "local",
+        tribunal: entrada.tribunal ?? null,
+        data: entrada.data,
+        ate: entrada.ate ?? null,
+        tipo: entrada.tipo ?? "feriado",
+        descricao: entrada.descricao,
+        fonte: null,
+      };
+      if ((s.feriados ?? []).some((f) => f.data === feriado.data && f.tribunal === feriado.tribunal)) throw new ErroDeConflito(MENSAGEM_FERIADO_DUPLICADO);
+      (s.feriados ??= []).push(feriado);
+      gravar();
+      return structuredClone(feriado);
+    },
+
+    async excluirFeriado(id) {
+      const s = banco();
+      s.feriados = (s.feriados ?? []).filter((f) => f.id !== id);
+      gravar();
+    },
+
+    async listarAlteracoesDaTarefa(tarefaId) {
+      const lista = (banco().alteracoes ?? []).filter((a) => a.entidadeId === tarefaId);
+      return structuredClone([...lista].reverse().sort((a, b) => b.criadoEm.localeCompare(a.criadoEm)));
+    },
+
+    async obterPreferencias() {
+      return structuredClone(banco().preferencias ?? { margemPrazoInterno: MARGEM_PADRAO });
+    },
+
+    async salvarPreferencias(preferencias) {
+      const s = banco();
+      s.preferencias = structuredClone(preferencias);
+      gravar();
+      return structuredClone(preferencias);
     },
 
     async listarTokensAgente() {

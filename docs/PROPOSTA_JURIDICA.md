@@ -26,6 +26,7 @@ WhatsApp primeiro. O advogado registra e consulta pelo WhatsApp; o app é para v
 O sistema sugere, o advogado confirma. Nenhum prazo fatal é gravado sem confirmação, e todo prazo mostra como foi calculado.
 Simples de alimentar. Criar um processo deve levar menos de um minuto; o resto se completa com o uso.
 Sigilo desde o início. Dados de clientes tratados como sensíveis em todas as decisões.
+Na dúvida, o prazo vence antes. Um feriado ou uma suspensão a mais empurra o vencimento para depois do real e pode fazer o advogado perder o prazo. Por isso, o motor e as cargas de feriados só tiram um dia da contagem quando há base clara, e entre duas leituras possíveis da regra ficam com a que vence antes.
 4. O que se aproveita do myPlan
 Hoje	Na versão jurídica
 Projeto (kind = project)	Processo, com dados em processo_detalhes (mesmo padrão de campaign_details)
@@ -71,13 +72,18 @@ Etapa 3 (0005):
 
 tasks (novas colunas)
                     tipo (prazo|providencia|audiencia) default 'providencia',
-                    prazo_fatal date,          -- dueOn passa a ser o prazo interno
-                    contagem jsonb,            -- {inicio, dias, unidade, regra, feriados_considerados, memoria}
-                    local_audiencia text, horario_audiencia timestamptz
-feriados            id, abrangencia (nacional|estadual|tribunal), uf, tribunal,
-                    data, descricao        -- leitura pública, escrita só por admin
-registro_alteracoes id, user_id, entidade, entidade_id, campo, antes, depois,
-                    origem (app|agente), criado_em
+                    prazo_fatal date,          -- só no tipo prazo; dueOn passa a ser o prazo interno
+                    contagem jsonb,            -- {inicio, meio, dias, regra, unidade, emDobro, suspenderNoRecesso,
+                                               --  tribunal, margem, comeco, vencimento, excluidos, memoria}
+                    local_audiencia text, horario_audiencia timestamptz   -- só no tipo audiência
+feriados            id, user_id (nulo na carga geral), tribunal (sigla; nulo num feriado local vale para todos),
+                    data, ate (períodos), tipo (feriado|suspensao|expediente_reduzido), descricao, fonte
+                    -- lê a carga geral e os próprios; grava, altera e exclui só os próprios
+registro_alteracoes id, user_id, entidade, entidade_id, campo (due_on|prazo_fatal), antes, depois,
+                    origem (app|agente), criado_em   -- gravado só por gatilho; o app só lê
+lembretes (nova coluna)
+                    automatico (d-3|d-1|dia), para recriar os automáticos sem tocar nos feitos à mão
+preferencias        user_id, margem_prazo_interno (padrão 2 dias úteis)
 
 Escolhas:
 
@@ -87,8 +93,14 @@ Cliente em projects, não em processo_detalhes. Um caso consultivo também tem c
 Consultivo sem tabela nova. Ele usa campaign_details: objective aparece como "Pedido do cliente", starts_on como "Recebido em", ends_on como "Prazo de entrega" e tipo_servico como "Tipo de serviço".
 Mesmo dono garantido no banco. As chaves estrangeiras novas são compostas com user_id, então um processo não aponta para cliente de outra conta, mesmo pelo cliente admin do agente.
 dueOn continua sendo o campo usado pelo quadro, listas e resumos. Para prazos, ele guarda o prazo interno e prazo_fatal guarda a data limite. Assim as telas atuais funcionam sem mudança e só ganham um selo de "fatal".
-contagem guarda a memória do cálculo. O advogado vê "15 dias úteis a partir de 10/11, excluídos 15/11 e 20/11, vence 02/12".
-Feriados em tabela própria, alimentada por quem administra o sistema e revisada a cada ano. Feriados municipais e suspensões de expediente pontuais podem ser cadastrados pelo próprio advogado.
+contagem guarda a memória do cálculo. O advogado vê, por exemplo, "15 dias úteis, Cível (CPC). Disponibilizado no DJe em 09/11/2026, publicado em 10/11/2026. A contagem começa em 11/11/2026. Fora da contagem, além dos fins de semana: 20/11 (Consciência Negra). Vence em 02/12/2026."
+Feriados em três camadas (decisão da etapa 3, que substitui a tabela única prevista antes):
+os nacionais fixos e os móveis (Carnaval, Sexta-feira Santa e Corpus Christi) são calculados em domain/prazos.ts, sem tabela;
+a tabela feriados guarda a carga geral por tribunal (feriados e suspensões), começando por TJRS, TRT4 e TRF4, carregada por migração e revisada a cada ano;
+a mesma tabela guarda os feriados locais do advogado, com user_id: municipais, suspensões pontuais e dias de expediente reduzido ou de sistema fora do ar (CPC, art. 224, § 1º). O RLS lê a carga geral e os próprios, e grava só os próprios.
+Na carga geral só entra o que tem base clara. A Data Magna do RS (20/09) vale para TJRS e TRT4, mas não para o TRF4, que também cobre SC e PR: o advogado do RS cadastra a data como feriado local.
+Documento pendente do cliente é um item de checklist com o campo doCliente, no jsonb, sem migração.
+Margem do prazo interno de 2 dias úteis por padrão, ajustável em Configurações e editável em cada prazo.
 Clientes como entidade. Um cliente tem vários processos; o nome do cliente aparece no cartão do processo.
 Pensando no futuro escritório: todas as tabelas novas mantêm user_id. Quando houver equipe, entra organizacao_id ao lado, sem reescrever o que foi feito.
 6. Modelos de quadro por área
@@ -109,23 +121,29 @@ As colunas representam o trabalho do advogado, não a fase do processo. A fase p
 Funções puras, sem banco, com testes ao lado (prazos.test.ts), usando domain/datas.ts como base.
 
 ts
-calcularPrazo({ inicio, dias, unidade: "uteis" | "corridos", feriados, suspensoes }): {
+criarCalendario({ feriados, tribunal, suspenderNoRecesso }): Calendario   // nacionais + tribunal + locais
+inicioDaContagem({ inicio, meio: "dje" | "portal" | "pessoal", calendario }): { comeco, explicacao }
+calcularPrazo({ comeco, dias, unidade: "uteis" | "corridos", calendario }): {
   vencimento: string;          // AAAA-MM-DD
   diasConsiderados: string[];
-  diasExcluidos: { data: string; motivo: string }[];
-  memoria: string;             // texto curto para mostrar ao advogado
+  diasExcluidos: { data: string; ate?: string; motivo: string }[];
+  comecoProrrogado, vencimentoProrrogado;
 }
-inicioDaContagem({ disponibilizacao, meio: "dje" | "portal" | "pessoal" }): string
-prazoInterno(vencimento, margemDiasUteis): string
+calcularPrazoDaIntimacao(dados, feriados, tribunal): resultado + memoria   // texto para o advogado
+prazoInterno(vencimento, margemDiasUteis, calendario): string
+datasDosLembretes(prazoFatal, calendario): { "d-3", "d-1", dia }
 
-Regras previstas para a primeira versão (validar com advogado antes de publicar):
+Regras da primeira versão (implementadas na etapa 3, ainda em validação com advogados; os casos estão em docs/validacao-prazos.md):
 
 prazos processuais cíveis em dias úteis, excluindo o dia do começo e incluindo o do vencimento, com prorrogação quando o vencimento cai em dia sem expediente;
-suspensão do recesso de fim de ano (20 de dezembro a 20 de janeiro);
-publicação no diário eletrônico considerada feita no primeiro dia útil seguinte à disponibilização, com a contagem começando no dia útil seguinte;
-prazos trabalhistas e de juizados também em dias úteis;
-prazos penais em dias corridos;
+suspensão do recesso de fim de ano (20 de dezembro a 20 de janeiro) no cível (CPC, art. 220), no trabalhista (CLT, art. 775-A) e no penal (CPP, art. 798-A); no penal, as exceções do artigo (réu preso, Maria da Penha, medida urgente) são uma opção marcada pelo advogado;
+publicação no diário eletrônico considerada feita no primeiro dia com expediente seguinte à disponibilização, com a contagem começando no dia útil seguinte;
+dia de expediente reduzido ou de sistema fora do ar conta normalmente, mas, se for o dia do começo ou o do vencimento, o prazo passa para o dia útil seguinte (CPC, art. 224, § 1º);
+prazos trabalhistas e de juizados também em dias úteis; nos juizados, a suspensão do recesso fica desligada por padrão, até a validação;
+prazos penais em dias corridos, começando no primeiro dia útil depois da intimação (Súmula 310 do STF);
 prazos em dobro (Fazenda Pública, Defensoria) como opção marcada pelo advogado, não automática.
+
+Enquanto a validação não termina, a tela mostra junto de cada cálculo o aviso "Contagem em validação. Confira o vencimento antes de usar.", controlado pela constante AVISO_CONTAGEM_EM_VALIDACAO em domain/prazos.ts.
 
 Testes com casos reais: prazos que atravessam feriado, fim de semana, recesso e virada de mês.
 
@@ -179,7 +197,10 @@ Concorrência. Astrea, ADVBOX, Projuris, EasyJur e CPJ já oferecem gestão comp
 12. Pendências
 Nome do produto.
 Validação com advogados autônomos (dores, preço, uso do WhatsApp para trabalho).
-Revisão das regras de prazo por alguém da área antes de qualquer uso real.
+Revisão das regras de prazo por alguém da área antes de qualquer uso real (casos em docs/validacao-prazos.md).
+Feriados forenses do TJRS além da Data Magna: carregar só depois de conferir o ato do tribunal (etapa 3 deixou só o 20/09).
+Dia do Servidor de 2027 no TRF4 (e no TRT4, se houver): carregar quando o tribunal fixar a data.
+Quarta-feira de Cinzas: só entra como expediente reduzido com ato do tribunal; até lá, o advogado pode cadastrá-la como feriado local.
 Ícones jurídicos (etapa 2). Na etapa 1 o Consultivo ficou com o megafone, na tela e no agente, e os ícones do menu não mudaram.
 Vocabulário das mensagens do agente (etapa 4). Na etapa 1 só a ferramenta criar_projeto mudou, com o parâmetro modelo.
 
