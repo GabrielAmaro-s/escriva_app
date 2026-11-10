@@ -33,7 +33,7 @@ export default function PaginaLogin() {
         </div>
         {!supabaseConfigurado ? (
           <div className="flex flex-col gap-2">
-            <h1 className="text-xl font-bold tracking-[-0.02em]">Login desativado no modo local</h1>
+            <h1 className="text-xl font-semibold tracking-[-0.02em]">Login desativado no modo local</h1>
             <p className="text-[13px] text-ink-muted">Configure as variáveis do Supabase no .env.local para entrar com seu e-mail e sincronizar entre dispositivos.</p>
             <Link href="/" className="mt-2 text-[13px] font-semibold text-primary">
               Continuar no modo local
@@ -41,7 +41,7 @@ export default function PaginaLogin() {
           </div>
         ) : estado === "enviado" ? (
           <div className="flex flex-col gap-2">
-            <h1 className="text-xl font-bold tracking-[-0.02em]">Confira seu e-mail</h1>
+            <h1 className="text-xl font-semibold tracking-[-0.02em]">Confira seu e-mail</h1>
             <p className="text-[13px] text-ink-muted">
               Enviamos um link de acesso para <strong className="font-semibold text-ink">{email}</strong>. Abra no mesmo navegador.
             </p>
@@ -52,7 +52,7 @@ export default function PaginaLogin() {
         ) : (
           <form onSubmit={enviar} className="flex flex-col gap-4">
             <div>
-              <h1 className="text-xl font-bold tracking-[-0.02em]">Entrar</h1>
+              <h1 className="text-xl font-semibold tracking-[-0.02em]">Entrar</h1>
               <p className="mt-1 text-[13px] text-ink-muted">Você recebe um link por e-mail, sem senha.</p>
             </div>
             <div>

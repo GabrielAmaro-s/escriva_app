@@ -50,7 +50,7 @@ export function TelaQuadro({ projetoId }: { projetoId: string }) {
   if (api.status !== "pronto" || !projeto) {
     return (
       <div className="mx-auto flex w-full max-w-[1400px] flex-col items-start gap-2 px-4 py-10 nav:px-10">
-        <h1 className="text-xl font-bold">{api.status === "erro" ? "Não foi possível abrir o quadro" : "Este processo não existe mais"}</h1>
+        <h1 className="text-xl font-semibold">{api.status === "erro" ? "Não foi possível abrir o quadro" : "Este processo não existe mais"}</h1>
         <p className="text-sm text-ink-muted">{api.status === "erro" ? "Verifique sua conexão e recarregue a página." : "Ele pode ter sido excluído."}</p>
         <Link href="/" className="mt-2 text-sm font-medium text-primary">
           Voltar para Processos
@@ -74,7 +74,7 @@ export function TelaQuadro({ projetoId }: { projetoId: string }) {
           </BotaoIcone>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-3">
-              <h1 className="m-0 text-[26px] font-bold leading-[1.2] tracking-[-0.025em]">{projeto.name}</h1>
+              <h1 className="m-0 text-[26px] font-semibold leading-[1.2] tracking-[-0.025em]">{projeto.name}</h1>
               <SeloStatus status={projeto.status} arquivado={Boolean(projeto.archivedAt)} className="px-2.5" />
             </div>
             {projeto.description && <p className="mt-[5px] text-[13.5px] text-ink-muted">{projeto.description}</p>}

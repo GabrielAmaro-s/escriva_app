@@ -181,7 +181,7 @@ export function CabecalhoPagina({ titulo, descricao, acao }: { titulo: string; d
   return (
     <div className="flex flex-wrap items-start justify-between gap-4">
       <div>
-        <h1 className="m-0 text-[28px] font-bold leading-[1.15] tracking-[-0.025em]">{titulo}</h1>
+        <h1 className="m-0 text-[32px] font-semibold leading-[38px] tracking-[-0.01em]">{titulo}</h1>
         <p className="mt-1.5 text-sm text-ink-muted">{descricao}</p>
       </div>
       {acao}

@@ -55,7 +55,7 @@ export function FormularioCliente({ aberto, cliente, aoFechar }: { aberto: boole
     <Janela aberta={aberto} aoFechar={aoFechar} rotulo={titulo} className="max-w-[520px] p-6">
       <form onSubmit={enviar} noValidate>
         <div className="flex items-start justify-between">
-          <h2 className="text-xl font-bold tracking-[-0.02em]">{titulo}</h2>
+          <h2 className="text-xl font-semibold tracking-[-0.02em]">{titulo}</h2>
           <BotaoIcone rotulo="Fechar" onClick={aoFechar}>
             <XIcon size={17} weight="bold" />
           </BotaoIcone>

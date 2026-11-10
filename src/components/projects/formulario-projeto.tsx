@@ -155,7 +155,7 @@ export function FormularioProjeto({
       <form onSubmit={enviar} noValidate>
         <div className="flex items-start justify-between">
           <div>
-            <h2 className="text-xl font-bold tracking-[-0.02em]">{titulo}</h2>
+            <h2 className="text-xl font-semibold tracking-[-0.02em]">{titulo}</h2>
             <p className="mt-1 text-[13px] text-ink-muted">
               {editando ? "Ajuste as informações e salve." : "Cadastre um processo ou um caso consultivo para organizar prazos e tarefas."}
             </p>
