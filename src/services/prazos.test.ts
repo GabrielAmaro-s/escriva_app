@@ -90,9 +90,9 @@ describe("lembretes automáticos", () => {
     const { repo, tarefa } = await cenario();
     await virarPrazo(repo, tarefa);
     expect(await ativos(repo, tarefa.id)).toEqual([
-      { automatico: "d-3", quando: "2026-11-27T12:00:00.000Z", texto: "Prazo fatal em 02/12: Contestação" },
-      { automatico: "d-1", quando: "2026-12-01T12:00:00.000Z", texto: "Prazo fatal em 02/12: Contestação" },
-      { automatico: "dia", quando: "2026-12-02T12:00:00.000Z", texto: "Prazo fatal hoje: Contestação" },
+      { automatico: "d-3", quando: "2026-11-27T12:00:00.000Z", texto: "Prazo fatal na quarta, 02/12: Contestação" },
+      { automatico: "d-1", quando: "2026-12-01T12:00:00.000Z", texto: "Prazo fatal na quarta, 02/12: Contestação" },
+      { automatico: "dia", quando: "2026-12-02T12:00:00.000Z", texto: "Vence hoje o prazo fatal: Contestação" },
     ]);
   });
 
@@ -154,8 +154,8 @@ describe("lembretes automáticos", () => {
       ctx("2026-11-10T12:00:00Z"),
     );
     expect(await ativos(repo, tarefa.id)).toEqual([
-      { automatico: "d-3", quando: "2026-11-30T12:00:00.000Z", texto: "Audiência em 03/12 às 14:00: Contestação (Sala 3, Foro de Pelotas)" },
-      { automatico: "d-1", quando: "2026-12-02T12:00:00.000Z", texto: "Audiência em 03/12 às 14:00: Contestação (Sala 3, Foro de Pelotas)" },
+      { automatico: "d-3", quando: "2026-11-30T12:00:00.000Z", texto: "Audiência na quinta, 03/12, às 14:00: Contestação (Sala 3, Foro de Pelotas)" },
+      { automatico: "d-1", quando: "2026-12-02T12:00:00.000Z", texto: "Audiência na quinta, 03/12, às 14:00: Contestação (Sala 3, Foro de Pelotas)" },
       { automatico: "dia", quando: "2026-12-03T15:00:00.000Z", texto: "Audiência hoje às 14:00: Contestação (Sala 3, Foro de Pelotas)" },
     ]);
   });
@@ -179,7 +179,7 @@ describe("trocar o tipo", () => {
     const p = await alterarTarefa(repo, a, { tipo: "prazo", prazoFatal: "2026-12-10" }, ctx("2026-11-10T12:00:00Z"));
     expect(gravacoes).toEqual([{ tipo: "prazo", prazoFatal: "2026-12-10", localAudiencia: null, horarioAudiencia: null }]);
     expect(p).toMatchObject({ tipo: "prazo", localAudiencia: null, horarioAudiencia: null });
-    expect((await ativos(repo, p.id)).every((l) => l.texto.startsWith("Prazo fatal"))).toBe(true);
+    expect((await ativos(repo, p.id)).every((l) => /prazo fatal/i.test(l.texto))).toBe(true);
   });
 
   it("o repositório recusa prazo fatal fora do tipo prazo (como o check da 0005)", async () => {

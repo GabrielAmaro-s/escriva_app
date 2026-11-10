@@ -264,7 +264,7 @@ describe("com confirmação", () => {
   it("concluir_em_lote: prévia não altera nada; confirmado aplica", async () => {
     const ids = [await idDaTarefa("Pedir contrato ao cliente"), await idDaTarefa("Conferir custas iniciais")];
     const previa = await chamar("concluir_em_lote", { tarefas: ids });
-    expect(previa.corpo).toMatchObject({ precisa_confirmacao: true, mensagem: 'Vou concluir 2 tarefas. Responda "sim" para confirmar.' });
+    expect(previa.corpo).toMatchObject({ precisa_confirmacao: true, mensagem: 'Vou concluir 2 tarefas. Responda *sim* para confirmar.' });
     expect((await repo.obterEspacoDeTrabalho()).tarefas.filter((t) => ids.includes(t.id) && t.completed)).toHaveLength(0);
 
     const feito = await chamar("concluir_em_lote", { tarefas: ids, confirmado: true });

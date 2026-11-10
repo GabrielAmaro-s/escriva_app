@@ -1,4 +1,4 @@
-import { dataNoFuso, interpretarDataHora, partesNoFuso, somarDias } from "./datas";
+import { dataNoFuso, diaDaSemana, interpretarDataHora, partesNoFuso, somarDias } from "./datas";
 import type {
   AlteracaoTarefa,
   AreaProcesso,
@@ -604,11 +604,12 @@ export function lembretesDesejados(
 
   if (tarefa.tipo === "prazo" && tarefa.prazoFatal) {
     const datas = datasDosLembretes(tarefa.prazoFatal, calendario);
-    const vence = formatarDataCurta(tarefa.prazoFatal);
+    const vence = `${diaDaSemana(tarefa.prazoFatal)}, ${formatarDataCurta(tarefa.prazoFatal)}`;
     lista = [
-      { automatico: "d-3", quando: as9(datas["d-3"]), texto: `Prazo fatal em ${vence}: ${titulo}` },
-      { automatico: "d-1", quando: as9(datas["d-1"]), texto: `Prazo fatal em ${vence}: ${titulo}` },
-      { automatico: "dia", quando: as9(datas.dia), texto: `Prazo fatal hoje: ${titulo}` },
+      // Voz e tom do manual: o que importa primeiro, com o dia da semana; sem alarme nem emoji.
+      { automatico: "d-3", quando: as9(datas["d-3"]), texto: `Prazo fatal na ${vence}: ${titulo}` },
+      { automatico: "d-1", quando: as9(datas["d-1"]), texto: `Prazo fatal na ${vence}: ${titulo}` },
+      { automatico: "dia", quando: as9(datas.dia), texto: `Vence hoje o prazo fatal: ${titulo}` },
     ];
   }
 
@@ -620,8 +621,8 @@ export function lembretesDesejados(
     const hora = `${String(p.hora).padStart(2, "0")}:${String(p.minuto).padStart(2, "0")}`;
     const onde = tarefa.localAudiencia ? ` (${encurtar(tarefa.localAudiencia, 120)})` : "";
     lista = [
-      { automatico: "d-3", quando: as9(datas["d-3"]), texto: `Audiência em ${formatarDataCurta(dia)} às ${hora}: ${titulo}${onde}` },
-      { automatico: "d-1", quando: as9(datas["d-1"]), texto: `Audiência em ${formatarDataCurta(dia)} às ${hora}: ${titulo}${onde}` },
+      { automatico: "d-3", quando: as9(datas["d-3"]), texto: `Audiência na ${diaDaSemana(dia)}, ${formatarDataCurta(dia)}, às ${hora}: ${titulo}${onde}` },
+      { automatico: "d-1", quando: as9(datas["d-1"]), texto: `Audiência na ${diaDaSemana(dia)}, ${formatarDataCurta(dia)}, às ${hora}: ${titulo}${onde}` },
       {
         automatico: "dia",
         quando: new Date(instante.getTime() - HORAS_ANTES_DA_AUDIENCIA * 3_600_000).toISOString(),

@@ -68,7 +68,7 @@ describe("criar_processo pelo agente", () => {
   });
 
   it("número repetido na mesma conta é recusado; em outra conta é aceito", async () => {
-    expect((await chamar(ctxA, "criar_processo", { nome: "Outro", numero_cnj: CNJ_TJRS })).corpo.erro).toBe("Já existe um processo com esse número. Nada foi criado.");
+    expect((await chamar(ctxA, "criar_processo", { nome: "Outro", numero_cnj: CNJ_TJRS })).corpo.erro).toBe("Já existe um processo com esse número. Nada foi registrado.");
     expect((await chamar(ctxB, "criar_processo", { nome: "Processo de B", numero_cnj: CNJ_TJRS })).erro).toBe(false);
   });
 });
@@ -94,13 +94,13 @@ describe("registrar_intimacao pelo agente", () => {
 
   it("a segunda intimação igual avisa que parece repetida", async () => {
     const r = await chamar(ctxA, "registrar_intimacao", INTIMACAO);
-    expect(r.corpo.mensagem).toContain("Atenção: parece repetido");
+    expect(r.corpo.mensagem).toContain("Parece repetido:");
   });
 
   it("o número de A não existe para o agente de B (que tem um processo com o mesmo número, mas só seu)", async () => {
     await chamar(ctxA, "criar_processo", { nome: "Só de A", numero_cnj: CNJ_TRT4, area: "trabalhista" });
     const r = await chamar(ctxB, "registrar_intimacao", { ...INTIMACAO, processo: CNJ_TRT4 });
-    expect(r.corpo.erro).toBe(`Não encontrei nenhum processo com o número ${CNJ_TRT4} na sua conta. Nada foi criado. Se ele ainda não está cadastrado, use criar_processo.`);
+    expect(r.corpo.erro).toBe(`Não achei o processo ${CNJ_TRT4} na sua conta. Nada foi registrado. Quer que eu cadastre o processo?`);
   });
 
   it("prazo do TRT4 que atravessa o recesso, com a carga de feriados do banco", async () => {
