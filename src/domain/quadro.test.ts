@@ -206,6 +206,8 @@ describe("datas", () => {
     expect(corDoPrazo("2026-11-04", false, "2026-11-04")).toBe("var(--interno)");
     expect(corDoPrazo("2026-11-05", false, "2026-11-04")).toBe("var(--ink-muted)");
     expect(corDoPrazo("2026-11-01", true, "2026-11-04")).toBe("var(--ink-muted)");
+    // Num prazo, a data é o prazo interno: vencido fica em interno, não em fatal.
+    expect(corDoPrazo("2026-11-03", false, "2026-11-04", { prazoInterno: true })).toBe("var(--interno)");
   });
 });
 

@@ -90,11 +90,12 @@ export const ROTULO_PRIORIDADE: Record<PrioridadeTarefa, string> = {
 export const PRIORIDADES: PrioridadeTarefa[] = ["low", "medium", "high", "urgent"];
 
 /** Cor da bandeira de prioridade (variável CSS). */
+/** Cores neutras: fatal, interno e no-prazo são só dos estados de prazo, sempre com palavra (manual da marca). */
 export const COR_PRIORIDADE: Record<PrioridadeTarefa, string> = {
   low: "var(--ink-muted)",
-  medium: "var(--no-prazo)",
-  high: "var(--interno)",
-  urgent: "var(--fatal)",
+  medium: "var(--ink-muted)",
+  high: "var(--primary)",
+  urgent: "var(--ink)",
 };
 
 /** Cor do marcador de cada coluna. */
@@ -182,9 +183,13 @@ export function documentosPendentes(tarefas: Pick<Tarefa, "id" | "projectId" | "
 }
 
 /** Cor da data de entrega: vermelho se atrasada, âmbar se é hoje. */
-export function corDoPrazo(prazo: string, concluida: boolean, hoje = hojeIso()): string {
+/**
+ * Cor da data de uma tarefa. Num prazo, a data mostrada é o prazo interno: vencido fica em interno,
+ * porque fatal é só do prazo fatal (manual da marca).
+ */
+export function corDoPrazo(prazo: string, concluida: boolean, hoje = hojeIso(), opcoes: { prazoInterno?: boolean } = {}): string {
   if (concluida) return "var(--ink-muted)";
-  if (prazo < hoje) return "var(--fatal)";
+  if (prazo < hoje) return opcoes.prazoInterno ? "var(--interno)" : "var(--fatal)";
   if (prazo === hoje) return "var(--interno)";
   return "var(--ink-muted)";
 }

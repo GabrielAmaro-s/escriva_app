@@ -78,11 +78,11 @@ export const CartaoTarefa = forwardRef<HTMLDivElement, PropsCartaoTarefa>(functi
       </div>
 
       {temMetadados && (
-        <div className="flex items-center gap-3 text-[11.5px] text-ink-muted">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11.5px] text-ink-muted">
           {tarefa.dueOn && (
             <span
               className="inline-flex items-center gap-[5px]"
-              style={{ color: corDoPrazo(tarefa.dueOn, concluida) }}
+              style={{ color: corDoPrazo(tarefa.dueOn, concluida, undefined, { prazoInterno: Boolean(fatal) }) }}
               title={fatal ? "Prazo interno" : undefined}
             >
               <CalendarBlankIcon size={13} />

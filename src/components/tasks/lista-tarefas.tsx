@@ -62,7 +62,7 @@ export function ListaTarefas({
                 </div>
                 {t.tipo === "audiencia" && <GavelIcon size={13} className="shrink-0 text-ink-muted" aria-label="Audiência" />}
                 {t.dueOn && (
-                  <span className="dado whitespace-nowrap text-xs" style={{ color: corDoPrazo(t.dueOn, t.completed) }} title={t.prazoFatal ? "Prazo interno" : undefined}>
+                  <span className="dado whitespace-nowrap text-xs" style={{ color: corDoPrazo(t.dueOn, t.completed, undefined, { prazoInterno: Boolean(t.prazoFatal) }) }} title={t.prazoFatal ? "Prazo interno" : undefined}>
                     {formatarData(t.dueOn)}
                   </span>
                 )}
