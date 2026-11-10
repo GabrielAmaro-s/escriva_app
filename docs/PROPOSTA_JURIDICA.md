@@ -19,7 +19,7 @@ Cliente perguntando "como está meu processo?" no WhatsApp várias vezes por sem
 Documentos pendentes do cliente que travam o início da ação.
 Não ter uma visão única de "o que eu preciso fazer hoje".
 
-O que fica de fora nesta fase: equipe com papéis, financeiro completo, peticionamento, captura automática de publicações.
+O que fica de fora nesta fase: equipe com papéis, financeiro completo, peticionamento. A captura automática de publicações do DJEN entra na etapa 5, e as minutas com IA na etapa 6 (ver seções 10 e 14).
 
 3. Princípios
 WhatsApp primeiro. O advogado registra e consulta pelo WhatsApp; o app é para ver, organizar e corrigir.
@@ -158,7 +158,7 @@ prazos_proximos	prazos fatais e internos dos próximos N dias, atrasados primeir
 audiencias_proximas	audiências com data, hora e local	não	não
 documentos_pendentes	itens de checklist abertos por cliente	não	não
 andamento_para_cliente	resumo do processo em linguagem simples, para o advogado encaminhar	não	não
-consultar_processo	movimentações recentes pelo número CNJ (DataJud)	não	não
+consultar_processo	movimentações recentes pelo número CNJ (DataJud, depois do DJEN)	não	não
 
 Ajustes no SOUL.md:
 
@@ -187,7 +187,17 @@ Agente jurídico (versão enxuta para o piloto com 2 ou 3 advogados). Feito: reg
 Depois do piloto, nesta ordem:
 1. Campo "rito" (comum|juizado) em processo_detalhes, preenchido uma vez por processo, para o agente parar de perguntar "vara comum ou juizado?". Exige migração. Até lá, a palavra "Vara" no órgão não conta como pista, por causa dos juizados adjuntos em comarcas pequenas e das varas federais com JEF.
 2. documentos_pendentes no agente (feito em 10/11/2026, com a marca Escriva). Os documentos pendentes não entram no resumo das 8h.
-DataJud. Consulta por número CNJ e aviso de movimentação nova (sem substituir a leitura das intimações).
+Captura de publicações do DJEN (etapa 5, no lugar do DataJud). Busca diária das publicações pelo número da OAB do advogado, ligação com o processo pelo número CNJ e mensagem no WhatsApp com a prévia do prazo calculado, que continua precisando do "sim". A captura é opcional e vem desligada; o advogado liga informando a OAB e aceitando o aviso de cobertura. Investigação feita em docs/relatorios/etapa-5.md; a fatia 1 (consulta e sugestões, sem envio) está em andamento.
+Minutas com IA (etapa 6, decidida em 10/11/2026). Rascunho da peça a partir da intimação registrada, para o advogado revisar e assinar. Desenho inicial:
+Gatilho: depois do "sim" de um prazo, o agente oferece "Quer um rascunho da réplica?". Também pode ser pedido no app, na janela do prazo.
+Base do rascunho: os dados do processo (partes, classe, órgão), o texto da intimação e, de preferência, um modelo do próprio advogado. Primeiro passo: biblioteca de modelos do advogado por tipo de peça (réplica, contestação, recurso, manifestação).
+Entrega: arquivo .docx no app, com link na conversa. O WhatsApp recebe só o aviso e o link, nunca o texto da peça inteira.
+Sempre marcado como rascunho para revisão. O produto nunca protocola nem envia nada ao tribunal.
+Sem citação inventada: jurisprudência, súmulas e artigos só entram quando vêm do modelo do advogado ou de fonte que ele forneceu; o que não for conferível sai marcado "conferir".
+Segredo de justiça e sigilo: o texto vai para o provedor de LLM com termos de não retenção; processos sigilosos só com confirmação explícita.
+Seguir as recomendações do Conselho Federal da OAB sobre IA generativa (legislação aplicável, confidencialidade e privacidade, prática ética e comunicação ao cliente sobre o uso de IA).
+Custo: cada rascunho gasta tokens do LLM. Definir limite por plano antes de oferecer.
+DataJud. Consulta por número CNJ e aviso de movimentação nova, depois do DJEN (quem gera prazo é a intimação).
 Andamento para o cliente. Texto em linguagem simples, depois um link de acompanhamento só de leitura, se fizer sentido.
 
 Antes da etapa 3, conversar com dois ou três advogados autônomos de Pelotas para confirmar a ordem das dores e testar a memória de cálculo de prazo.
@@ -196,10 +206,11 @@ Antes da etapa 3, conversar com dois ou três advogados autônomos de Pelotas pa
 Responsabilidade pelo prazo. O produto é um assistente: calcula, mostra o cálculo e lembra. Os termos de uso e a interface deixam claro que a conferência é do advogado.
 Sigilo profissional e LGPD. Mensagens passam pelo WhatsApp e pelo provedor de LLM configurado no agente. Escolher provedor com termos de não retenção de dados, informar isso ao advogado e permitir usar o app sem o agente.
 Feriados desatualizados. Uma tabela errada gera prazo errado. Revisão anual e cadastro de feriado local pelo próprio advogado.
-Concorrência. Astrea, ADVBOX, Projuris, EasyJur e CPJ já oferecem gestão completa. O diferencial é ser leve e centrado no WhatsApp, não ter mais funções.
+Minutas com IA. Erro em peça gerada é responsabilidade do advogado, e citação inventada é o risco mais conhecido. Por isso: rascunho sempre marcado para revisão, sem jurisprudência que não venha do advogado, e aviso claro na interface.
+Concorrência. Astrea, ADVBOX, Projuris, EasyJur, CPJ, AdvPlan e o Tempestivo de tempestivo.com.br já oferecem gestão completa, e vários capturam publicações do DJEN. O diferencial é ser leve e centrado no WhatsApp, não ter mais funções (ver seção 14).
 12. Pendências
 Nome do produto: definido, Escriva (marca em docs/marca/), no lugar de Tempestivo desde 10/11/2026.
-Domínio: o app ainda responde em myplan-ashy.vercel.app. Trocar por um domínio da Escriva e, junto, atualizar NEXT_PUBLIC_APP_URL na Vercel, as Redirect URLs do Supabase e o TEMPESTIVO_MCP_URL das instâncias do agente.
+Domínio: o app responde em tempestivo.vercel.app (myplan-ashy.vercel.app redireciona). Trocar por um domínio da Escriva (conferir escriva.com.br e escriva.app) e, junto, atualizar NEXT_PUBLIC_APP_URL na Vercel, as Redirect URLs do Supabase e o TEMPESTIVO_MCP_URL das instâncias do agente.
 Validação com advogados autônomos (dores, preço, uso do WhatsApp para trabalho).
 Revisão das regras de prazo por alguém da área antes de qualquer uso real (casos em docs/validacao-prazos.md).
 Feriados forenses do TJRS além da Data Magna: carregar só depois de conferir o ato do tribunal (etapa 3 deixou só o 20/09).
@@ -207,9 +218,29 @@ Dia do Servidor de 2027 no TRF4 (e no TRT4, se houver): carregar quando o tribun
 Quarta-feira de Cinzas: só entra como expediente reduzido com ato do tribunal; até lá, o advogado pode cadastrá-la como feriado local.
 Ícones jurídicos: feitos na etapa 2 (tela) e na etapa 4 (o agente cria processo com a balança e caso consultivo com a maleta).
 Vocabulário das mensagens do agente: feito na etapa 4.
-Ferramentas do agente que ficaram fora da etapa 4: andamento_para_cliente e consultar_processo (DataJud, etapa 5). documentos_pendentes foi feita em 10/11/2026.
+Ferramentas do agente que ficaram fora da etapa 4: andamento_para_cliente e consultar_processo (DataJud, depois do DJEN). documentos_pendentes foi feita em 10/11/2026.
+Acesso automatizado ao DJEN: investigado (docs/relatorios/etapa-5.md). A API pública funciona por OAB sem login; falta consulta formal ao CNJ sobre termos de uso antes de oferecer a mais de um advogado.
+Financeiro básico de honorários: antes de cobrar pelo produto (ver seção 14).
 Agente único para vários números: fora do piloto. No piloto, cada advogado tem a própria instância do nanobot.
 
 13. Ideias futuras
 Trocar o modelo de quadro de um processo que já existe. Exigiria renomear colunas que já têm tarefas, então fica fora do roteiro por enquanto.
 Litisconsórcio: mais de um cliente no mesmo processo. Hoje cada processo tem no máximo um cliente (projects.cliente_id). Uma tabela de ligação resolveria, sem desfazer o campo atual.
+
+14. Concorrência e diferencial (análise de 10/11/2026)
+Referência analisada: AdvPlan (Design Master), software web para advocacia no Brasil, do autônomo a escritórios de 200 pessoas. Planos de R$ 149/mês (1 usuário, 2 GB) a R$ 1.399/mês (30 usuários), 14 dias grátis sem cartão e 50% de desconto nos três primeiros meses. Funções listadas: captura automática de publicações do DJEN em todos os planos, prazos com aprovação do advogado antes de entrar na agenda, processos, clientes (CRM), tarefas, documentos com versões, IA para redigir petições, financeiro (honorários, cobrança, NFS-e), portal do cliente, WhatsApp, conexão com Claude e ChatGPT e API. As fontes foram as páginas do Software Advice e do GetApp, que têm zero avaliações e às vezes se contradizem; o site oficial não foi consultado.
+O que é imprescindível para nós:
+Captura automática do DJEN. Desde maio de 2025 o CNJ adota o DJEN como meio nacional de publicação, e o portal busca pelo número da OAB. Com a captura, o assistente avisa sozinho da intimação e propõe o prazo, sem o advogado precisar encaminhar. Passa a ser a etapa 5.
+Financeiro básico de honorários: contrato, parcelas, recebido e a receber. Não para o piloto, mas antes de cobrar pelo produto.
+Teste grátis sem cartão, que é o padrão do mercado. O preço de referência que o advogado vai comparar é R$ 149/mês para 1 usuário.
+Já temos: aprovação do prazo antes de gravar e cadastro de clientes.
+Barato e útil: exportar prazos e audiências para o Google Agenda.
+Não é imprescindível para o autônomo e iria contra a ideia de ser leve: documentos com versões, NFS-e, portal do cliente e API. A IA para minutas entrou no plano em 10/11/2026 (etapa 6), porque os dois concorrentes diretos já oferecem.
+O nosso diferencial:
+O WhatsApp é o produto, e não uma integração. O advogado resolve tudo na conversa e é avisado sem pedir.
+Cálculo transparente e conservador: memória do cálculo em cada prazo, feriados por tribunal, expediente reduzido e o princípio "na dúvida, o prazo vence antes".
+Lembretes que chegam: D-3, D-1 e no dia pelo WhatsApp, mais o resumo das 8h.
+Feito para quem trabalha sozinho: sem módulos nem configuração, processo criado em menos de um minuto e espaço para um preço abaixo de R$ 149.
+Segunda referência (10/11/2026): Tempestivo, de G R Tecnologia (CNPJ 38.323.551/0001-69, "uma solução GROCHA Tech"). Monitora o DJEN pela OAB em todos os tribunais, calcula prazos em dias úteis com feriados, avisa antes do vencimento por e-mail e notificação, tem tarefas, clientes, documentos, papéis de equipe e rascunhos de minutas por IA para revisão. Consulta grátis sem cadastro das publicações dos últimos 30 dias. Planos: Solo R$ 109,90/mês, Escritório R$ 259,90/mês, módulos por área de R$ 109 a R$ 149/mês cada, 15% de desconto no semestral e 25% no anual, teste de 7 dias sem cartão. O site não cita WhatsApp.
+O que isso muda para nós: o nome mudou para Escriva; o preço de referência do autônomo passa a ser R$ 109,90/mês; captura do DJEN e minutas por IA viram o mínimo esperado; o WhatsApp continua sendo o diferencial, junto com a memória do cálculo à vista.
+Fontes: https://www.tempestivo.com.br/, https://www.oab.org.br/noticia/62711/confira-versao-final-da-recomendacao-do-cfoab-sobre-o-uso-de-ia-na-pratica-juridica, https://www.softwareadvice.com.au/software/775619/AdvPlan, https://www.getapp.com/all-software/a/advplan/, https://www.projuris.com.br/blog/djen/
