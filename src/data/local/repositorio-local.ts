@@ -40,7 +40,10 @@ import { FERIADOS_DOS_TRIBUNAIS } from "./feriados-tribunais";
  * configurado, para experimentar o app sem backend.
  */
 
-/** Chave dos dados no navegador. Antes da marca Tempestivo era "myplan:v2" (ver lerBruto). */
+/**
+ * Chave dos dados no navegador. Antes da marca Tempestivo era "myplan:v2" (ver lerBruto).
+ * Continua "tempestivo:v2" na marca Escriva, para ninguém perder os dados do modo local.
+ */
 export const CHAVE = "tempestivo:v2";
 export const CHAVE_ANTIGA = "myplan:v2";
 

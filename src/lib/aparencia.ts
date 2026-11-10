@@ -18,6 +18,7 @@ export const CORES_DESTAQUE: CorDestaque[] = [
 
 export const DESTAQUE_PADRAO = CORES_DESTAQUE[0].id;
 
+// Nome da marca anterior, mantido para não perder a cor que cada navegador já guardou.
 const CHAVE = "tempestivo-destaque";
 /** Antes da marca, a cor era um hexadecimal em "myplan-accent", de opções que não existem mais. */
 const CHAVE_ANTIGA = "myplan-accent";

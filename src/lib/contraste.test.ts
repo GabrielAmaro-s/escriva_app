@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { CORES_DESTAQUE } from "./aparencia";
 
-// A marca Tempestivo exige pelo menos 4,5:1 em todo texto, nos dois temas (docs/marca/MANUAL_DA_MARCA.md).
+// A marca Escriva exige pelo menos 4,5:1 em todo texto, nos dois temas (docs/marca/MANUAL_DA_MARCA.md).
 // Este teste confere os valores do globals.css contra o tokens.json e mede as combinações de texto.
 
 type Tema = "light" | "dark";
